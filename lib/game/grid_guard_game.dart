@@ -13,6 +13,7 @@ import '../models/level_state.dart';
 import '../models/star_rating.dart';
 import '../models/tower_type.dart';
 import 'components/arc_effect.dart';
+import 'components/burst_effect.dart';
 import 'components/core_component.dart';
 import 'components/enemy_component.dart';
 import 'components/floating_text.dart';
@@ -411,6 +412,7 @@ class GridGuardGame extends FlameGame {
     enemies.remove(e);
     addMw(e.spec.mwReward);
     score += (e.spec.mwReward * 1.5).round();
+    worldRoot.add(BurstEffect(tile: e.tile.clone(), color: e.spec.tint));
     _emitSfx(Sfx.enemyDeath);
   }
 

@@ -72,22 +72,76 @@ class EnemyComponent extends IsoComponent {
 
   @override
   void render(Canvas canvas) {
-    final halfW = game.iso.halfW;
-    final halfH = game.iso.halfH;
-
     final base = _hitFlash > 0
         ? Color.lerp(spec.tint, Colors.white, 0.6)!
         : spec.tint;
-    final shades = faceShades(base);
+    if (spec.category == EnemyCategory.drone) {
+      _renderDrone(canvas, base);
+    } else {
+      _renderMalware(canvas, base);
+    }
+  }
 
-    final isDrone = spec.category == EnemyCategory.drone;
-    // Drones hover and are smaller; malware is a squat heavy box.
-    final hover = isDrone ? (2.0 + 1.5 * math.sin(_bob)) : 0.0;
-    final foot = isDrone ? 0.4 : 0.6;
-    final h = isDrone ? halfH * 0.5 : halfH * 0.9;
+  /// Saboteur Drone: a hovering quadcopter — body + four rotor arms.
+  void _renderDrone(Canvas canvas, Color base) {
+    final halfW = game.iso.halfW;
+    final halfH = game.iso.halfH;
+    final hover = 3.0 + 1.6 * math.sin(_bob);
 
     canvas.save();
     canvas.translate(0, -hover);
+
+    // Faint ground shadow.
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(0, hover), width: halfW * 0.5, height: halfH * 0.35),
+      Paint()..color = Colors.black.withValues(alpha: 0.12),
+    );
+
+    // Four arms + spinning rotors at the diagonal tips.
+    final arm = Paint()
+      ..color = const Color(0xFF2A2E36)
+      ..strokeWidth = 2;
+    final tips = [
+      Offset(halfW * 0.34, -halfH * 0.18),
+      Offset(-halfW * 0.34, -halfH * 0.18),
+      Offset(halfW * 0.34, halfH * 0.18),
+      Offset(-halfW * 0.34, halfH * 0.18),
+    ];
+    for (final tp in tips) {
+      canvas.drawLine(Offset.zero, tp, arm);
+      canvas.drawOval(
+        Rect.fromCenter(center: tp, width: 11, height: 5),
+        Paint()..color = const Color(0x66AEB6C2),
+      );
+    }
+
+    // Body.
+    final shades = faceShades(base);
+    drawIsoBox(
+      canvas,
+      halfW: halfW,
+      halfH: halfH,
+      height: halfH * 0.4,
+      top: shades.top,
+      left: shades.left,
+      right: shades.right,
+      footScale: 0.32,
+    );
+    // Sensor eye.
+    canvas.drawCircle(Offset(0, -halfH * 0.4),
+        2.2, Paint()..color = const Color(0xFFFFE08A));
+    canvas.restore();
+
+    _drawHealthBar(canvas, halfW, halfH * 0.4 + hover);
+  }
+
+  /// Malware Crawler: a squat armoured slab with spikes and a glitch slice.
+  void _renderMalware(Canvas canvas, Color base) {
+    final halfW = game.iso.halfW;
+    final halfH = game.iso.halfH;
+    final shades = faceShades(base);
+    final h = halfH * 0.85;
+
     drawIsoBox(
       canvas,
       halfW: halfW,
@@ -96,11 +150,28 @@ class EnemyComponent extends IsoComponent {
       top: shades.top,
       left: shades.left,
       right: shades.right,
-      footScale: foot,
+      footScale: 0.62,
+      edge: const Color(0x44000000),
     );
-    canvas.restore();
 
-    _drawHealthBar(canvas, halfW, h + hover);
+    // Spikes along the top ridge.
+    final spike = Paint()..color = Color.lerp(base, Colors.black, 0.25)!;
+    for (final dx in [-halfW * 0.28, 0.0, halfW * 0.28]) {
+      final topY = -h;
+      final p = Path()
+        ..moveTo(dx - 3, topY)
+        ..lineTo(dx, topY - 7)
+        ..lineTo(dx + 3, topY)
+        ..close();
+      canvas.drawPath(p, spike);
+    }
+    // Glitchy sensor eye.
+    canvas.drawRect(
+      Rect.fromCenter(center: Offset(0, -h * 0.55), width: 8, height: 3),
+      Paint()..color = const Color(0xFF3FE0D0),
+    );
+
+    _drawHealthBar(canvas, halfW, h);
   }
 
   void _drawHealthBar(Canvas canvas, double halfW, double topY) {

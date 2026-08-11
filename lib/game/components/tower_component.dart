@@ -102,50 +102,109 @@ class TowerComponent extends IsoComponent {
 
   @override
   void render(Canvas canvas) {
+    if (spec.category == TowerCategory.slow) {
+      _renderBarrier(canvas);
+    } else {
+      _renderTransformer(canvas);
+    }
+    _drawTierPips(canvas, game.iso.halfH);
+  }
+
+  /// Scissor Barrier: two steel posts with a crossed scissor gate between them.
+  void _renderBarrier(Canvas canvas) {
+    final halfW = game.iso.halfW;
+    final halfH = game.iso.halfH;
+    final postShades = faceShades(const Color(0xFF3E4A57));
+
+    // Two posts, offset left/right along the tile.
+    for (final dx in [-halfW * 0.42, halfW * 0.42]) {
+      canvas.save();
+      canvas.translate(dx, 0);
+      drawIsoBox(
+        canvas,
+        halfW: halfW,
+        halfH: halfH,
+        height: halfH * 0.9,
+        top: postShades.top,
+        left: postShades.left,
+        right: postShades.right,
+        footScale: 0.16,
+      );
+      canvas.restore();
+    }
+
+    // Scissor blades (an X) spanning the gate, in the tower's teal.
+    final blade = Paint()
+      ..color = spec.tint
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    final y = -halfH * 0.7;
+    canvas.drawLine(Offset(-halfW * 0.42, y - 6),
+        Offset(halfW * 0.42, y + 4), blade);
+    canvas.drawLine(Offset(-halfW * 0.42, y + 4),
+        Offset(halfW * 0.42, y - 6), blade);
+    // Pivot bolt.
+    canvas.drawCircle(Offset(0, y - 1), 2.4,
+        Paint()..color = const Color(0xFFEAF6F4));
+  }
+
+  /// 6300A Shock Transformer: an orange housing with ceramic insulator stacks
+  /// and an emitter node that flares white when it fires.
+  void _renderTransformer(Canvas canvas) {
     final halfW = game.iso.halfW;
     final halfH = game.iso.halfH;
     final base = spec.tint;
-    final shades = faceShades(base);
+    final glow = _fireFlash > 0
+        ? Color.lerp(base, const Color(0xFFFFF3C0), _fireFlash)!
+        : base;
+    final s = faceShades(glow);
+    final housingH = halfH * (1.2 + 0.35 * tier);
 
-    if (spec.category == TowerCategory.slow) {
-      // Barrier: a low, wide unit with a visible gate gap.
-      drawIsoBox(
-        canvas,
-        halfW: halfW,
-        halfH: halfH,
-        height: halfH * 0.7,
-        top: shades.top,
-        left: shades.left,
-        right: shades.right,
-        edge: const Color(0xFFFFFFFF),
-        footScale: 0.85,
-      );
-    } else {
-      // Shock Transformer: taller, flashes on fire.
-      final glow = _fireFlash > 0
-          ? Color.lerp(base, const Color(0xFFFFF3C0), _fireFlash)!
-          : base;
-      final s = faceShades(glow);
-      drawIsoBox(
-        canvas,
-        halfW: halfW,
-        halfH: halfH,
-        height: halfH * (1.4 + 0.4 * tier),
-        top: s.top,
-        left: s.left,
-        right: s.right,
-        edge: const Color(0xFFFFFFFF),
-        footScale: 0.6,
-      );
+    drawIsoBox(
+      canvas,
+      halfW: halfW,
+      halfH: halfH,
+      height: housingH,
+      top: s.top,
+      left: s.left,
+      right: s.right,
+      edge: const Color(0x66FFFFFF),
+      footScale: 0.6,
+    );
+
+    // Cooling fins on the front-right face.
+    final fin = Paint()
+      ..color = const Color(0x33000000)
+      ..strokeWidth = 1;
+    for (var i = 1; i <= 3; i++) {
+      final fy = -housingH * (i / 4);
+      canvas.drawLine(Offset(halfW * 0.05, fy + halfH * 0.28),
+          Offset(halfW * 0.34, fy + halfH * 0.1), fin);
     }
 
-    _drawTierPips(canvas, halfH);
+    // Ceramic insulator stacks + emitter on the lid.
+    canvas.save();
+    canvas.translate(0, -housingH);
+    for (final dx in [-halfW * 0.22, halfW * 0.22]) {
+      for (var d = 0; d < 3; d++) {
+        canvas.drawOval(
+          Rect.fromCenter(
+              center: Offset(dx, -d * 4.0), width: 9 - d.toDouble(), height: 4),
+          Paint()..color = const Color(0xFFCBB89A),
+        );
+      }
+    }
+    // Emitter node between the insulators.
+    final emitter = _fireFlash > 0 ? const Color(0xFFFFFFFF) : const Color(0xFFFFC46B);
+    canvas.drawCircle(Offset(0, -8), _fireFlash > 0 ? 5 : 3.5,
+        Paint()..color = emitter);
+    canvas.restore();
   }
 
   void _drawTierPips(Canvas canvas, double halfH) {
-    final paint = Paint()..color = const Color(0xFFFFFFFF);
+    final paint = Paint()..color = const Color(0xFFFFE08A);
     for (var i = 0; i <= tier; i++) {
-      canvas.drawCircle(Offset(-6 + i * 6.0, -halfH * 2.0), 2.0, paint);
+      canvas.drawCircle(Offset(-6 + i * 6.0, -halfH * 2.3), 2.0, paint);
     }
   }
 }
