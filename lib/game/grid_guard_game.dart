@@ -377,8 +377,24 @@ class GridGuardGame extends FlameGame {
 
   // ---- Component-facing API ----
 
-  double slowMultiplierAt(TileCoord tile) =>
-      _slowTowers[tile]?.currentTier.slowMultiplier ?? 1.0;
+  /// Radius (in tiles) of a Scissor Barrier's slow field. Kept in sync with the
+  /// visual field drawn on the barrier.
+  static const double barrierSlowRadius = 1.5;
+
+  /// Strongest slow affecting a fractional board position: any barrier whose
+  /// field ([barrierSlowRadius]) covers [pos] slows enemies there. Applying it
+  /// over an area (not a single tile) is what makes the barrier bite and bunch
+  /// enemies up for the Shock Transformer's chain.
+  double slowMultiplierAt(Vector2 pos) {
+    var m = 1.0;
+    for (final b in _slowTowers.values) {
+      if ((pos - b.tile).length <= barrierSlowRadius) {
+        final s = b.currentTier.slowMultiplier;
+        if (s < m) m = s;
+      }
+    }
+    return m;
+  }
 
   void addMw(int amount) => mw += amount;
 

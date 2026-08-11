@@ -26,9 +26,9 @@ class TowerCatalog {
       tint: Color(0xFF00C2A8),
       placeableOn: TilePlacement.path,
       tiers: [
-        TowerTier(cost: 30, slowMultiplier: 0.6),
-        TowerTier(cost: 45, slowMultiplier: 0.45),
-        TowerTier(cost: 70, slowMultiplier: 0.32),
+        TowerTier(cost: 30, slowMultiplier: 0.5),
+        TowerTier(cost: 45, slowMultiplier: 0.36),
+        TowerTier(cost: 70, slowMultiplier: 0.24),
       ],
     ),
     TowerType.shockTransformer: TowerSpec(

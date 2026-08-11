@@ -54,8 +54,8 @@ class EnemyComponent extends IsoComponent {
   void update(double dt) {
     if (_dead) return;
     final path = game.path;
-    final currentTile = path.tileAtDistance(pathDistance);
-    final slow = game.slowMultiplierAt(currentTile);
+    final curPos = path.positionAtDistance(pathDistance);
+    final slow = game.slowMultiplierAt(curPos);
     pathDistance += speed * slow * dt;
     _bob += dt * 6;
     if (_hitFlash > 0) _hitFlash = (_hitFlash - dt).clamp(0, 1);

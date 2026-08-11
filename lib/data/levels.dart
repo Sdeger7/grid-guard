@@ -187,7 +187,7 @@ class LevelCatalog {
       path: _pathTemplate(zone),
       safeZones: _safeZones(zone),
       waves: waves,
-      startingMw: 120 + (idx - 1) * 10,
+      startingMw: 95 + (idx - 1) * 8,
       coreIntegrity: coreIntegrity,
       lowDamageStarThreshold: 0.25, // keep >=75% integrity for star 2
       timeStarThreshold: timeBudget,

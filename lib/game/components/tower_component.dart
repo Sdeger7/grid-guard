@@ -114,6 +114,20 @@ class TowerComponent extends IsoComponent {
   void _renderBarrier(Canvas canvas) {
     final halfW = game.iso.halfW;
     final halfH = game.iso.halfH;
+
+    // Slow-field hint (matches GridGuardGame.barrierSlowRadius = 1.5 tiles).
+    const r = 1.5;
+    final field = Rect.fromCenter(
+        center: Offset.zero, width: 2 * r * halfW, height: 2 * r * halfH);
+    canvas.drawOval(field, Paint()..color = spec.tint.withValues(alpha: 0.10));
+    canvas.drawOval(
+      field,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..color = spec.tint.withValues(alpha: 0.35),
+    );
+
     final postShades = faceShades(const Color(0xFF3E4A57));
 
     // Two posts, offset left/right along the tile.
