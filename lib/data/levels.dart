@@ -187,10 +187,15 @@ class LevelCatalog {
       path: _pathTemplate(zone),
       safeZones: _safeZones(zone),
       waves: waves,
-      startingMw: 95 + (idx - 1) * 8,
+      startingMw: 95 + (idx - 1) * 8, // legacy field, unused by the sim
       coreIntegrity: coreIntegrity,
       lowDamageStarThreshold: 0.25, // keep >=75% integrity for star 2
       timeStarThreshold: timeBudget,
+      // Energy-flow seed: enough money to lay down a PV + a first tower, a small
+      // BESS charge to start, and a modest battery to force early PV building.
+      startMoney: 130 + (idx - 1) * 10,
+      startEnergy: 25,
+      bessCapacity: 60,
     );
   }
 }

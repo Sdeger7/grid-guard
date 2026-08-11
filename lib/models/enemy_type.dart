@@ -26,7 +26,7 @@ class EnemySpec {
     required this.baseHealth,
     required this.baseSpeed,
     required this.coreDamage,
-    required this.mwReward,
+    required this.scoreValue,
     required this.tint,
     this.spriteKey,
     this.radius = 0.28,
@@ -45,8 +45,8 @@ class EnemySpec {
   /// Integrity removed from the BESS 1M core if this enemy reaches the end.
   final double coreDamage;
 
-  /// MW granted to the player on kill.
-  final int mwReward;
+  /// Score awarded to the player on kill.
+  final int scoreValue;
 
   /// Placeholder colour until a real sprite is dropped in.
   final Color tint;

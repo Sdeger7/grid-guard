@@ -20,75 +20,76 @@ enum RunPhase {
 /// A lightweight, immutable snapshot of the live run, published to the UI a few
 /// times per second so the HUD can rebuild without watching every game frame.
 ///
-/// The authoritative fast-changing values (exact MW, exact integrity) live in
-/// the Flame game; this is the throttled view of them.
+/// Mirrors the energy-flow economy: [energy]/[energyCapacity] is the BESS,
+/// [money] is the build/upgrade currency the Data Center earns, [score] comes
+/// from kills. [pvOutput]/[dcDraw]/[dcIncome]/[dcPowered] expose the live grid
+/// balance so the HUD can show whether the grid is in surplus or deficit.
 @immutable
 class LevelState {
   const LevelState({
     required this.levelId,
-    required this.mw,
+    required this.energy,
+    required this.energyCapacity,
+    required this.money,
+    required this.score,
+    required this.pvOutput,
+    required this.dcDraw,
+    required this.dcIncome,
+    required this.dcPowered,
+    required this.bessLevel,
+    required this.dcLevel,
+    required this.bessUpgradeCost,
+    required this.dcUpgradeCost,
     required this.coreIntegrity,
     required this.maxCoreIntegrity,
     required this.waveNumber,
     required this.totalWaves,
     required this.phase,
     required this.elapsedSeconds,
-    required this.score,
     this.bossWaveActive = false,
   });
 
   final int levelId;
-  final int mw;
+
+  // Energy (BESS).
+  final double energy;
+  final double energyCapacity;
+
+  // Currencies / performance.
+  final int money;
+  final int score;
+
+  // Live grid balance.
+  final double pvOutput;
+  final double dcDraw;
+  final double dcIncome;
+  final bool dcPowered;
+
+  // Facilities.
+  final int bessLevel;
+  final int dcLevel;
+  final int bessUpgradeCost;
+  final int dcUpgradeCost;
+
+  // Core / waves.
   final double coreIntegrity;
   final double maxCoreIntegrity;
-
-  /// 1-based wave index; 0 while still in the building phase.
   final int waveNumber;
   final int totalWaves;
   final RunPhase phase;
   final double elapsedSeconds;
-  final int score;
   final bool bossWaveActive;
 
-  double get integrityFraction =>
-      maxCoreIntegrity <= 0 ? 0 : (coreIntegrity / maxCoreIntegrity).clamp(0, 1);
+  double get integrityFraction => maxCoreIntegrity <= 0
+      ? 0
+      : (coreIntegrity / maxCoreIntegrity).clamp(0, 1);
 
-  factory LevelState.initial(int levelId, int startingMw, double integrity,
-          int totalWaves) =>
-      LevelState(
-        levelId: levelId,
-        mw: startingMw,
-        coreIntegrity: integrity,
-        maxCoreIntegrity: integrity,
-        waveNumber: 0,
-        totalWaves: totalWaves,
-        phase: RunPhase.building,
-        elapsedSeconds: 0,
-        score: 0,
-      );
+  double get energyFraction =>
+      energyCapacity <= 0 ? 0 : (energy / energyCapacity).clamp(0, 1);
 
-  LevelState copyWith({
-    int? mw,
-    double? coreIntegrity,
-    int? waveNumber,
-    RunPhase? phase,
-    double? elapsedSeconds,
-    int? score,
-    bool? bossWaveActive,
-  }) {
-    return LevelState(
-      levelId: levelId,
-      mw: mw ?? this.mw,
-      coreIntegrity: coreIntegrity ?? this.coreIntegrity,
-      maxCoreIntegrity: maxCoreIntegrity,
-      waveNumber: waveNumber ?? this.waveNumber,
-      totalWaves: totalWaves,
-      phase: phase ?? this.phase,
-      elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
-      score: score ?? this.score,
-      bossWaveActive: bossWaveActive ?? this.bossWaveActive,
-    );
-  }
+  /// Net energy per second (PV production minus Data Center draw). Negative
+  /// means the BESS is draining even before towers fire.
+  double get netEnergy => pvOutput - dcDraw;
 }
 
 /// The computed outcome of a finished run, handed to the level-end screen and
@@ -99,7 +100,7 @@ class LevelResult {
     required this.levelId,
     required this.stars,
     required this.baseGridCredits,
-    required this.mwEarned,
+    required this.finalScore,
     required this.timeSeconds,
     required this.integrityRemaining,
   });
@@ -109,7 +110,7 @@ class LevelResult {
 
   /// Grid Credits before any 2x rewarded-ad multiplier.
   final int baseGridCredits;
-  final int mwEarned;
+  final int finalScore;
   final double timeSeconds;
   final double integrityRemaining;
 

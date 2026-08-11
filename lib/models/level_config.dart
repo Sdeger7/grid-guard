@@ -104,6 +104,9 @@ class LevelConfig {
     required this.coreIntegrity,
     required this.lowDamageStarThreshold,
     required this.timeStarThreshold,
+    this.startMoney = 120,
+    this.startEnergy = 30,
+    this.bessCapacity = 60,
   });
 
   final int id;
@@ -126,6 +129,15 @@ class LevelConfig {
   final List<WaveConfig> waves;
   final int startingMw;
   final double coreIntegrity;
+
+  /// Seed money the player starts a level with (build/upgrade currency).
+  final int startMoney;
+
+  /// Energy already stored in the BESS at level start.
+  final double startEnergy;
+
+  /// BESS storage capacity (energy) at level start (before upgrades).
+  final double bessCapacity;
 
   /// Star 2: keep integrity loss at or below this fraction (0..1) of max.
   final double lowDamageStarThreshold;

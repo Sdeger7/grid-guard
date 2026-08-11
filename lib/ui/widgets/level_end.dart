@@ -63,7 +63,7 @@ class _WinPanelState extends State<WinPanel> {
                 label: 'Grid Credits',
                 value: '+$_credits',
                 highlight: _doubled),
-            _RewardRow(label: 'MW banked', value: '${r.mwEarned}'),
+            _RewardRow(label: 'Score', value: '${r.finalScore}'),
             _RewardRow(
                 label: 'Time', value: '${r.timeSeconds.toStringAsFixed(1)}s'),
             const SizedBox(height: 16),

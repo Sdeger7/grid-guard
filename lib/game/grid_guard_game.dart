@@ -95,8 +95,17 @@ class GridGuardGame extends FlameGame {
 
   late final PositionComponent worldRoot;
 
-  // ---- Live run state ----
-  double mw = 0;
+  // ---- Live run state (real energy-flow economy) ----
+  // Energy is the operational fuel: PV produces it, the BESS stores it, and the
+  // Data Center + firing towers consume it. Money is the build/upgrade currency,
+  // earned by the Data Center while it stays powered. Score comes from kills.
+  double energy = 0;
+  double energyCapacity = 0;
+  double money = 0;
+  int bessLevel = 1;
+  int dcLevel = 1;
+  bool dcPowered = false;
+
   double coreIntegrity = 0;
   double integrityMax = 0;
   double damageTaken = 0;
@@ -107,8 +116,23 @@ class GridGuardGame extends FlameGame {
   bool bossActive = false;
 
   final List<EnemyComponent> enemies = [];
+  final List<PvPanelComponent> pvPanels = [];
   final Map<TileCoord, PositionComponent> _occupied = {};
   final Map<TileCoord, TowerComponent> _slowTowers = {};
+
+  /// Total PV output (energy/sec) from every placed panel.
+  double get pvOutput =>
+      pvPanels.fold(0.0, (s, p) => s + p.currentTier.mwPerSecond);
+
+  /// Data Center energy draw per second (grows with DC level — greed costs power).
+  double get dcDraw => 3.0 + (dcLevel - 1) * 2.0;
+
+  /// Money earned per second while the Data Center is powered.
+  double get dcIncome => 5.0 + (dcLevel - 1) * 3.0;
+
+  int get bessUpgradeCost => 80 * bessLevel;
+  int get dcUpgradeCost => 100 * dcLevel;
+  static const double bessCapacityPerLevel = 40;
 
   /// Set from the HUD build tray; null == inspect/select mode.
   TowerType? selectedBuild;
@@ -130,7 +154,9 @@ class GridGuardGame extends FlameGame {
     path = PathSystem(config.path);
     theme = ZoneTheme.forZone(config.zone);
 
-    mw = config.startingMw.toDouble();
+    money = config.startMoney.toDouble();
+    energyCapacity = config.bessCapacity;
+    energy = config.startEnergy;
     coreIntegrity = config.coreIntegrity;
     integrityMax = config.coreIntegrity;
 
@@ -237,11 +263,28 @@ class GridGuardGame extends FlameGame {
     int? cost;
     if (comp is TowerComponent && comp.canUpgrade) cost = comp.upgradeCost;
     if (comp is PvPanelComponent && comp.canUpgrade) cost = comp.upgradeCost;
-    if (cost == null || !_spendMw(cost)) return;
+    if (cost == null || !_spendMoney(cost)) return;
     if (comp is TowerComponent) comp.upgrade();
     if (comp is PvPanelComponent) comp.upgrade();
     _emitSfx(Sfx.towerPlace);
     _selectStructure(coord); // refresh panel
+  }
+
+  /// Money sink — a bigger battery holds more energy to ride out draw spikes.
+  void upgradeBess() {
+    if (!_spendMoney(bessUpgradeCost)) return;
+    bessLevel++;
+    energyCapacity += bessCapacityPerLevel;
+    _emitSfx(Sfx.towerPlace);
+    _publishSnapshot(force: true);
+  }
+
+  /// Money sink — a bigger Data Center earns more, but draws more power too.
+  void upgradeDc() {
+    if (!_spendMoney(dcUpgradeCost)) return;
+    dcLevel++;
+    _emitSfx(Sfx.towerPlace);
+    _publishSnapshot(force: true);
   }
 
   // ---- Update loop ----
@@ -249,6 +292,10 @@ class GridGuardGame extends FlameGame {
   @override
   void update(double dt) {
     super.update(dt);
+
+    if (phase != RunPhase.won && phase != RunPhase.lost) {
+      _tickEconomy(dt);
+    }
 
     if (phase == RunPhase.inProgress) {
       elapsed += dt;
@@ -263,6 +310,37 @@ class GridGuardGame extends FlameGame {
       _snapshotTimer = 0;
       _publishSnapshot();
     }
+  }
+
+  /// The energy-flow simulation, ticked every frame while the run is live.
+  ///
+  /// PV output charges the BESS (capped at capacity). The Data Center then tries
+  /// to draw its power: if the BESS can cover it, the DC runs and earns money;
+  /// otherwise it idles (no income) until energy recovers. Towers draw energy
+  /// separately, per shot, via [tryDrawEnergy].
+  void _tickEconomy(double dt) {
+    // 1) PV charges the battery.
+    energy = (energy + pvOutput * dt).clamp(0, energyCapacity);
+
+    // 2) Data Center consumes to run, and pays out while powered.
+    final draw = dcDraw * dt;
+    if (energy >= draw) {
+      energy -= draw;
+      money += dcIncome * dt;
+      dcPowered = true;
+    } else {
+      dcPowered = false;
+    }
+  }
+
+  /// Towers call this to spend energy on a shot. Returns false (don't fire) when
+  /// the BESS is too low — that's how starving the grid makes defences fail.
+  bool tryDrawEnergy(double amount) {
+    if (energy >= amount) {
+      energy -= amount;
+      return true;
+    }
+    return false;
   }
 
   void _decayShake(double dt) {
@@ -328,11 +406,13 @@ class GridGuardGame extends FlameGame {
         break;
     }
     if (!allowed) return;
-    if (!_spendMw(spec.tier(0).cost)) return;
+    if (!_spendMoney(spec.tier(0).cost)) return;
 
     late final PositionComponent comp;
     if (spec.category == TowerCategory.economy) {
-      comp = PvPanelComponent(spec: spec, coord: coord);
+      final pv = PvPanelComponent(spec: spec, coord: coord);
+      pvPanels.add(pv);
+      comp = pv;
     } else {
       final tower = TowerComponent(spec: spec, coord: coord);
       if (spec.category == TowerCategory.slow) _slowTowers[coord] = tower;
@@ -396,11 +476,9 @@ class GridGuardGame extends FlameGame {
     return m;
   }
 
-  void addMw(int amount) => mw += amount;
-
-  bool _spendMw(int amount) {
-    if (mw < amount) return false;
-    mw -= amount;
+  bool _spendMoney(int amount) {
+    if (money < amount) return false;
+    money -= amount;
     return true;
   }
 
@@ -426,8 +504,9 @@ class GridGuardGame extends FlameGame {
 
   void onEnemyKilled(EnemyComponent e) {
     enemies.remove(e);
-    addMw(e.spec.mwReward);
-    score += (e.spec.mwReward * 1.5).round();
+    // Kills award SCORE only — not energy, not money. Money comes from the Data
+    // Center; energy comes from PV.
+    score += e.spec.scoreValue;
     worldRoot.add(BurstEffect(tile: e.tile.clone(), color: e.spec.tint));
     _emitSfx(Sfx.enemyDeath);
   }
@@ -488,7 +567,7 @@ class GridGuardGame extends FlameGame {
       levelId: config.id,
       stars: stars,
       baseGridCredits: baseCredits,
-      mwEarned: mw.round(),
+      finalScore: score,
       timeSeconds: elapsed,
       integrityRemaining: coreIntegrity,
     ));
@@ -514,14 +593,24 @@ class GridGuardGame extends FlameGame {
   void _publishSnapshot({bool force = false}) {
     callbacks.onSnapshot(LevelState(
       levelId: config.id,
-      mw: mw.round(),
+      energy: energy,
+      energyCapacity: energyCapacity,
+      money: money.floor(),
+      score: score,
+      pvOutput: pvOutput,
+      dcDraw: dcDraw,
+      dcIncome: dcIncome,
+      dcPowered: dcPowered,
+      bessLevel: bessLevel,
+      dcLevel: dcLevel,
+      bessUpgradeCost: bessUpgradeCost,
+      dcUpgradeCost: dcUpgradeCost,
       coreIntegrity: coreIntegrity,
       maxCoreIntegrity: integrityMax,
       waveNumber: waveNumber,
       totalWaves: spawner.totalWaves,
       phase: phase,
       elapsedSeconds: elapsed,
-      score: score,
       bossWaveActive: bossActive,
     ));
   }

@@ -34,6 +34,7 @@ class TowerTier {
     this.slowMultiplier = 1.0,
     this.chainRadius = 0,
     this.chainBonus = 1.0,
+    this.energyCost = 0,
   });
 
   /// MW cost to reach this tier (to *build* for tier 0, to *upgrade into* for
@@ -61,6 +62,9 @@ class TowerTier {
 
   /// Damage multiplier applied when [chainThreshold]+ enemies are clustered.
   final double chainBonus;
+
+  /// Energy drawn from the BESS per shot (damage towers). No energy → no shot.
+  final double energyCost;
 }
 
 /// Full, immutable definition of a tower: its identity, family, visual key and

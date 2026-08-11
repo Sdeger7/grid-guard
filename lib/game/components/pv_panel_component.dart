@@ -7,8 +7,9 @@ import '../../models/tower_type.dart';
 import 'iso_box.dart';
 import 'iso_component.dart';
 
-/// A PV Panel: an economy structure on a safe-zone tile that generates MW over
-/// time and pops floating "+MW" gain text on each payout.
+/// A PV Panel: a solar array on a safe-zone tile that feeds energy into the
+/// BESS. It is a passive producer — the game sums every panel's output
+/// ([GridGuardGame.pvOutput]) each tick, so the component itself just renders.
 class PvPanelComponent extends IsoComponent {
   PvPanelComponent({
     required this.spec,
@@ -23,27 +24,12 @@ class PvPanelComponent extends IsoComponent {
   final TileCoord coord;
   int tier;
 
-  double _accum = 0;
-
   TowerTier get currentTier => spec.tier(tier);
   bool get canUpgrade => tier < spec.maxTier;
   int? get upgradeCost => canUpgrade ? spec.tier(tier + 1).cost : null;
 
   void upgrade() {
     if (canUpgrade) tier++;
-  }
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    _accum += currentTier.mwPerSecond * dt;
-    // Pay out in whole-MW chunks and float the gain text.
-    if (_accum >= 1.0) {
-      final gain = _accum.floor();
-      _accum -= gain;
-      game.addMw(gain);
-      game.spawnFloatingText('+$gain MW', tile.clone(), spec.tint);
-    }
   }
 
   @override

@@ -29,6 +29,7 @@ class TowerComponent extends IsoComponent {
 
   double _cooldown = 0;
   double _fireFlash = 0;
+  bool _starved = false;
 
   TowerTier get currentTier => spec.tier(tier);
   bool get canUpgrade => tier < spec.maxTier;
@@ -55,6 +56,14 @@ class TowerComponent extends IsoComponent {
     final t = currentTier;
     final target = _pickTarget(t.range);
     if (target == null) return;
+
+    // Draw energy from the BESS to fire. If the grid is starved, the shot is
+    // skipped (cooldown not reset, so it fires the instant power returns).
+    if (!game.tryDrawEnergy(t.energyCost)) {
+      _starved = true;
+      return;
+    }
+    _starved = false;
 
     // Cluster near the target decides the chain bonus.
     final cluster = <EnemyComponent>[];
@@ -106,8 +115,20 @@ class TowerComponent extends IsoComponent {
       _renderBarrier(canvas);
     } else {
       _renderTransformer(canvas);
+      if (_starved) _drawStarved(canvas);
     }
     _drawTierPips(canvas, game.iso.halfH);
+  }
+
+  /// A red "no power" marker so the player sees the BESS is starving this tower.
+  void _drawStarved(Canvas canvas) {
+    final y = -game.iso.halfH * 2.7;
+    canvas.drawCircle(Offset(0, y), 6, Paint()..color = const Color(0xFFE23D4B));
+    final x = Paint()
+      ..color = const Color(0xFFFFFFFF)
+      ..strokeWidth = 1.6;
+    canvas.drawLine(Offset(-2.5, y - 2.5), Offset(2.5, y + 2.5), x);
+    canvas.drawLine(Offset(-2.5, y + 2.5), Offset(2.5, y - 2.5), x);
   }
 
   /// Scissor Barrier: two steel posts with a crossed scissor gate between them.

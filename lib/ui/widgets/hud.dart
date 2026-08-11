@@ -6,9 +6,10 @@ import '../../models/level_state.dart';
 import '../../models/tower_type.dart';
 import '../theme.dart';
 
-/// The full in-game HUD: a single top status bar, a bottom build tray, and a
-/// contextual upgrade panel. Rebuilds are driven by [state] (the throttled game
-/// snapshot) and [selectedBuild]/[selected] passed from the game screen.
+/// The full in-game HUD: a status bar (core + BESS energy + money/score/wave),
+/// a facilities row (Data Center / BESS upgrades), a contextual tower-upgrade
+/// panel, and the build tray. Rebuilds are driven by [state] (the throttled game
+/// snapshot); facility/upgrade actions call the game directly.
 class Hud extends StatelessWidget {
   const Hud({
     super.key,
@@ -36,6 +37,7 @@ class Hud extends StatelessWidget {
       child: Column(
         children: [
           if (s != null) _TopBar(state: s),
+          if (s != null) _FacilitiesRow(state: s, game: game),
           const Spacer(),
           if (s != null && s.bossWaveActive && s.phase == RunPhase.inProgress)
             const Padding(
@@ -53,7 +55,7 @@ class Hud extends StatelessWidget {
               child: _StartButton(onStart: onStart),
             ),
           _BuildTray(
-            mw: s?.mw ?? 0,
+            money: s?.money ?? 0,
             selectedBuild: selectedBuild,
             onSelectBuild: onSelectBuild,
           ),
@@ -69,28 +71,57 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final net = state.netEnergy;
+    final netLabel = '${net >= 0 ? '+' : ''}${net.toStringAsFixed(0)}/s';
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
       child: GGPanel(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            _IntegrityBar(fraction: state.integrityFraction),
-            const SizedBox(width: 14),
-            _Stat(
-              icon: Icons.bolt_rounded,
-              color: GGColors.mw,
-              label: '${state.mw}',
-              caption: 'MW',
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _MiniBar(
+                    label: 'CORE',
+                    fraction: state.integrityFraction,
+                    color: state.integrityFraction > 0.5
+                        ? GGColors.good
+                        : state.integrityFraction > 0.25
+                            ? GGColors.accentWarm
+                            : GGColors.danger,
+                  ),
+                  const SizedBox(height: 4),
+                  _MiniBar(
+                    label: 'BESS ⚡ $netLabel',
+                    fraction: state.energyFraction,
+                    color: state.energy <= 0.5
+                        ? GGColors.danger
+                        : net < 0
+                            ? GGColors.accentWarm
+                            : GGColors.accent,
+                    trailing:
+                        '${state.energy.toStringAsFixed(0)}/${state.energyCapacity.toStringAsFixed(0)}',
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
+            _Stat(
+              icon: Icons.attach_money_rounded,
+              color: GGColors.good,
+              label: '${state.money}',
+              caption: 'MONEY',
+            ),
+            const SizedBox(width: 12),
             _Stat(
               icon: Icons.stacked_line_chart_rounded,
               color: GGColors.ink,
               label: '${state.score}',
               caption: 'SCORE',
             ),
-            const Spacer(),
+            const SizedBox(width: 12),
             _Stat(
               icon: Icons.waves_rounded,
               color: GGColors.accentWarm,
@@ -106,49 +137,55 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-class _IntegrityBar extends StatelessWidget {
-  const _IntegrityBar({required this.fraction});
+class _MiniBar extends StatelessWidget {
+  const _MiniBar({
+    required this.label,
+    required this.fraction,
+    required this.color,
+    this.trailing,
+  });
+  final String label;
   final double fraction;
+  final Color color;
+  final String? trailing;
 
   @override
   Widget build(BuildContext context) {
-    final color = fraction > 0.5
-        ? GGColors.good
-        : fraction > 0.25
-            ? GGColors.accentWarm
-            : GGColors.danger;
-    return SizedBox(
-      width: 120,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('CORE INTEGRITY', style: GGText.soft),
-          const SizedBox(height: 3),
-          Stack(
-            children: [
-              Container(
-                height: 10,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: GGText.soft),
+            if (trailing != null) Text(trailing!, style: GGText.soft),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Stack(
+          children: [
+            Container(
+              height: 8,
+              decoration: BoxDecoration(
+                color: GGColors.bg,
+                border: Border.all(color: GGColors.panelBorder),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            FractionallySizedBox(
+              widthFactor: fraction.clamp(0.0, 1.0),
+              child: Container(
+                height: 8,
                 decoration: BoxDecoration(
-                  color: GGColors.bg,
-                  border: Border.all(color: GGColors.panelBorder),
+                  color: color,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
-              FractionallySizedBox(
-                widthFactor: fraction,
-                child: Container(
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -169,13 +206,12 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 3),
+            Icon(icon, size: 15, color: color),
+            const SizedBox(width: 2),
             Text(label, style: GGText.stat),
           ],
         ),
@@ -185,13 +221,140 @@ class _Stat extends StatelessWidget {
   }
 }
 
+/// Data Center + BESS facilities: shows live income/draw/capacity and lets the
+/// player spend money to grow them (the core greed-vs-power decision).
+class _FacilitiesRow extends StatelessWidget {
+  const _FacilitiesRow({required this.state, required this.game});
+  final LevelState state;
+  final GridGuardGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: _FacilityCard(
+              icon: Icons.dns_rounded,
+              title: 'DATA CENTER',
+              level: state.dcLevel,
+              line:
+                  '+${state.dcIncome.toStringAsFixed(0)}\$  ·  -${state.dcDraw.toStringAsFixed(0)}⚡',
+              statusColor: state.dcPowered ? GGColors.good : GGColors.danger,
+              statusText: state.dcPowered ? 'ONLINE' : 'NO POWER',
+              cost: state.dcUpgradeCost,
+              affordable: state.money >= state.dcUpgradeCost,
+              onUpgrade: game.upgradeDc,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _FacilityCard(
+              icon: Icons.battery_charging_full_rounded,
+              title: 'BESS',
+              level: state.bessLevel,
+              line: 'cap ${state.energyCapacity.toStringAsFixed(0)}⚡',
+              statusColor: GGColors.accent,
+              statusText: '${(state.energyFraction * 100).round()}%',
+              cost: state.bessUpgradeCost,
+              affordable: state.money >= state.bessUpgradeCost,
+              onUpgrade: game.upgradeBess,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FacilityCard extends StatelessWidget {
+  const _FacilityCard({
+    required this.icon,
+    required this.title,
+    required this.level,
+    required this.line,
+    required this.statusColor,
+    required this.statusText,
+    required this.cost,
+    required this.affordable,
+    required this.onUpgrade,
+  });
+  final IconData icon;
+  final String title;
+  final int level;
+  final String line;
+  final Color statusColor;
+  final String statusText;
+  final int cost;
+  final bool affordable;
+  final VoidCallback onUpgrade;
+
+  @override
+  Widget build(BuildContext context) {
+    return GGPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: GGColors.ink),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Text('$title  L$level',
+                        style: GGText.body
+                            .copyWith(fontWeight: FontWeight.w700, fontSize: 12)),
+                    const SizedBox(width: 4),
+                    Container(width: 6, height: 6, decoration: BoxDecoration(
+                        color: statusColor, shape: BoxShape.circle)),
+                    const SizedBox(width: 2),
+                    Text(statusText,
+                        style: GGText.soft.copyWith(color: statusColor)),
+                  ],
+                ),
+                Text(line, style: GGText.soft),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: affordable ? onUpgrade : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                color: affordable ? GGColors.good : GGColors.panelBorder,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.keyboard_double_arrow_up_rounded,
+                      size: 12, color: Colors.white),
+                  Text('$cost',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _BuildTray extends StatelessWidget {
   const _BuildTray({
-    required this.mw,
+    required this.money,
     required this.selectedBuild,
     required this.onSelectBuild,
   });
-  final int mw;
+  final int money;
   final TowerType? selectedBuild;
   final ValueChanged<TowerType?> onSelectBuild;
 
@@ -205,7 +368,7 @@ class _BuildTray extends StatelessWidget {
             Expanded(
               child: _TowerButton(
                 type: type,
-                mw: mw,
+                money: money,
                 selected: selectedBuild == type,
                 onTap: () =>
                     onSelectBuild(selectedBuild == type ? null : type),
@@ -226,12 +389,12 @@ class _BuildTray extends StatelessWidget {
 class _TowerButton extends StatelessWidget {
   const _TowerButton({
     required this.type,
-    required this.mw,
+    required this.money,
     required this.selected,
     required this.onTap,
   });
   final TowerType type;
-  final int mw;
+  final int money;
   final bool selected;
   final VoidCallback onTap;
 
@@ -250,7 +413,7 @@ class _TowerButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final spec = TowerCatalog.of(type);
     final cost = spec.tier(0).cost;
-    final affordable = mw >= cost;
+    final affordable = money >= cost;
     return GestureDetector(
       onTap: onTap,
       child: GGPanel(
@@ -266,7 +429,8 @@ class _TowerButton extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.bolt_rounded, size: 12, color: GGColors.mw),
+                const Icon(Icons.attach_money_rounded,
+                    size: 12, color: GGColors.good),
                 Text('$cost',
                     style: TextStyle(
                       fontSize: 12,
@@ -330,7 +494,7 @@ class _UpgradePanel extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: onUpgrade,
               icon: const Icon(Icons.upgrade_rounded, size: 18),
-              label: Text('Upgrade  ${selected.upgradeCost} MW'),
+              label: Text('Upgrade  \$${selected.upgradeCost}'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: GGColors.accent,
                 foregroundColor: Colors.white,
