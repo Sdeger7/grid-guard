@@ -1,0 +1,101 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../models/level_state.dart';
+import '../models/player_profile.dart';
+import '../models/star_rating.dart';
+import '../models/tower_type.dart';
+import 'audio_service.dart';
+import 'monetization_service.dart';
+import 'save_service.dart';
+
+/// Provides the [SaveService]. Overridden in `main()` with the real instance
+/// once shared_preferences has initialised.
+final saveServiceProvider = Provider<SaveService>(
+  (ref) => throw UnimplementedError('saveServiceProvider must be overridden'),
+);
+
+/// The monetization seam. Swap [MockMonetizationService] for a real SDK-backed
+/// implementation here — nothing else in the app changes.
+final monetizationServiceProvider = Provider<MonetizationService>(
+  (ref) => MockMonetizationService(),
+);
+
+/// Centralised SFX. Preloaded at startup (see `main()`).
+final audioServiceProvider = Provider<AudioService>((ref) => AudioService());
+
+/// The player's persistent profile, loaded from disk on first read and written
+/// back through [SaveService] on every mutation.
+class ProfileNotifier extends Notifier<PlayerProfile> {
+  @override
+  PlayerProfile build() => ref.read(saveServiceProvider).loadProfile();
+
+  SaveService get _save => ref.read(saveServiceProvider);
+
+  Future<void> applyLevelResult(LevelResult result,
+      {required int zone, required int indexInZone}) async {
+    state = await _save.applyLevelResult(
+      state,
+      levelId: result.levelId,
+      zone: zone,
+      indexInZone: indexInZone,
+      stars: result.stars,
+      gridCreditsEarned: result.baseGridCredits,
+    );
+  }
+
+  /// Awards the extra Grid Credits from a "2x reward" rewarded ad.
+  Future<void> awardBonusCredits(int amount) async {
+    state = state.copyWith(gridCredits: state.gridCredits + amount);
+    await _save.saveProfile(state);
+  }
+
+  Future<bool> spendGridCredits(int amount) async {
+    if (state.gridCredits < amount) return false;
+    state = state.copyWith(gridCredits: state.gridCredits - amount);
+    await _save.saveProfile(state);
+    return true;
+  }
+
+  Future<void> unlockTower(TowerType type) async {
+    state = state.copyWith(unlockedTowers: {...state.unlockedTowers, type});
+    await _save.saveProfile(state);
+  }
+
+  Future<void> grantSkin(String skinId) async {
+    state = state.copyWith(ownedSkins: {...state.ownedSkins, skinId});
+    await _save.saveProfile(state);
+  }
+
+  Future<void> markPurchased(String sku) async {
+    state = state.copyWith(purchasedSkus: {...state.purchasedSkus, sku});
+    await _save.saveProfile(state);
+  }
+
+  /// Interstitials fire every 2–3 completed levels. Returns true and resets the
+  /// counter when one is due (never on the very first completion overall).
+  bool consumeInterstitialSlotIfDue() {
+    final due = state.totalLevelsCompleted > 1 &&
+        state.levelsCompletedSinceInterstitial >= 3;
+    if (due) {
+      state = state.copyWith(levelsCompletedSinceInterstitial: 0);
+      _save.saveProfile(state);
+    }
+    return due;
+  }
+
+  Future<void> resetProgress() async {
+    await _save.resetAll();
+    state = const PlayerProfile();
+  }
+}
+
+final profileProvider =
+    NotifierProvider<ProfileNotifier, PlayerProfile>(ProfileNotifier.new);
+
+/// The live HUD snapshot the running game publishes each throttled tick. Null
+/// when no level is active.
+final levelStateProvider = StateProvider<LevelState?>((ref) => null);
+
+/// Convenience: best-known [StarRating] for a level id.
+StarRating starsForLevel(WidgetRef ref, int levelId) =>
+    StarRating.fromCount(ref.watch(profileProvider).starsFor(levelId));
