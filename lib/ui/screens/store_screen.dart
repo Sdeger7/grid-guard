@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/player_profile.dart';
-import '../../models/tower_type.dart';
 import '../../services/app_providers.dart';
 import '../../services/monetization_service.dart';
 import '../theme.dart';
@@ -20,7 +19,6 @@ class _StoreItem {
     required this.currency,
     required this.price,
     this.sku,
-    this.unlockTower,
   });
   final String id;
   final String title;
@@ -29,7 +27,6 @@ class _StoreItem {
   final _Currency currency;
   final int price;
   final String? sku;
-  final TowerType? unlockTower;
 }
 
 const _catalog = <_StoreItem>[
@@ -227,9 +224,6 @@ class _StoreCard extends ConsumerWidget {
     }
 
     await notifier.grantSkin(item.id);
-    if (item.unlockTower != null) {
-      await notifier.unlockTower(item.unlockTower!);
-    }
     messenger
         .showSnackBar(SnackBar(content: Text('${item.title} unlocked!')));
   }

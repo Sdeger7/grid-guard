@@ -10,8 +10,8 @@ import 'iso_component.dart';
 /// largest structure on the board; enemies that reach it deal integrity damage
 /// (tracked by the game, not here). Flashes red when hit.
 class CoreComponent extends IsoComponent {
-  CoreComponent({required Vector2 tile, required this.accent})
-      : super(tile: tile, depthBias: 0.15, size: Vector2.all(64));
+  CoreComponent({required super.tile, required this.accent})
+      : super(depthBias: 0.15, size: Vector2.all(64));
 
   final Color accent;
   double _flash = 0;
@@ -42,7 +42,7 @@ class CoreComponent extends IsoComponent {
       top: shades.top,
       left: shades.left,
       right: shades.right,
-      edge: accent.withOpacity(0.7),
+      edge: accent.withValues(alpha: 0.7),
       footScale: 0.9,
     );
 

@@ -255,7 +255,7 @@ class _TowerButton extends StatelessWidget {
       onTap: onTap,
       child: GGPanel(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-        color: selected ? GGColors.accent.withOpacity(0.12) : GGColors.panel,
+        color: selected ? GGColors.accent.withValues(alpha: 0.12) : GGColors.panel,
         borderColor: selected ? GGColors.accent : GGColors.panelBorder,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -293,7 +293,7 @@ class _InspectButton extends StatelessWidget {
       onTap: onTap,
       child: GGPanel(
         padding: const EdgeInsets.all(12),
-        color: active ? GGColors.accent.withOpacity(0.12) : GGColors.panel,
+        color: active ? GGColors.accent.withValues(alpha: 0.12) : GGColors.panel,
         borderColor: active ? GGColors.accent : GGColors.panelBorder,
         child: const Icon(Icons.touch_app_rounded,
             color: GGColors.inkSoft, size: 24),

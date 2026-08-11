@@ -22,11 +22,9 @@ enum Sfx {
 /// the game calls [play]; whether audio is wired, cached or missing is this
 /// service's problem, not the caller's.
 class AudioService {
-  bool _muted = false;
+  /// Silences all playback when true.
+  bool muted = false;
   bool _ready = false;
-
-  bool get muted => _muted;
-  set muted(bool value) => _muted = value;
 
   /// Pre-warm the audio cache. Safe to call even when no files exist — any
   /// failures are swallowed so startup never breaks on missing placeholders.
@@ -41,7 +39,7 @@ class AudioService {
   }
 
   void play(Sfx sfx, {double volume = 0.8}) {
-    if (_muted || !_ready) return;
+    if (muted || !_ready) return;
     try {
       FlameAudio.play(sfx.file, volume: volume);
     } catch (e) {

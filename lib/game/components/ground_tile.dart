@@ -14,12 +14,12 @@ enum TileKind { ground, path, safeZone, core, spawn }
 /// for a sprite draw — no other logic changes.
 class GroundTile extends IsoComponent {
   GroundTile({
-    required Vector2 tile,
+    required super.tile,
     required this.kind,
     required this.fill,
     required this.edge,
     required this.accent,
-  }) : super(tile: tile);
+  });
 
   TileKind kind;
   Color fill;
@@ -67,7 +67,7 @@ class GroundTile extends IsoComponent {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5
-          ..color = accent.withOpacity(0.8),
+          ..color = accent.withValues(alpha: 0.8),
       );
     }
   }

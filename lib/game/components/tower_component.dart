@@ -93,8 +93,8 @@ class TowerComponent extends IsoComponent {
     for (final e in game.enemies) {
       if (e.isDead) continue;
       if ((e.tile - tile).length > range) continue;
-      if (e.distance > bestProgress) {
-        bestProgress = e.distance;
+      if (e.pathDistance > bestProgress) {
+        bestProgress = e.pathDistance;
         best = e;
       }
     }

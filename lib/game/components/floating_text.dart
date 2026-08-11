@@ -39,7 +39,7 @@ class FloatingText extends PositionComponent
       text: TextSpan(
         text: text,
         style: TextStyle(
-          color: color.withOpacity(1.0 - t),
+          color: color.withValues(alpha: 1.0 - t),
           fontSize: 13,
           fontWeight: FontWeight.w700,
         ),

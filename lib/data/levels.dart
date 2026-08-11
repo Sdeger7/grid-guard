@@ -44,8 +44,10 @@ class LevelCatalog {
 
   /// Safe zones (PV panel / Shock Transformer sites) flank the path.
   static Set<TileCoord> _safeZones(int zone) {
+    // Not `const`: TileCoord overrides ==/hashCode, so a const Set literal is
+    // rejected. Level data is only read, so a runtime-built set is fine.
     if (zone.isOdd) {
-      return const {
+      return {
         TileCoord(2, 2),
         TileCoord(4, 2),
         TileCoord(6, 2),
@@ -56,7 +58,7 @@ class LevelCatalog {
         TileCoord(5, 6),
       };
     }
-    return const {
+    return {
       TileCoord(2, 6),
       TileCoord(4, 6),
       TileCoord(6, 6),
@@ -127,7 +129,7 @@ class LevelCatalog {
       ));
     }
 
-    final coreIntegrity = 100.0;
+    const coreIntegrity = 100.0;
     // Rough time budget: sum of start delays + spawn time, with slack.
     final timeBudget = waves.fold<double>(
           0,

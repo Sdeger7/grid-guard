@@ -187,7 +187,7 @@ class GridGuardGame extends FlameGame {
     final gridCenter = iso.tileToScreen(
         config.gridCols / 2, config.gridRows / 2);
     final bounds = iso.worldBounds(config.gridCols, config.gridRows);
-    final pad = 40.0;
+    const pad = 40.0;
     final scaleX = (size.x - pad) / bounds.width;
     // Reserve the top third for the HUD by fitting into ~70% of height.
     final scaleY = (size.y * 0.72 - pad) / bounds.height;

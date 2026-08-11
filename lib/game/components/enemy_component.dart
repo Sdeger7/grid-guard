@@ -9,7 +9,7 @@ import 'iso_box.dart';
 import 'iso_component.dart';
 
 /// A hostile unit walking the path in tile space. Health/speed are the
-/// already-scaled values for its wave; movement is driven by [distance] along
+/// already-scaled values for its wave; movement is driven by [pathDistance] along
 /// [PathSystem], so it stays correct under any projection. Slow towers modulate
 /// its speed via a per-tile multiplier the game supplies.
 class EnemyComponent extends IsoComponent {
@@ -28,8 +28,9 @@ class EnemyComponent extends IsoComponent {
 
   double health;
 
-  /// Distance travelled along the path, in tile-space units.
-  double distance = 0;
+  /// Distance travelled along the path, in tile-space units. Named
+  /// `pathDistance` to avoid shadowing Flame's `PositionComponent.distance()`.
+  double pathDistance = 0;
 
   bool _dead = false;
   double _hitFlash = 0;
@@ -53,19 +54,19 @@ class EnemyComponent extends IsoComponent {
   void update(double dt) {
     if (_dead) return;
     final path = game.path;
-    final currentTile = path.tileAtDistance(distance);
+    final currentTile = path.tileAtDistance(pathDistance);
     final slow = game.slowMultiplierAt(currentTile);
-    distance += speed * slow * dt;
+    pathDistance += speed * slow * dt;
     _bob += dt * 6;
     if (_hitFlash > 0) _hitFlash = (_hitFlash - dt).clamp(0, 1);
 
-    if (distance >= path.totalLength) {
+    if (pathDistance >= path.totalLength) {
       game.onEnemyReachedCore(this);
       _dead = true;
       removeFromParent();
       return;
     }
-    tile = path.positionAtDistance(distance);
+    tile = path.positionAtDistance(pathDistance);
     super.update(dt);
   }
 
@@ -108,7 +109,7 @@ class EnemyComponent extends IsoComponent {
     const barH = 3.0;
     final y = -topY - 8;
     final bg = Rect.fromLTWH(-w / 2, y, w, barH);
-    canvas.drawRect(bg, Paint()..color = Colors.black.withOpacity(0.45));
+    canvas.drawRect(bg, Paint()..color = Colors.black.withValues(alpha: 0.45));
     canvas.drawRect(
       Rect.fromLTWH(-w / 2, y, w * frac, barH),
       Paint()

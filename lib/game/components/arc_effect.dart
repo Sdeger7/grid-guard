@@ -45,7 +45,7 @@ class ArcEffect extends PositionComponent with HasGameReference<GridGuardGame> {
       ..style = PaintingStyle.stroke
       ..strokeWidth = (primary ? 2.6 : 1.6) * (1.0 - t * 0.5)
       ..strokeCap = StrokeCap.round
-      ..color = color.withOpacity(1.0 - t);
+      ..color = color.withValues(alpha: 1.0 - t);
 
     final path = Path()..moveTo(_points!.first.dx, _points!.first.dy);
     for (final p in _points!.skip(1)) {

@@ -21,8 +21,8 @@ void drawIsoBox(
   final hw = halfW * footScale;
   final hh = halfH * footScale;
 
-  // Base diamond corners (on the ground).
-  final bT = Offset(0, -hh);
+  // Base diamond corners (on the ground). The top corner isn't needed — only
+  // the left/right/bottom base corners form the visible side faces.
   final bR = Offset(hw, 0);
   final bB = Offset(0, hh);
   final bL = Offset(-hw, 0);
