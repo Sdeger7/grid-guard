@@ -194,8 +194,8 @@ class LevelCatalog {
       // Energy-flow seed: enough money to lay down a PV + a first tower, a small
       // BESS charge to start, and a modest battery to force early PV building.
       startMoney: 130 + (idx - 1) * 10,
-      startEnergy: 25,
-      bessCapacity: 60,
+      startEnergy: 45,
+      bessCapacity: 70,
     );
   }
 }

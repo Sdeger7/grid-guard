@@ -109,6 +109,15 @@ class _TopBar extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             _Stat(
+              icon: state.isNight
+                  ? Icons.nightlight_round
+                  : Icons.wb_sunny_rounded,
+              color: state.isNight ? GGColors.accent : GGColors.star,
+              label: state.isNight ? '—' : '${(state.sunFactor * 100).round()}%',
+              caption: 'SUN',
+            ),
+            const SizedBox(width: 12),
+            _Stat(
               icon: Icons.attach_money_rounded,
               color: GGColors.good,
               label: '${state.money}',

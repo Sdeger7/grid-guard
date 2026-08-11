@@ -18,6 +18,7 @@ import 'components/core_component.dart';
 import 'components/enemy_component.dart';
 import 'components/floating_text.dart';
 import 'components/ground_tile.dart';
+import 'components/night_overlay.dart';
 import 'components/pv_panel_component.dart';
 import 'components/tower_component.dart';
 import 'systems/iso.dart';
@@ -121,8 +122,25 @@ class GridGuardGame extends FlameGame {
   final Map<TileCoord, TowerComponent> _slowTowers = {};
 
   /// Total PV output (energy/sec) from every placed panel.
+  /// Raw combined nameplate output of all PV panels (before sunlight).
   double get pvOutput =>
       pvPanels.fold(0.0, (s, p) => s + p.currentTier.mwPerSecond);
+
+  /// Time of day in [0,1): 0 = midnight, 0.25 = sunrise, 0.5 = noon,
+  /// 0.75 = sunset. Advances continuously through the run.
+  double timeOfDay = 0;
+
+  /// Solar irradiance factor in [0,1]: 0 at night, peaking at noon. PV only
+  /// produces in daylight, so the BESS must carry the grid through the night.
+  double get sunFactor {
+    final s = math.sin(2 * math.pi * (timeOfDay - 0.25));
+    return s < 0 ? 0.0 : s;
+  }
+
+  bool get isNight => sunFactor <= 0.02;
+
+  /// Actual PV output right now (nameplate scaled by sunlight).
+  double get effectivePvOutput => pvOutput * sunFactor;
 
   /// Data Center energy draw per second (grows with DC level — greed costs power).
   double get dcDraw => 3.0 + (dcLevel - 1) * 2.0;
@@ -157,11 +175,13 @@ class GridGuardGame extends FlameGame {
     money = config.startMoney.toDouble();
     energyCapacity = config.bessCapacity;
     energy = config.startEnergy;
+    timeOfDay = config.startTimeOfDay;
     coreIntegrity = config.coreIntegrity;
     integrityMax = config.coreIntegrity;
 
     worldRoot = PositionComponent();
     add(worldRoot);
+    add(NightOverlay());
 
     _buildBoard();
 
@@ -319,8 +339,11 @@ class GridGuardGame extends FlameGame {
   /// otherwise it idles (no income) until energy recovers. Towers draw energy
   /// separately, per shot, via [tryDrawEnergy].
   void _tickEconomy(double dt) {
-    // 1) PV charges the battery.
-    energy = (energy + pvOutput * dt).clamp(0, energyCapacity);
+    // 0) Advance the day/night clock.
+    timeOfDay = (timeOfDay + dt / config.dayLength) % 1.0;
+
+    // 1) PV charges the battery — but only in daylight (scaled by the sun).
+    energy = (energy + effectivePvOutput * dt).clamp(0, energyCapacity);
 
     // 2) Data Center consumes to run, and pays out while powered.
     final draw = dcDraw * dt;
@@ -597,10 +620,12 @@ class GridGuardGame extends FlameGame {
       energyCapacity: energyCapacity,
       money: money.floor(),
       score: score,
-      pvOutput: pvOutput,
+      pvOutput: effectivePvOutput,
       dcDraw: dcDraw,
       dcIncome: dcIncome,
       dcPowered: dcPowered,
+      sunFactor: sunFactor,
+      isNight: isNight,
       bessLevel: bessLevel,
       dcLevel: dcLevel,
       bessUpgradeCost: bessUpgradeCost,

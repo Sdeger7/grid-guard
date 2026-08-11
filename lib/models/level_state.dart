@@ -36,6 +36,8 @@ class LevelState {
     required this.dcDraw,
     required this.dcIncome,
     required this.dcPowered,
+    required this.sunFactor,
+    required this.isNight,
     required this.bessLevel,
     required this.dcLevel,
     required this.bessUpgradeCost,
@@ -60,10 +62,14 @@ class LevelState {
   final int score;
 
   // Live grid balance.
-  final double pvOutput;
+  final double pvOutput; // effective (sunlight-scaled) output
   final double dcDraw;
   final double dcIncome;
   final bool dcPowered;
+
+  /// Solar irradiance 0..1 (0 at night) and a convenience night flag.
+  final double sunFactor;
+  final bool isNight;
 
   // Facilities.
   final int bessLevel;
