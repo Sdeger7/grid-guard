@@ -44,29 +44,29 @@ class LevelCatalog {
 
   /// Safe zones (PV panel / Shock Transformer sites) flank the path.
   static Set<TileCoord> _safeZones(int zone) {
-    // Not `const`: TileCoord overrides ==/hashCode, so a const Set literal is
-    // rejected. Level data is only read, so a runtime-built set is fine.
+    // The Set itself can't be `const` (TileCoord overrides ==/hashCode), but the
+    // individual elements are compile-time constants.
     if (zone.isOdd) {
       return {
-        TileCoord(2, 2),
-        TileCoord(4, 2),
-        TileCoord(6, 2),
-        TileCoord(3, 5),
-        TileCoord(5, 5),
-        TileCoord(7, 5),
-        TileCoord(3, 6),
-        TileCoord(5, 6),
+        const TileCoord(2, 2),
+        const TileCoord(4, 2),
+        const TileCoord(6, 2),
+        const TileCoord(3, 5),
+        const TileCoord(5, 5),
+        const TileCoord(7, 5),
+        const TileCoord(3, 6),
+        const TileCoord(5, 6),
       };
     }
     return {
-      TileCoord(2, 6),
-      TileCoord(4, 6),
-      TileCoord(6, 6),
-      TileCoord(3, 2),
-      TileCoord(5, 2),
-      TileCoord(7, 2),
-      TileCoord(3, 3),
-      TileCoord(5, 3),
+      const TileCoord(2, 6),
+      const TileCoord(4, 6),
+      const TileCoord(6, 6),
+      const TileCoord(3, 2),
+      const TileCoord(5, 2),
+      const TileCoord(7, 2),
+      const TileCoord(3, 3),
+      const TileCoord(5, 3),
     };
   }
 
