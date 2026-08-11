@@ -43,6 +43,7 @@ class LevelState {
     required this.dcLevel,
     required this.bessUpgradeCost,
     required this.dcUpgradeCost,
+    required this.workloadIndex,
     required this.coreIntegrity,
     required this.maxCoreIntegrity,
     required this.waveNumber,
@@ -79,6 +80,9 @@ class LevelState {
   final int dcLevel;
   final int bessUpgradeCost;
   final int dcUpgradeCost;
+
+  /// Index into DcWorkloadCatalog.workloads — the DC's current job.
+  final int workloadIndex;
 
   // Core / waves.
   final double coreIntegrity;

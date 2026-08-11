@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 
+import '../data/dc_workload.dart';
 import '../data/enemy_catalog.dart';
 import '../data/tower_catalog.dart';
 import '../data/zone_theme.dart';
@@ -167,11 +168,23 @@ class GridGuardGame extends FlameGame {
   /// Total energy generated right now (solar + wind).
   double get generation => effectivePvOutput + effectiveWindOutput;
 
-  /// Data Center energy draw per second (grows with DC level — greed costs power).
-  double get dcDraw => 3.0 + (dcLevel - 1) * 2.0;
+  /// The Data Center's current workload — sets income, draw and threat.
+  int workloadIndex = 0;
+  DcWorkload get workload => DcWorkloadCatalog.workloads[workloadIndex];
 
-  /// Money earned per second while the Data Center is powered.
-  double get dcIncome => 5.0 + (dcLevel - 1) * 3.0;
+  void setWorkload(int index) {
+    workloadIndex = index.clamp(0, DcWorkloadCatalog.workloads.length - 1);
+    _publishSnapshot(force: true);
+  }
+
+  /// Data Center energy draw per second (workload × DC-level scaling).
+  double get dcDraw => workload.draw * (1 + 0.25 * (dcLevel - 1));
+
+  /// Money earned per second while powered (workload × DC-level scaling).
+  double get dcIncome => workload.income * (1 + 0.35 * (dcLevel - 1));
+
+  /// How hot the base runs — scales raid frequency and size.
+  double get threatMultiplier => workload.threat;
 
   int get bessUpgradeCost => 80 * bessLevel;
   int get dcUpgradeCost => 100 * dcLevel;
@@ -635,18 +648,20 @@ class GridGuardGame extends FlameGame {
     _raidTimer -= dt;
     if (_raidTimer <= 0) {
       _launchRaid();
-      // Raids come a little faster as they escalate, down to ~14s apart.
-      _raidTimer = math.max(14.0, 26.0 - raidCount * 0.5);
+      // Higher-value workloads run hotter: raids come faster (down to ~8s).
+      _raidTimer =
+          math.max(8.0, (26.0 - raidCount * 0.5) / threatMultiplier);
     }
   }
 
   void _launchRaid() {
     raidCount++;
     final n = raidCount;
+    final threat = threatMultiplier;
     final hs = 1.0 + n * 0.10;
     final ss = 1.0 + n * 0.02;
-    final drones = 4 + n * 2;
-    final malware = (n / 3).floor();
+    final drones = ((4 + n * 2) * threat).round();
+    final malware = ((n / 3) * threat).floor();
     var t = 0.0;
     for (var i = 0; i < drones; i++) {
       _pendingSpawns.add(
@@ -727,6 +742,7 @@ class GridGuardGame extends FlameGame {
       dcLevel: dcLevel,
       bessUpgradeCost: bessUpgradeCost,
       dcUpgradeCost: dcUpgradeCost,
+      workloadIndex: workloadIndex,
       coreIntegrity: coreIntegrity,
       maxCoreIntegrity: integrityMax,
       waveNumber: waveNumber,
