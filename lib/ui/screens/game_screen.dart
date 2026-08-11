@@ -51,9 +51,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   }
 
   void _onSnapshot(LevelState state) {
-    // Keep the shared provider in sync too, in case other widgets watch it.
-    ref.read(levelStateProvider.notifier).state = state;
-    if (mounted) setState(() => _snapshot = state);
+    _snapshot = state;
+    if (!mounted) return;
+    // The first snapshot fires during the game's onLoad (widget-build phase),
+    // and later ones arrive from the game loop. Defer the rebuild to the next
+    // frame so we never call setState (or touch a provider) mid-build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   void _onSfx(gg.Sfx sfx) {
