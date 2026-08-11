@@ -1,4 +1,5 @@
 import 'package:flame/flame.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,11 +11,15 @@ import 'services/save_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Portrait-locked mobile game.
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
-  await Flame.device.fullScreen();
+  // Portrait lock + fullscreen are mobile-only. On web these APIs either no-op
+  // or throw (fullscreen needs a user gesture), which would blank the app at
+  // startup — so guard them behind kIsWeb.
+  if (!kIsWeb) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+    await Flame.device.fullScreen();
+  }
 
   // Persistence must be ready before the profile provider reads it.
   final saveService = await SaveService.create();
