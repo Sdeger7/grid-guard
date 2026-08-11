@@ -53,9 +53,20 @@ State management: **Riverpod**. Persistence: **shared_preferences**, fully offli
 
 Requires the Flutter SDK (stable channel).
 
+This repo tracks source only (`lib/`, `test/`, `pubspec.yaml`, `assets/`). The
+generated platform folders (`android/`, `ios/`, `web/`, …) are intentionally not
+committed — generate them once, in place, then run:
+
 ```bash
+flutter create .      # scaffolds android/ios/etc. around the existing lib/
 flutter pub get
+flutter analyze       # static check
+flutter test          # runs the pure-Dart logic tests
 flutter run           # attach a device or emulator
 ```
 
-> This project was authored in an environment without the Flutter SDK, so it has **not been compiled against a device here**. Run `flutter pub get` and `flutter analyze` locally to catch any environment-specific fixups before the first device run.
+> This project was authored in an environment without the Flutter SDK, so it has
+> **not been compiled against a device here**. Run `flutter analyze` after
+> `flutter create .` to catch any environment-specific fixups before the first
+> device run. The `test/` suite (isometric projection round-trip, save
+> serialization, level generation) is pure Dart and does not need a device.
