@@ -11,11 +11,16 @@ class DcWorkload {
     required this.income,
     required this.draw,
     required this.threat,
+    required this.requiredSecurity,
     required this.blurb,
   });
 
   final String name;
   final String emoji;
+
+  /// Minimum base security rating needed to accept this contract. You can't
+  /// store bank/government data without enough defences in place.
+  final int requiredSecurity;
 
   /// Base money per second while powered (before DC-level scaling).
   final double income;
@@ -38,6 +43,7 @@ class DcWorkloadCatalog {
       income: 4,
       draw: 2,
       threat: 0.6,
+      requiredSecurity: 0,
       blurb: 'Cheap, steady, barely a target.',
     ),
     DcWorkload(
@@ -46,6 +52,7 @@ class DcWorkloadCatalog {
       income: 9,
       draw: 7,
       threat: 1.0,
+      requiredSecurity: 3,
       blurb: 'Great pay, very power-hungry.',
     ),
     DcWorkload(
@@ -54,6 +61,7 @@ class DcWorkloadCatalog {
       income: 11,
       draw: 8,
       threat: 1.3,
+      requiredSecurity: 6,
       blurb: 'Lucrative — and a known target.',
     ),
     DcWorkload(
@@ -62,7 +70,8 @@ class DcWorkloadCatalog {
       income: 14,
       draw: 5,
       threat: 1.6,
-      blurb: 'High-value data draws attacks.',
+      requiredSecurity: 10,
+      blurb: 'High-value data — strict security required.',
     ),
     DcWorkload(
       name: 'Gov Secrets',
@@ -70,6 +79,7 @@ class DcWorkloadCatalog {
       income: 18,
       draw: 6,
       threat: 2.3,
+      requiredSecurity: 16,
       blurb: 'Maximum income, maximum heat.',
     ),
   ];

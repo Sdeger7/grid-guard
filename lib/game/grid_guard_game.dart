@@ -172,8 +172,29 @@ class GridGuardGame extends FlameGame {
   int workloadIndex = 0;
   DcWorkload get workload => DcWorkloadCatalog.workloads[workloadIndex];
 
+  /// Base security rating from placed defences: Shock Transformers count double
+  /// (they're the real deterrent), Scissor Barriers count single; both scale
+  /// with tier. High-value workloads gate on this.
+  int get securityRating {
+    var s = 0;
+    for (final c in _occupied.values) {
+      if (c is TowerComponent) {
+        if (c.spec.category == TowerCategory.damage) {
+          s += (c.tier + 1) * 2;
+        } else if (c.spec.category == TowerCategory.slow) {
+          s += c.tier + 1;
+        }
+      }
+    }
+    return s;
+  }
+
+  /// Switches the DC workload, but only if the base meets its security
+  /// requirement — you can't take a bank/government contract unguarded.
   void setWorkload(int index) {
-    workloadIndex = index.clamp(0, DcWorkloadCatalog.workloads.length - 1);
+    final i = index.clamp(0, DcWorkloadCatalog.workloads.length - 1);
+    if (securityRating < DcWorkloadCatalog.workloads[i].requiredSecurity) return;
+    workloadIndex = i;
     _publishSnapshot(force: true);
   }
 
@@ -743,6 +764,7 @@ class GridGuardGame extends FlameGame {
       bessUpgradeCost: bessUpgradeCost,
       dcUpgradeCost: dcUpgradeCost,
       workloadIndex: workloadIndex,
+      security: securityRating,
       coreIntegrity: coreIntegrity,
       maxCoreIntegrity: integrityMax,
       waveNumber: waveNumber,
