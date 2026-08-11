@@ -1,0 +1,421 @@
+<title>Grid Guard — System Reference</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* ---------- Tokens: light is the bare :root; dark redefines ---------- */
+  :root {
+    --bg:#e9eef4; --panel:#ffffff; --panel-2:#f4f7fb; --raise:#ffffff;
+    --border:#d3dce6; --border-strong:#b9c6d6;
+    --ink:#14202e; --ink-soft:#57667a; --ink-faint:#8494a6;
+    --accent:#2e6ff2; --warm:#ee6c1f; --good:#12a85f; --danger:#e0384a;
+    --teal:#0a9e8e; --amber:#c98a00; --purple:#8236d6;
+    --grid-line:rgba(20,32,46,.06);
+    --shadow:0 1px 2px rgba(16,32,54,.06), 0 8px 24px rgba(16,32,54,.06);
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --bg:#080d16; --panel:#0f1826; --panel-2:#0c1420; --raise:#13203200;
+      --border:#20304a; --border-strong:#2c405f;
+      --ink:#e8eef6; --ink-soft:#8ea0b8; --ink-faint:#5f7189;
+      --accent:#5aa2ff; --warm:#ff9a52; --good:#31d585; --danger:#ff5c69;
+      --teal:#2ad3bf; --amber:#f4c94a; --purple:#b781ef;
+      --grid-line:rgba(120,160,220,.06);
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#080d16; --panel:#0f1826; --panel-2:#0c1420; --raise:#13203200;
+    --border:#20304a; --border-strong:#2c405f;
+    --ink:#e8eef6; --ink-soft:#8ea0b8; --ink-faint:#5f7189;
+    --accent:#5aa2ff; --warm:#ff9a52; --good:#31d585; --danger:#ff5c69;
+    --teal:#2ad3bf; --amber:#f4c94a; --purple:#b781ef;
+    --grid-line:rgba(120,160,220,.06);
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; }
+  body {
+    margin:0;
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+      var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;
+    font-size:16px;
+  }
+  .mono { font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; }
+  .wrap { max-width:1000px; margin:0 auto; padding:0 20px 80px; }
+
+  /* ---------- Header ---------- */
+  header.hero {
+    padding:56px 0 30px; border-bottom:1px solid var(--border);
+    margin-bottom:34px;
+  }
+  .eyebrow {
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    font-size:12px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin:0 0 14px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before { content:""; width:26px; height:2px; background:var(--accent); }
+  h1 {
+    font-size:clamp(2.4rem,7vw,4rem); line-height:.98; margin:0;
+    font-weight:800; letter-spacing:-.02em; text-wrap:balance;
+  }
+  h1 .g { color:var(--accent); } h1 .g2 { color:var(--warm); }
+  .tagline { font-size:clamp(1.05rem,2.4vw,1.35rem); color:var(--ink-soft); margin:16px 0 0; max-width:62ch; text-wrap:balance; }
+  .keystats { display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; }
+  .keystats .kv {
+    background:var(--panel); border:1px solid var(--border); border-radius:8px;
+    padding:9px 14px; box-shadow:var(--shadow);
+  }
+  .keystats .kv b { font-size:1.15rem; }
+  .keystats .kv span { display:block; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); }
+
+  /* ---------- Sections ---------- */
+  section { margin:44px 0; scroll-margin-top:20px; }
+  .sec-head { display:flex; align-items:baseline; gap:14px; margin:0 0 6px; }
+  .sec-num {
+    font-family:ui-monospace,Menlo,monospace; font-size:.85rem; font-weight:600;
+    color:var(--accent); border:1px solid var(--border-strong); border-radius:6px;
+    padding:2px 8px; letter-spacing:.05em;
+  }
+  h2 { font-size:1.5rem; margin:0; letter-spacing:-.01em; font-weight:750; }
+  .sec-sub { color:var(--ink-soft); margin:6px 0 22px; max-width:66ch; }
+
+  /* ---------- Panels / cards ---------- */
+  .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+  .grid { display:grid; gap:16px; }
+  .cols-2 { grid-template-columns:repeat(2,1fr); }
+  .cols-3 { grid-template-columns:repeat(3,1fr); }
+  @media (max-width:720px){ .cols-2,.cols-3 { grid-template-columns:1fr; } }
+
+  .unit { padding:18px; display:flex; flex-direction:column; gap:12px; }
+  .unit .u-top { display:flex; align-items:center; gap:12px; }
+  .glyph {
+    width:44px; height:44px; flex:none; border-radius:10px; display:grid; place-items:center;
+    font-size:22px; border:1px solid var(--border); background:var(--panel-2);
+  }
+  .unit h3 { margin:0; font-size:1.08rem; }
+  .unit .role { font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); }
+  .badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; border:1px solid; letter-spacing:.03em; }
+  .b-energy { color:var(--accent); border-color:var(--accent); }
+  .b-wind { color:var(--teal); border-color:var(--teal); }
+  .b-slow { color:var(--teal); border-color:var(--teal); }
+  .b-dmg { color:var(--warm); border-color:var(--warm); }
+  .b-core { color:var(--purple); border-color:var(--purple); }
+  .desc { color:var(--ink-soft); font-size:.93rem; margin:0; }
+
+  table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  .tbl-scroll { overflow-x:auto; }
+  th, td { text-align:right; padding:7px 10px; border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums; }
+  th:first-child, td:first-child { text-align:left; }
+  thead th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; border-bottom:1px solid var(--border-strong); }
+  tbody tr:last-child td { border-bottom:none; }
+  td.mono, th.mono { font-family:ui-monospace,Menlo,Consolas,monospace; }
+
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { font-family:ui-monospace,Menlo,monospace; font-size:12px; padding:3px 8px; border-radius:6px; background:var(--panel-2); border:1px solid var(--border); color:var(--ink-soft); }
+  .chip b { color:var(--ink); }
+
+  /* ---------- Flow diagram ---------- */
+  .flow { padding:22px; }
+  .flow-row { display:flex; align-items:stretch; gap:10px; flex-wrap:wrap; }
+  .node { flex:1 1 130px; min-width:120px; border:1px solid var(--border); border-radius:10px; background:var(--panel-2); padding:12px; text-align:center; }
+  .node .n-ico { font-size:20px; } .node .n-t { font-weight:700; font-size:.95rem; margin-top:2px; }
+  .node .n-s { font-size:12px; color:var(--ink-soft); }
+  .node.src { border-color:var(--accent); }
+  .node.store { border-color:var(--teal); }
+  .node.dc { border-color:var(--good); }
+  .node.threat { border-color:var(--danger); }
+  .arrow { align-self:center; color:var(--ink-faint); font-size:20px; font-weight:700; padding:0 2px; }
+  .flow-note { margin:16px 0 0; color:var(--ink-soft); font-size:.9rem; border-top:1px dashed var(--border); padding-top:14px; }
+  .flow-note b { color:var(--ink); }
+
+  /* ---------- Journey ---------- */
+  ol.journey { list-style:none; margin:0; padding:0; counter-reset:step; display:grid; gap:12px; }
+  ol.journey li { position:relative; padding:14px 16px 14px 58px; }
+  ol.journey li::before {
+    counter-increment:step; content:"P"counter(step);
+    position:absolute; left:14px; top:13px; width:32px; height:32px; border-radius:8px;
+    display:grid; place-items:center; font-family:ui-monospace,monospace; font-weight:700; font-size:.8rem;
+    color:var(--accent); background:var(--panel-2); border:1px solid var(--border-strong);
+  }
+  ol.journey li h4 { margin:0 0 2px; font-size:1rem; }
+  ol.journey li p { margin:0; color:var(--ink-soft); font-size:.92rem; }
+
+  .split { display:grid; grid-template-columns:130px 1fr; gap:4px 16px; align-items:baseline; }
+  .split dt { font-family:ui-monospace,monospace; font-size:.82rem; color:var(--accent); text-transform:uppercase; letter-spacing:.06em; padding-top:8px; }
+  .split dd { margin:0; padding-top:8px; border-top:1px solid var(--border); color:var(--ink-soft); }
+  .split dd b { color:var(--ink); }
+  @media (max-width:560px){ .split { grid-template-columns:1fr; } .split dd { border-top:none; padding-top:0; } .split dt { padding-top:12px; } }
+
+  footer { margin-top:56px; padding-top:22px; border-top:1px solid var(--border); color:var(--ink-faint); font-size:.85rem; }
+  a { color:var(--accent); }
+  .toggle { position:fixed; top:14px; right:14px; z-index:9; background:var(--panel); border:1px solid var(--border); color:var(--ink-soft); border-radius:8px; padding:7px 10px; font-size:13px; cursor:pointer; box-shadow:var(--shadow); }
+  .toggle:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+</style>
+
+<button class="toggle" id="tgl" aria-label="Toggle theme">◑ Theme</button>
+
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">System Reference · Build 1d64c79</p>
+    <h1><span class="g">GRID</span> <span class="g2">GUARD</span></h1>
+    <p class="tagline">A 2.5D isometric energy-management tower defense. Generate power from sun &amp; wind, store it in the BESS, run the Data Center for money — and defend the grid from escalating raids. Flutter&nbsp;+&nbsp;Flame.</p>
+    <div class="keystats">
+      <div class="kv"><b>4</b><span>Buildable units</span></div>
+      <div class="kv"><b>2</b><span>Enemy types</span></div>
+      <div class="kv"><b>5</b><span>DC workloads</span></div>
+      <div class="kv"><b>4</b><span>Resources</span></div>
+      <div class="kv"><b>2</b><span>Game modes</span></div>
+    </div>
+  </header>
+
+  <!-- WHAT WE BUILT -->
+  <section id="about">
+    <div class="sec-head"><span class="sec-num">01</span><h2>What we built</h2></div>
+    <p class="sec-sub">It started as a scripted 30-level tower defense (a full vertical slice), then evolved — on your direction — into a realistic single-map energy-management sim: production ↔ storage ↔ consumption ↔ money ↔ threat ↔ security, all interlocked.</p>
+    <ol class="journey panel" style="padding:16px;">
+      <li><h4>Architecture &amp; foundation</h4><p>Isometric 2:1 projection + depth sorting, tile-space paths, data models, offline save (shared_preferences), Riverpod, and a mock MonetizationService — no real ad/IAP SDK, but wired for one.</p></li>
+      <li><h4>Core gameplay</h4><p>PV economy, Scissor Barrier (area slow) + Shock Transformer (chaining damage), wave spawner, drone/malware enemies, win/lose, 3-star scoring.</p></li>
+      <li><h4>UI, feel &amp; store</h4><p>Full HUD, level select, win/lose screens, store mockup, screen shake, geometric arc/burst VFX, audio hooks, interstitial pacing.</p></li>
+      <li><h4>The pivot → energy sim</h4><p>Real energy flow (PV→BESS→Data Center), money from data (not kills), day/night cycle, wind power, endless BASE·SURVIVAL mode with escalating raids, DC workloads, and security gating.</p></li>
+    </ol>
+  </section>
+
+  <!-- CORE LOOP -->
+  <section id="loop">
+    <div class="sec-head"><span class="sec-num">02</span><h2>The core loop</h2></div>
+    <p class="sec-sub">Every second the grid balances itself. Generation charges the battery; the Data Center and firing towers drain it. Run out of power and the DC stops earning and towers stop firing.</p>
+    <div class="panel flow">
+      <div class="flow-row">
+        <div class="node src"><div class="n-ico">☀️🌬️</div><div class="n-t">PV + Wind</div><div class="n-s">generate energy</div></div>
+        <div class="arrow">→</div>
+        <div class="node store"><div class="n-ico">🔋</div><div class="n-t">BESS</div><div class="n-s">stores energy</div></div>
+        <div class="arrow">→</div>
+        <div class="node dc"><div class="n-ico">🖥️</div><div class="n-t">Data Center</div><div class="n-s">→ 💰 money</div></div>
+        <div class="arrow">→</div>
+        <div class="node"><div class="n-ico">🏗️</div><div class="n-t">Upgrade</div><div class="n-s">PV·Wind·BESS·DC·towers</div></div>
+      </div>
+      <div class="flow-row" style="margin-top:10px;">
+        <div class="node"><div class="n-ico">⚡</div><div class="n-t">Towers</div><div class="n-s">draw energy per shot</div></div>
+        <div class="arrow">↔</div>
+        <div class="node store"><div class="n-ico">🔋</div><div class="n-t">BESS</div><div class="n-s">shared fuel</div></div>
+        <div class="arrow" style="visibility:hidden">→</div>
+        <div class="node threat"><div class="n-ico">🚁</div><div class="n-t">Raids</div><div class="n-s">attack the core</div></div>
+        <div class="arrow">→</div>
+        <div class="node threat"><div class="n-ico">🏛️</div><div class="n-t">Core</div><div class="n-s">0 integrity = game over</div></div>
+      </div>
+      <p class="flow-note"><b>The tension:</b> Generation (sun + wind) must cover the Data Center draw <em>plus</em> your towers. Greedier data jobs pay more but draw more power and pull more raids — and you can't take them without enough <b>security</b> (defenses) built first.</p>
+    </div>
+  </section>
+
+  <!-- UNITS -->
+  <section id="units">
+    <div class="sec-head"><span class="sec-num">03</span><h2>Buildable units</h2></div>
+    <p class="sec-sub">Costs are in money 💰. Each unit has 3 tiers; tier&nbsp;1 is the base build, tiers 2–3 are money upgrades. Placement: producers &amp; the transformer go on build pads (safe zones); the barrier goes on the path.</p>
+    <div class="grid cols-2">
+
+      <div class="panel unit">
+        <div class="u-top">
+          <div class="glyph">☀️</div>
+          <div><h3>PV Panel</h3><div class="role">Producer · pad</div></div>
+          <span class="badge b-energy" style="margin-left:auto">SOLAR</span>
+        </div>
+        <p class="desc">Generates energy — but <b>only in daylight</b> (output scales with the sun, zero at night). Cheap baseline generation.</p>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>Tier</th><th class="mono">Cost</th><th class="mono">Output</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td class="mono">40</td><td class="mono">4 ⚡/s</td></tr>
+            <tr><td>2</td><td class="mono">60</td><td class="mono">8 ⚡/s</td></tr>
+            <tr><td>3</td><td class="mono">90</td><td class="mono">14 ⚡/s</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="panel unit">
+        <div class="u-top">
+          <div class="glyph">🌬️</div>
+          <div><h3>Wind Turbine</h3><div class="role">Producer · pad</div></div>
+          <span class="badge b-wind" style="margin-left:auto">WIND</span>
+        </div>
+        <p class="desc">Generates energy <b>day and night</b>, scaled by a wind factor that drifts between 15%–100%. Pricier than PV, but carries the grid through the night.</p>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>Tier</th><th class="mono">Cost</th><th class="mono">Output</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td class="mono">55</td><td class="mono">5 ⚡/s</td></tr>
+            <tr><td>2</td><td class="mono">85</td><td class="mono">10 ⚡/s</td></tr>
+            <tr><td>3</td><td class="mono">125</td><td class="mono">17 ⚡/s</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="panel unit">
+        <div class="u-top">
+          <div class="glyph">✂️</div>
+          <div><h3>Automated Scissor Barrier</h3><div class="role">Control · path</div></div>
+          <span class="badge b-slow" style="margin-left:auto">SLOW</span>
+        </div>
+        <p class="desc">Deals no damage. Projects a <b>1.5-tile slow field</b> that drags enemies down and bunches them up — setting up the transformer's chain hit. Adds <b>×1 security</b> per tier.</p>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>Tier</th><th class="mono">Cost</th><th class="mono">Speed ×</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td class="mono">30</td><td class="mono">0.50</td></tr>
+            <tr><td>2</td><td class="mono">45</td><td class="mono">0.36</td></tr>
+            <tr><td>3</td><td class="mono">70</td><td class="mono">0.24</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="panel unit">
+        <div class="u-top">
+          <div class="glyph">⚡</div>
+          <div><h3>6300A Shock Transformer</h3><div class="role">Damage · pad</div></div>
+          <span class="badge b-dmg" style="margin-left:auto">DAMAGE</span>
+        </div>
+        <p class="desc">Fires a chaining arc; when <b>3+ enemies</b> cluster, damage gets the chain bonus. <b>Draws energy per shot</b> — no power, no fire. Adds <b>×2 security</b> per tier.</p>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>Tier</th><th class="mono">Cost</th><th class="mono">Dmg</th><th class="mono">Range</th><th class="mono">Rate</th><th class="mono">⚡/shot</th><th class="mono">Chain</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td class="mono">70</td><td class="mono">14</td><td class="mono">2.2</td><td class="mono">0.9s</td><td class="mono">2.5</td><td class="mono">1.5×</td></tr>
+            <tr><td>2</td><td class="mono">110</td><td class="mono">24</td><td class="mono">2.6</td><td class="mono">0.8s</td><td class="mono">3.5</td><td class="mono">1.75×</td></tr>
+            <tr><td>3</td><td class="mono">170</td><td class="mono">40</td><td class="mono">3.0</td><td class="mono">0.7s</td><td class="mono">5.0</td><td class="mono">2.0×</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CORE FACILITIES -->
+  <section id="core">
+    <div class="sec-head"><span class="sec-num">04</span><h2>Core facilities — BESS 1M &amp; Core 40 PMDC</h2></div>
+    <p class="sec-sub">The base you defend. The BESS stores your energy; the Data Center turns power into money. Both upgrade with money.</p>
+    <div class="grid cols-2">
+      <div class="panel unit">
+        <div class="u-top"><div class="glyph">🔋</div><div><h3>BESS (battery storage)</h3><div class="role">Energy store</div></div><span class="badge b-core" style="margin-left:auto">STORAGE</span></div>
+        <p class="desc">Buffers energy so you can ride out night, wind lulls, and tower draw spikes. A bigger battery is survival insurance.</p>
+        <div class="chips">
+          <span class="chip">Start cap <b>70</b> ⚡ <span style="opacity:.6">(survival 90)</span></span>
+          <span class="chip">Upgrade <b>+40</b> ⚡ cap</span>
+          <span class="chip">Cost <b>80 × level</b></span>
+        </div>
+      </div>
+      <div class="panel unit">
+        <div class="u-top"><div class="glyph">🖥️</div><div><h3>Data Center (Core 40 PMDC)</h3><div class="role">Money engine</div></div><span class="badge b-core" style="margin-left:auto">INCOME</span></div>
+        <p class="desc">Runs a <b>workload</b> for money — <em>only while powered</em>. Consumes energy every second. Upgrading raises income <b>and</b> draw.</p>
+        <div class="chips">
+          <span class="chip">Income <b>× (1 + 0.35·(lvl−1))</b></span>
+          <span class="chip">Draw <b>× (1 + 0.25·(lvl−1))</b></span>
+          <span class="chip">Cost <b>100 × level</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="chips" style="margin-top:14px;">
+      <span class="chip">Core integrity <b>100</b> campaign / <b>160</b> survival — hits 0 → game over</span>
+    </div>
+  </section>
+
+  <!-- ENEMIES -->
+  <section id="enemies">
+    <div class="sec-head"><span class="sec-num">05</span><h2>Enemies</h2></div>
+    <p class="sec-sub">Base stats below; health and speed scale up with each raid / zone. Reaching the core deals integrity damage. Kills award score only.</p>
+    <div class="panel tbl-scroll">
+      <table>
+        <thead><tr><th>Unit</th><th>Type</th><th class="mono">HP</th><th class="mono">Speed</th><th class="mono">Core dmg</th><th class="mono">Score</th></tr></thead>
+        <tbody>
+          <tr><td>🚁 Saboteur Drone</td><td>Fast swarm</td><td class="mono">26</td><td class="mono">1.9</td><td class="mono">6</td><td class="mono">10</td></tr>
+          <tr><td>🟪 Malware Crawler</td><td>Slow tank</td><td class="mono">115</td><td class="mono">0.85</td><td class="mono">16</td><td class="mono">30</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- WORKLOADS -->
+  <section id="workloads">
+    <div class="sec-head"><span class="sec-num">06</span><h2>Data Center workloads — the risk/reward dial</h2></div>
+    <p class="sec-sub">Pick what the Data Center processes. Higher-value data pays more, draws more power, and — realistically — attracts more &amp; harder raids (threat ×). You can't take a job without enough security (🛡) built first.</p>
+    <div class="panel tbl-scroll">
+      <table>
+        <thead><tr><th>Workload</th><th class="mono">Income</th><th class="mono">Draw</th><th class="mono">Threat</th><th class="mono">Security req.</th></tr></thead>
+        <tbody>
+          <tr><td>🌐 Web Hosting</td><td class="mono">+4 $/s</td><td class="mono">2 ⚡/s</td><td class="mono">0.6×</td><td class="mono">🛡 0</td></tr>
+          <tr><td>🧠 AI Compute</td><td class="mono">+9 $/s</td><td class="mono">7 ⚡/s</td><td class="mono">1.0×</td><td class="mono">🛡 3</td></tr>
+          <tr><td>⛏️ Crypto Mining</td><td class="mono">+11 $/s</td><td class="mono">8 ⚡/s</td><td class="mono">1.3×</td><td class="mono">🛡 6</td></tr>
+          <tr><td>🏦 Bank Records</td><td class="mono">+14 $/s</td><td class="mono">5 ⚡/s</td><td class="mono">1.6×</td><td class="mono">🛡 10</td></tr>
+          <tr><td>🕵️ Gov Secrets</td><td class="mono">+18 $/s</td><td class="mono">6 ⚡/s</td><td class="mono">2.3×</td><td class="mono">🛡 16</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="flow-note" style="border:none;padding-top:12px;"><b>Threat ×</b> shortens the gap between raids and scales how many enemies each raid brings. <b>Security</b> = Shock Transformer (×2) + Scissor Barrier (×1), each scaled by tier.</p>
+  </section>
+
+  <!-- RESOURCES & SYSTEMS -->
+  <section id="systems">
+    <div class="sec-head"><span class="sec-num">07</span><h2>Resources &amp; systems</h2></div>
+    <div class="grid cols-2">
+      <div class="panel" style="padding:18px;">
+        <h3 style="margin:0 0 10px;">Four resources</h3>
+        <dl class="split">
+          <dt>⚡ Energy</dt><dd>Operational fuel, stored in the BESS. From PV (sun) + wind. Spent by the Data Center and tower shots.</dd>
+          <dt>💰 Money</dt><dd>Build &amp; upgrade currency. Earned by the Data Center <b>while powered</b>.</dd>
+          <dt>🎯 Score</dt><dd>Performance metric. From enemy kills only.</dd>
+          <dt>🛡 Security</dt><dd>Defensive strength. Gates which workloads you can run.</dd>
+        </dl>
+      </div>
+      <div class="panel" style="padding:18px;">
+        <h3 style="margin:0 0 10px;">Live systems</h3>
+        <dl class="split">
+          <dt>Day / Night</dt><dd><b>80s</b> cycle. PV only produces in daylight (peak at noon); the board darkens at night.</dd>
+          <dt>Wind</dt><dd>Oscillates <b>15%–100%</b> over time — independent of the sun, so it can cover nights.</dd>
+          <dt>Threat</dt><dd>Workload threat scales raid frequency &amp; size.</dd>
+          <dt>Security gate</dt><dd>High-value jobs stay locked until defenses are built.</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODES -->
+  <section id="modes">
+    <div class="sec-head"><span class="sec-num">08</span><h2>Modes</h2></div>
+    <div class="grid cols-3">
+      <div class="panel unit"><div class="u-top"><div class="glyph">🏭</div><div><h3>Base · Survival</h3></div></div><p class="desc">The single endless map. Every free tile is buildable; raids escalate on a timer (boss every 5th). No win — grow until the core falls.</p></div>
+      <div class="panel unit"><div class="u-top"><div class="glyph">🗺️</div><div><h3>Campaign</h3></div></div><p class="desc">30 scripted levels across 5 zones (6 each), difficulty ramping, an Overload Boss Wave capping every zone.</p></div>
+      <div class="panel unit"><div class="u-top"><div class="glyph">🛒</div><div><h3>Market</h3></div></div><p class="desc">Store mockup — cosmetic skins &amp; a Starter Pack tile, wired to the mock monetization service (no real purchases).</p></div>
+    </div>
+  </section>
+
+  <!-- TECH -->
+  <section id="tech">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Under the hood</h2></div>
+    <div class="chips">
+      <span class="chip"><b>Flutter</b> + <b>Flame</b> engine</span>
+      <span class="chip">2.5D isometric (2:1) + depth sorting</span>
+      <span class="chip"><b>Riverpod</b> state</span>
+      <span class="chip"><b>shared_preferences</b> — fully offline</span>
+      <span class="chip">All art = procedural canvas (placeholder)</span>
+      <span class="chip">Monetization behind a <b>MonetizationService</b> interface (mock)</span>
+      <span class="chip">Runs in browser via Flutter web</span>
+    </div>
+    <p class="flow-note"><b>Not yet wired:</b> real ad/IAP SDK (deliberately deferred), and — next on the list — friendly <b>defense drones</b>. All balance numbers here are a tuning-in-progress first pass.</p>
+  </section>
+
+  <footer>
+    Grid Guard — internal system reference. Generated from the codebase at build <span class="mono">1d64c79</span>. Numbers reflect current tuning and will change.
+  </footer>
+</div>
+
+<script>
+  (function(){
+    var b=document.getElementById('tgl');
+    b.addEventListener('click',function(){
+      var r=document.documentElement;
+      var cur=r.getAttribute('data-theme');
+      if(!cur){ cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light'; }
+      r.setAttribute('data-theme', cur==='dark' ? 'light':'dark');
+    });
+  })();
+</script>
