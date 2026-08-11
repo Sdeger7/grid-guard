@@ -11,7 +11,7 @@ import 'iso_component.dart';
 /// (tracked by the game, not here). Flashes red when hit.
 class CoreComponent extends IsoComponent {
   CoreComponent({required super.tile, required this.accent})
-      : super(depthBias: 0.15, size: Vector2.all(64));
+      : super(depthBias: 0.15);
 
   final Color accent;
   double _flash = 0;

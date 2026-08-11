@@ -18,7 +18,7 @@ class EnemyComponent extends IsoComponent {
     required this.maxHealth,
     required this.speed,
   })  : health = maxHealth,
-        super(tile: Vector2.zero(), depthBias: 0.08, size: Vector2.all(28));
+        super(tile: Vector2.zero(), depthBias: 0.08);
 
   final EnemySpec spec;
   final double maxHealth;

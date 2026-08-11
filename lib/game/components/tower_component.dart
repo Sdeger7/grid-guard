@@ -21,7 +21,6 @@ class TowerComponent extends IsoComponent {
   }) : super(
           tile: Vector2(coord.col.toDouble(), coord.row.toDouble()),
           depthBias: 0.2,
-          size: Vector2.all(40),
         );
 
   final TowerSpec spec;

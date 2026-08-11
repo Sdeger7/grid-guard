@@ -17,7 +17,6 @@ class PvPanelComponent extends IsoComponent {
   }) : super(
           tile: Vector2(coord.col.toDouble(), coord.row.toDouble()),
           depthBias: 0.18,
-          size: Vector2.all(40),
         );
 
   final TowerSpec spec;
