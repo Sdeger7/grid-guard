@@ -19,6 +19,7 @@ class PlayerProfile {
     this.starsByLevelId = const {},
     this.unlockedTowers = const {
       TowerType.pvPanel,
+      TowerType.windTurbine,
       TowerType.scissorBarrier,
       TowerType.shockTransformer,
     },
@@ -119,6 +120,7 @@ class PlayerProfile {
               .toSet() ??
           const {
             TowerType.pvPanel,
+            TowerType.windTurbine,
             TowerType.scissorBarrier,
             TowerType.shockTransformer,
           },

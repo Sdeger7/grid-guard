@@ -19,6 +19,18 @@ class TowerCatalog {
         TowerTier(cost: 90, mwPerSecond: 14),
       ],
     ),
+    TowerType.windTurbine: TowerSpec(
+      type: TowerType.windTurbine,
+      name: 'Wind Turbine',
+      category: TowerCategory.economy,
+      tint: Color(0xFF7FB2C9),
+      placeableOn: TilePlacement.safeZone,
+      tiers: [
+        TowerTier(cost: 55, mwPerSecond: 5),
+        TowerTier(cost: 85, mwPerSecond: 10),
+        TowerTier(cost: 125, mwPerSecond: 17),
+      ],
+    ),
     TowerType.scissorBarrier: TowerSpec(
       type: TowerType.scissorBarrier,
       name: 'Automated Scissor Barrier',
@@ -74,6 +86,7 @@ class TowerCatalog {
   /// Towers a player can select from the build tray, in display order.
   static const List<TowerType> buildTray = [
     TowerType.pvPanel,
+    TowerType.windTurbine,
     TowerType.scissorBarrier,
     TowerType.shockTransformer,
   ];

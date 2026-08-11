@@ -116,7 +116,14 @@ class _TopBar extends StatelessWidget {
               label: state.isNight ? '—' : '${(state.sunFactor * 100).round()}%',
               caption: 'SUN',
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
+            _Stat(
+              icon: Icons.wind_power_rounded,
+              color: GGColors.teal,
+              label: '${(state.windFactor * 100).round()}%',
+              caption: 'WIND',
+            ),
+            const SizedBox(width: 10),
             _Stat(
               icon: Icons.attach_money_rounded,
               color: GGColors.good,
@@ -136,8 +143,10 @@ class _TopBar extends StatelessWidget {
               color: GGColors.accentWarm,
               label: state.waveNumber == 0
                   ? '—'
-                  : '${state.waveNumber}/${state.totalWaves}',
-              caption: 'WAVE',
+                  : state.endless
+                      ? '${state.waveNumber}'
+                      : '${state.waveNumber}/${state.totalWaves}',
+              caption: state.endless ? 'RAID' : 'WAVE',
             ),
           ],
         ),
@@ -411,6 +420,8 @@ class _TowerButton extends StatelessWidget {
     switch (type) {
       case TowerType.pvPanel:
         return Icons.solar_power_rounded;
+      case TowerType.windTurbine:
+        return Icons.wind_power_rounded;
       case TowerType.scissorBarrier:
         return Icons.content_cut_rounded;
       case TowerType.shockTransformer:

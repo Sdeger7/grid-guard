@@ -17,6 +17,7 @@ enum TowerCategory {
 /// configs, the store, and save data can reference towers by a compact key.
 enum TowerType {
   pvPanel,
+  windTurbine,
   scissorBarrier,
   shockTransformer,
 }

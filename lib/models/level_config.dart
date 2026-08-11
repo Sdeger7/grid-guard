@@ -109,6 +109,7 @@ class LevelConfig {
     this.bessCapacity = 60,
     this.dayLength = 80,
     this.startTimeOfDay = 0.33,
+    this.endless = false,
   });
 
   final int id;
@@ -146,6 +147,10 @@ class LevelConfig {
 
   /// Time of day the level starts at (0..1); 0.28 == just after sunrise.
   final double startTimeOfDay;
+
+  /// Endless "base survival" mode: no scripted waves and no win — escalating
+  /// raids are generated on a timer, and you grow until the core falls.
+  final bool endless;
 
   /// Star 2: keep integrity loss at or below this fraction (0..1) of max.
   final double lowDamageStarThreshold;

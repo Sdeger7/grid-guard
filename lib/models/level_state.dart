@@ -32,11 +32,12 @@ class LevelState {
     required this.energyCapacity,
     required this.money,
     required this.score,
-    required this.pvOutput,
+    required this.generation,
     required this.dcDraw,
     required this.dcIncome,
     required this.dcPowered,
     required this.sunFactor,
+    required this.windFactor,
     required this.isNight,
     required this.bessLevel,
     required this.dcLevel,
@@ -48,6 +49,7 @@ class LevelState {
     required this.totalWaves,
     required this.phase,
     required this.elapsedSeconds,
+    this.endless = false,
     this.bossWaveActive = false,
   });
 
@@ -62,13 +64,14 @@ class LevelState {
   final int score;
 
   // Live grid balance.
-  final double pvOutput; // effective (sunlight-scaled) output
+  final double generation; // total effective output (solar + wind)
   final double dcDraw;
   final double dcIncome;
   final bool dcPowered;
 
-  /// Solar irradiance 0..1 (0 at night) and a convenience night flag.
+  /// Solar irradiance 0..1 (0 at night), wind strength 0..1, and a night flag.
   final double sunFactor;
+  final double windFactor;
   final bool isNight;
 
   // Facilities.
@@ -84,6 +87,9 @@ class LevelState {
   final int totalWaves;
   final RunPhase phase;
   final double elapsedSeconds;
+
+  /// Endless survival run (waveNumber is the raid count, no total).
+  final bool endless;
   final bool bossWaveActive;
 
   double get integrityFraction => maxCoreIntegrity <= 0
@@ -93,9 +99,9 @@ class LevelState {
   double get energyFraction =>
       energyCapacity <= 0 ? 0 : (energy / energyCapacity).clamp(0, 1);
 
-  /// Net energy per second (PV production minus Data Center draw). Negative
+  /// Net energy per second (total generation minus Data Center draw). Negative
   /// means the BESS is draining even before towers fire.
-  double get netEnergy => pvOutput - dcDraw;
+  double get netEnergy => generation - dcDraw;
 }
 
 /// The computed outcome of a finished run, handed to the level-end screen and

@@ -19,6 +19,7 @@ import 'components/enemy_component.dart';
 import 'components/floating_text.dart';
 import 'components/ground_tile.dart';
 import 'components/night_overlay.dart';
+import 'components/wind_turbine_component.dart';
 import 'components/pv_panel_component.dart';
 import 'components/tower_component.dart';
 import 'systems/iso.dart';
@@ -74,6 +75,15 @@ enum Sfx {
   levelLose,
 }
 
+/// One staggered enemy emission queued by the endless raid director.
+class _PendingSpawn {
+  _PendingSpawn(this.time, this.type, this.healthScale, this.speedScale);
+  double time;
+  final EnemyType type;
+  final double healthScale;
+  final double speedScale;
+}
+
 /// The Grid Guard FlameGame: owns the isometric world, run economy, wave
 /// pacing, win/lose logic and input. All rendering is depth-sorted through
 /// component priorities set by [IsoComponent].
@@ -118,6 +128,7 @@ class GridGuardGame extends FlameGame {
 
   final List<EnemyComponent> enemies = [];
   final List<PvPanelComponent> pvPanels = [];
+  final List<WindTurbineComponent> windTurbines = [];
   final Map<TileCoord, PositionComponent> _occupied = {};
   final Map<TileCoord, TowerComponent> _slowTowers = {};
 
@@ -141,6 +152,20 @@ class GridGuardGame extends FlameGame {
 
   /// Actual PV output right now (nameplate scaled by sunlight).
   double get effectivePvOutput => pvOutput * sunFactor;
+
+  /// Combined nameplate output of all wind turbines (before wind).
+  double get windOutput =>
+      windTurbines.fold(0.0, (s, w) => s + w.currentTier.mwPerSecond);
+
+  /// Wind strength in [0.15,1.0], oscillating over time. Works day AND night —
+  /// wind is what carries the grid when the sun is down.
+  double windFactor = 0.6;
+  double _windPhase = 0;
+
+  double get effectiveWindOutput => windOutput * windFactor;
+
+  /// Total energy generated right now (solar + wind).
+  double get generation => effectivePvOutput + effectiveWindOutput;
 
   /// Data Center energy draw per second (grows with DC level — greed costs power).
   double get dcDraw => 3.0 + (dcLevel - 1) * 2.0;
@@ -283,9 +308,11 @@ class GridGuardGame extends FlameGame {
     int? cost;
     if (comp is TowerComponent && comp.canUpgrade) cost = comp.upgradeCost;
     if (comp is PvPanelComponent && comp.canUpgrade) cost = comp.upgradeCost;
+    if (comp is WindTurbineComponent && comp.canUpgrade) cost = comp.upgradeCost;
     if (cost == null || !_spendMoney(cost)) return;
     if (comp is TowerComponent) comp.upgrade();
     if (comp is PvPanelComponent) comp.upgrade();
+    if (comp is WindTurbineComponent) comp.upgrade();
     _emitSfx(Sfx.towerPlace);
     _selectStructure(coord); // refresh panel
   }
@@ -319,8 +346,12 @@ class GridGuardGame extends FlameGame {
 
     if (phase == RunPhase.inProgress) {
       elapsed += dt;
-      spawner.tick(dt);
-      _checkWin();
+      if (config.endless) {
+        _tickRaids(dt);
+      } else {
+        spawner.tick(dt);
+        _checkWin();
+      }
     }
 
     _decayShake(dt);
@@ -339,11 +370,16 @@ class GridGuardGame extends FlameGame {
   /// otherwise it idles (no income) until energy recovers. Towers draw energy
   /// separately, per shot, via [tryDrawEnergy].
   void _tickEconomy(double dt) {
-    // 0) Advance the day/night clock.
+    // 0) Advance the day/night clock and the wind.
     timeOfDay = (timeOfDay + dt / config.dayLength) % 1.0;
+    _windPhase += dt;
+    windFactor = (0.55 +
+            0.35 * math.sin(_windPhase * 0.35) +
+            0.15 * math.sin(_windPhase * 1.1))
+        .clamp(0.15, 1.0);
 
-    // 1) PV charges the battery — but only in daylight (scaled by the sun).
-    energy = (energy + effectivePvOutput * dt).clamp(0, energyCapacity);
+    // 1) Solar + wind charge the battery (solar needs daylight; wind doesn't).
+    energy = (energy + generation * dt).clamp(0, energyCapacity);
 
     // 2) Data Center consumes to run, and pays out while powered.
     final draw = dcDraw * dt;
@@ -433,9 +469,15 @@ class GridGuardGame extends FlameGame {
 
     late final PositionComponent comp;
     if (spec.category == TowerCategory.economy) {
-      final pv = PvPanelComponent(spec: spec, coord: coord);
-      pvPanels.add(pv);
-      comp = pv;
+      if (spec.type == TowerType.windTurbine) {
+        final w = WindTurbineComponent(spec: spec, coord: coord);
+        windTurbines.add(w);
+        comp = w;
+      } else {
+        final pv = PvPanelComponent(spec: spec, coord: coord);
+        pvPanels.add(pv);
+        comp = pv;
+      }
     } else {
       final tower = TowerComponent(spec: spec, coord: coord);
       if (spec.category == TowerCategory.slow) _slowTowers[coord] = tower;
@@ -459,6 +501,11 @@ class GridGuardGame extends FlameGame {
       maxTier = comp.spec.maxTier;
       cost = comp.upgradeCost;
     } else if (comp is PvPanelComponent) {
+      name = comp.spec.name;
+      tier = comp.tier;
+      maxTier = comp.spec.maxTier;
+      cost = comp.upgradeCost;
+    } else if (comp is WindTurbineComponent) {
       name = comp.spec.name;
       tier = comp.tier;
       maxTier = comp.spec.maxTier;
@@ -569,6 +616,55 @@ class GridGuardGame extends FlameGame {
     _publishSnapshot(force: true);
   }
 
+  // ---- Endless raid director ----
+
+  double _raidTimer = 12; // first raid delay after START
+  int raidCount = 0;
+  final List<_PendingSpawn> _pendingSpawns = [];
+
+  void _tickRaids(double dt) {
+    // Drain staggered spawns from the current raid.
+    for (final p in _pendingSpawns) {
+      p.time -= dt;
+    }
+    while (_pendingSpawns.isNotEmpty && _pendingSpawns.first.time <= 0) {
+      final p = _pendingSpawns.removeAt(0);
+      _spawnEnemy(p.type, p.healthScale, p.speedScale);
+    }
+
+    _raidTimer -= dt;
+    if (_raidTimer <= 0) {
+      _launchRaid();
+      // Raids come a little faster as they escalate, down to ~14s apart.
+      _raidTimer = math.max(14.0, 26.0 - raidCount * 0.5);
+    }
+  }
+
+  void _launchRaid() {
+    raidCount++;
+    final n = raidCount;
+    final hs = 1.0 + n * 0.10;
+    final ss = 1.0 + n * 0.02;
+    final drones = 4 + n * 2;
+    final malware = (n / 3).floor();
+    var t = 0.0;
+    for (var i = 0; i < drones; i++) {
+      _pendingSpawns.add(
+          _PendingSpawn(t, EnemyType.saboteurDrone, hs, ss));
+      t += 0.45;
+    }
+    for (var i = 0; i < malware; i++) {
+      _pendingSpawns.add(
+          _PendingSpawn(t, EnemyType.malwareCrawler, hs, ss));
+      t += 0.9;
+    }
+    waveNumber = n;
+    bossActive = n % 5 == 0;
+    if (bossActive) addShake(shakeMagnitudeHeavy);
+    _emitSfx(Sfx.waveStart);
+    _publishSnapshot(force: true);
+  }
+
   // ---- Win / lose ----
 
   void _checkWin() {
@@ -620,11 +716,12 @@ class GridGuardGame extends FlameGame {
       energyCapacity: energyCapacity,
       money: money.floor(),
       score: score,
-      pvOutput: effectivePvOutput,
+      generation: generation,
       dcDraw: dcDraw,
       dcIncome: dcIncome,
       dcPowered: dcPowered,
       sunFactor: sunFactor,
+      windFactor: windFactor,
       isNight: isNight,
       bessLevel: bessLevel,
       dcLevel: dcLevel,
@@ -636,6 +733,7 @@ class GridGuardGame extends FlameGame {
       totalWaves: spawner.totalWaves,
       phase: phase,
       elapsedSeconds: elapsed,
+      endless: config.endless,
       bossWaveActive: bossActive,
     ));
   }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/levels.dart';
 import '../../services/app_providers.dart';
 import '../theme.dart';
+import 'game_screen.dart';
 import 'level_select_screen.dart';
 import 'store_screen.dart';
 
@@ -43,9 +45,17 @@ class MainMenuScreen extends ConsumerWidget {
                   style: GGText.soft),
               const Spacer(),
               _MenuButton(
-                icon: Icons.play_arrow_rounded,
-                label: 'PLAY',
+                icon: Icons.hub_rounded,
+                label: 'BASE · SURVIVAL',
                 color: GGColors.good,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => GameScreen(config: LevelCatalog.survival))),
+              ),
+              const SizedBox(height: 12),
+              _MenuButton(
+                icon: Icons.grid_view_rounded,
+                label: 'CAMPAIGN',
+                color: GGColors.accent,
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => const LevelSelectScreen())),
               ),
