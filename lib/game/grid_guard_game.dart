@@ -150,6 +150,8 @@ class GridGuardGame extends FlameGame {
 
   void _buildBoard() {
     final pathTiles = path.pathTiles;
+    // A single ground tone (no checker) with a darker "lane" tone for the route.
+    final road = Color.lerp(theme.ground, const Color(0xFF1A2230), 0.16)!;
     for (var r = 0; r < config.gridRows; r++) {
       for (var c = 0; c < config.gridCols; c++) {
         final coord = TileCoord(c, r);
@@ -163,12 +165,11 @@ class GridGuardGame extends FlameGame {
         } else if (config.safeZones.contains(coord)) {
           kind = TileKind.safeZone;
         }
-        final even = (c + r).isEven;
         worldRoot.add(GroundTile(
           tile: Vector2(c.toDouble(), r.toDouble()),
           kind: kind,
-          fill: even ? theme.ground : theme.groundAlt,
-          edge: const Color(0x22000000),
+          fill: theme.ground,
+          road: road,
           accent: theme.accent,
         ));
       }

@@ -4,25 +4,32 @@ import 'package:flutter/material.dart' show Colors;
 
 import 'iso_component.dart';
 
-/// What role a ground tile plays — drives its placeholder colour.
+/// What role a ground tile plays — drives its placeholder look.
 enum TileKind { ground, path, safeZone, core, spawn }
 
-/// A single isometric ground diamond. Placeholder art: a flat-shaded diamond
-/// with a thin edge. Rendering reads colours passed in from the zone theme, so
-/// dropping in a real tile sprite later means swapping this component's paint
-/// for a sprite draw — no other logic changes.
+/// A single isometric ground diamond.
+///
+/// Rendering is role-based so the board reads as a *place*, not a chessboard:
+/// plain ground is a flat unified fill with only a whisper of an edge; the
+/// enemy route is a darker connected "lane"; buildable cells are drawn as
+/// raised, accent-bordered pads. Colours come from the zone theme, so real tile
+/// sprites can replace this paint later with no logic change.
 class GroundTile extends IsoComponent {
   GroundTile({
     required super.tile,
     required this.kind,
     required this.fill,
-    required this.edge,
+    required this.road,
     required this.accent,
   });
 
   TileKind kind;
+
+  /// Base ground colour.
   Color fill;
-  Color edge;
+
+  /// Colour of the enemy lane.
+  Color road;
   Color accent;
 
   late final double _halfW = game.iso.halfW;
@@ -30,59 +37,70 @@ class GroundTile extends IsoComponent {
 
   @override
   void update(double dt) {
-    // Static tile — sync once is enough, but this is cheap and keeps it robust
-    // to any world/camera changes.
+    // Static tile — a single sync is enough, and it's cheap.
     syncIso();
   }
 
+  Path _diamond(double s) => Path()
+    ..moveTo(0, -_halfH * s)
+    ..lineTo(_halfW * s, 0)
+    ..lineTo(0, _halfH * s)
+    ..lineTo(-_halfW * s, 0)
+    ..close();
+
+  Paint _stroke(Color c, double w) => Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = w
+    ..color = c;
+
   @override
   void render(Canvas canvas) {
-    final path = Path()
-      ..moveTo(0, -_halfH)
-      ..lineTo(_halfW, 0)
-      ..lineTo(0, _halfH)
-      ..lineTo(-_halfW, 0)
-      ..close();
+    final base = _diamond(1.0);
 
-    final fillPaint = Paint()..color = _fillColor();
-    canvas.drawPath(path, fillPaint);
+    switch (kind) {
+      case TileKind.ground:
+        canvas.drawPath(base, Paint()..color = fill);
+        // Barely-there edge: enough for depth, not a grid.
+        canvas.drawPath(base, _stroke(Colors.black.withValues(alpha: 0.05), 1));
+        break;
 
-    final edgePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0
-      ..color = edge;
-    canvas.drawPath(path, edgePaint);
+      case TileKind.path:
+        canvas.drawPath(base, Paint()..color = road);
+        canvas.drawPath(base, _stroke(Colors.black.withValues(alpha: 0.10), 1));
+        break;
 
-    // Neon inset for special tiles reads like a conduit outline.
-    if (kind == TileKind.safeZone || kind == TileKind.spawn) {
-      final inset = Path()
-        ..moveTo(0, -_halfH * 0.6)
-        ..lineTo(_halfW * 0.6, 0)
-        ..lineTo(0, _halfH * 0.6)
-        ..lineTo(-_halfW * 0.6, 0)
-        ..close();
-      canvas.drawPath(
-        inset,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5
-          ..color = accent.withValues(alpha: 0.8),
-      );
+      case TileKind.spawn:
+        canvas.drawPath(base, Paint()..color = road);
+        canvas.drawPath(base, _stroke(accent.withValues(alpha: 0.9), 1.6));
+        _dot(canvas, accent);
+        break;
+
+      case TileKind.safeZone:
+        canvas.drawPath(base, Paint()..color = fill);
+        _drawPad(canvas, Color.lerp(fill, accent, 0.16)!);
+        break;
+
+      case TileKind.core:
+        canvas.drawPath(base, Paint()..color = fill);
+        _drawPad(canvas, Color.lerp(fill, accent, 0.30)!);
+        break;
     }
   }
 
-  Color _fillColor() {
-    switch (kind) {
-      case TileKind.path:
-        return Color.lerp(fill, Colors.black, 0.08)!;
-      case TileKind.safeZone:
-        return Color.lerp(fill, accent, 0.12)!;
-      case TileKind.spawn:
-        return Color.lerp(fill, accent, 0.2)!;
-      case TileKind.core:
-        return Color.lerp(fill, accent, 0.16)!;
-      case TileKind.ground:
-        return fill;
-    }
+  /// A raised, accent-bordered platform that reads as "buildable here".
+  void _drawPad(Canvas canvas, Color padColor) {
+    final pad = _diamond(0.74);
+    // Soft drop shadow for a hint of height.
+    canvas.save();
+    canvas.translate(0, 2);
+    canvas.drawPath(pad, Paint()..color = Colors.black.withValues(alpha: 0.08));
+    canvas.restore();
+
+    canvas.drawPath(pad, Paint()..color = padColor);
+    canvas.drawPath(pad, _stroke(accent.withValues(alpha: 0.85), 1.4));
+  }
+
+  void _dot(Canvas canvas, Color c) {
+    canvas.drawCircle(Offset.zero, 3, Paint()..color = c);
   }
 }

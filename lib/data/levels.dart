@@ -19,9 +19,24 @@ class LevelCatalog {
   static const int gridCols = 9;
   static const int gridRows = 9;
 
-  /// Two S-shaped path templates; zone parity picks one, so the map reads
-  /// differently across zones while staying axis-aligned for barrier placement.
+  /// The enemy route in tile space. Zone 1 is a hand-authored serpentine with
+  /// two long horizontal "kill lanes"; other zones fall back to parity-based
+  /// S-templates for now. All segments stay axis-aligned for barrier placement.
   static List<TileCoord> _pathTemplate(int zone) {
+    if (zone == 1) {
+      // Enters top-left, snakes down through two straight lanes to the core at
+      // (8,7). The row-3 and row-5 straights are the designed kill zones.
+      return const [
+        TileCoord(0, 1),
+        TileCoord(6, 1),
+        TileCoord(6, 3),
+        TileCoord(2, 3),
+        TileCoord(2, 5),
+        TileCoord(6, 5),
+        TileCoord(6, 7),
+        TileCoord(8, 7),
+      ];
+    }
     if (zone.isOdd) {
       return const [
         TileCoord(0, 1),
@@ -42,10 +57,31 @@ class LevelCatalog {
     ];
   }
 
-  /// Safe zones (PV panel / Shock Transformer sites) flank the path.
+  /// Buildable pads (PV panel / Shock Transformer sites). Placement is a design
+  /// choice, not a scatter: Zone 1 clusters strong pads around the central kill
+  /// zone, with a couple of far, low-coverage "greedy economy" corners.
+  /// The Set can't be `const` (TileCoord overrides ==/hashCode) but its elements
+  /// are compile-time constants.
   static Set<TileCoord> _safeZones(int zone) {
-    // The Set itself can't be `const` (TileCoord overrides ==/hashCode), but the
-    // individual elements are compile-time constants.
+    if (zone == 1) {
+      return {
+        // Central kill zone — flanks the row-3 lane above and below. Towers
+        // here get the most coverage; this is the obvious strong play.
+        const TileCoord(3, 2),
+        const TileCoord(4, 2),
+        const TileCoord(5, 2),
+        const TileCoord(3, 4),
+        const TileCoord(4, 4),
+        const TileCoord(5, 4),
+        // Secondary — covers the lower row-5 lane.
+        const TileCoord(3, 6),
+        const TileCoord(5, 6),
+        // Last-line pad near the core.
+        const TileCoord(7, 6),
+        // Far, low-coverage corner: good for a greedy early PV, weak for defence.
+        const TileCoord(1, 3),
+      };
+    }
     if (zone.isOdd) {
       return {
         const TileCoord(2, 2),
