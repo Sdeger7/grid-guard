@@ -240,7 +240,7 @@ class GridGuardGame extends FlameGame {
   final math.Random _rng = math.Random();
 
   @override
-  Color backgroundColor() => const Color(0xFFF7F9FC);
+  Color backgroundColor() => const Color(0xFF3E6B39);
 
   @override
   Future<void> onLoad() async {
