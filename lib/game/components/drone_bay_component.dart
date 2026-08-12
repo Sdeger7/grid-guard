@@ -4,8 +4,6 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart' show Colors;
 
-import '../../models/level_config.dart';
-import '../../models/tower_type.dart';
 import 'enemy_component.dart';
 import 'iso_box.dart';
 import 'iso_component.dart';
@@ -50,7 +48,7 @@ class InterceptorDrone extends IsoComponent {
       // Close in and engage.
       final to = target.tile - tile;
       final dist = to.length;
-      final speed = 3.2;
+      const speed = 3.2;
       if (dist > 0.55) {
         tile += to.normalized() * math.min(speed * dt, dist);
       }

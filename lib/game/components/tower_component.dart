@@ -1,8 +1,5 @@
 import 'dart:ui';
 
-import 'package:flame/components.dart';
-
-import '../../models/level_config.dart';
 import '../../models/tower_type.dart';
 import 'enemy_component.dart';
 import 'iso_box.dart';
@@ -223,7 +220,8 @@ class TowerComponent extends StructureComponent {
       }
     }
     // Emitter node between the insulators.
-    final emitter = _fireFlash > 0 ? const Color(0xFFFFFFFF) : const Color(0xFFFFC46B);
+    final emitter =
+        _fireFlash > 0 ? const Color(0xFFFFFFFF) : const Color(0xFFFFC46B);
     canvas.drawCircle(Offset(0, -8), _fireFlash > 0 ? 5 : 3.5,
         Paint()..color = emitter);
     canvas.restore();

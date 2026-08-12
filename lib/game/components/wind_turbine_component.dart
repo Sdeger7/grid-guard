@@ -1,10 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:flame/components.dart';
-
-import '../../models/level_config.dart';
-import '../../models/tower_type.dart';
 import 'iso_box.dart';
 import 'structure_component.dart';
 
