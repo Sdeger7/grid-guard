@@ -39,10 +39,7 @@ class LevelState {
     required this.sunFactor,
     required this.windFactor,
     required this.isNight,
-    required this.bessLevel,
-    required this.dcLevel,
-    required this.bessUpgradeCost,
-    required this.dcUpgradeCost,
+    required this.dataCenterCount,
     required this.workloadIndex,
     required this.security,
     required this.coreIntegrity,
@@ -77,10 +74,7 @@ class LevelState {
   final bool isNight;
 
   // Facilities.
-  final int bessLevel;
-  final int dcLevel;
-  final int bessUpgradeCost;
-  final int dcUpgradeCost;
+  final int dataCenterCount;
 
   /// Index into DcWorkloadCatalog.workloads — the DC's current job.
   final int workloadIndex;

@@ -240,8 +240,9 @@ class _Stat extends StatelessWidget {
   }
 }
 
-/// Data Center + BESS facilities: shows live income/draw/capacity and lets the
-/// player spend money to grow them (the core greed-vs-power decision).
+/// Grid summary + global workload picker. BESS/Data Centers are built on the
+/// map now; this row shows their aggregate output and the current DC workload
+/// (tap to change).
 class _FacilitiesRow extends StatelessWidget {
   const _FacilitiesRow({required this.state, required this.game});
   final LevelState state;
@@ -250,230 +251,26 @@ class _FacilitiesRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = DcWorkloadCatalog.workloads[state.workloadIndex];
-    final income = w.income * (1 + 0.35 * (state.dcLevel - 1));
-    final draw = w.draw * (1 + 0.25 * (state.dcLevel - 1));
+    final powered = state.dcPowered;
+    final statusColor =
+        state.dataCenterCount == 0 || !powered ? GGColors.danger : GGColors.good;
+    final statusText = state.dataCenterCount == 0
+        ? 'NO DC'
+        : powered
+            ? 'ONLINE'
+            : 'NO POWER';
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: _FacilityCard(
-              icon: Icons.dns_rounded,
-              title: 'DC L${state.dcLevel} · ${w.emoji}${w.name}',
-              level: state.dcLevel,
-              showLevel: false,
-              line:
-                  '+${income.toStringAsFixed(0)}\$ · -${draw.toStringAsFixed(0)}⚡ · 🛡${state.security}  (tap to change)',
-              statusColor: state.dcPowered ? GGColors.good : GGColors.danger,
-              statusText: state.dcPowered ? 'ONLINE' : 'NO POWER',
-              cost: state.dcUpgradeCost,
-              affordable: state.money >= state.dcUpgradeCost,
-              onUpgrade: game.upgradeDc,
-              onTapBody: () => _showWorkloadSheet(
-                  context, game, state.workloadIndex, state.security),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _FacilityCard(
-              icon: Icons.battery_charging_full_rounded,
-              title: 'BESS',
-              level: state.bessLevel,
-              line: 'cap ${state.energyCapacity.toStringAsFixed(0)}⚡',
-              statusColor: GGColors.accent,
-              statusText: '${(state.energyFraction * 100).round()}%',
-              cost: state.bessUpgradeCost,
-              affordable: state.money >= state.bessUpgradeCost,
-              onUpgrade: game.upgradeBess,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FacilityCard extends StatelessWidget {
-  const _FacilityCard({
-    required this.icon,
-    required this.title,
-    required this.level,
-    required this.line,
-    required this.statusColor,
-    required this.statusText,
-    required this.cost,
-    required this.affordable,
-    required this.onUpgrade,
-    this.showLevel = true,
-    this.onTapBody,
-  });
-  final IconData icon;
-  final String title;
-  final int level;
-  final String line;
-  final Color statusColor;
-  final String statusText;
-  final int cost;
-  final bool affordable;
-  final VoidCallback onUpgrade;
-  final bool showLevel;
-  final VoidCallback? onTapBody;
-
-  @override
-  Widget build(BuildContext context) {
-    final info = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          children: [
-            Flexible(
-              child: Text(showLevel ? '$title  L$level' : title,
-                  overflow: TextOverflow.ellipsis,
-                  style: GGText.body
-                      .copyWith(fontWeight: FontWeight.w700, fontSize: 12)),
-            ),
-            const SizedBox(width: 4),
-            Container(
-                width: 6,
-                height: 6,
-                decoration:
-                    BoxDecoration(color: statusColor, shape: BoxShape.circle)),
-            const SizedBox(width: 2),
-            Text(statusText, style: GGText.soft.copyWith(color: statusColor)),
-          ],
-        ),
-        Text(line, style: GGText.soft, overflow: TextOverflow.ellipsis),
-      ],
-    );
-    return GGPanel(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: GGColors.ink),
-          const SizedBox(width: 6),
-          Expanded(
-            child: onTapBody == null
-                ? info
-                : GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onTapBody,
-                    child: info,
-                  ),
-          ),
-          GestureDetector(
-            onTap: affordable ? onUpgrade : null,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              decoration: BoxDecoration(
-                color: affordable ? GGColors.good : GGColors.panelBorder,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.keyboard_double_arrow_up_rounded,
-                      size: 12, color: Colors.white),
-                  Text('$cost',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 11)),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Bottom sheet to choose the Data Center's workload — the risk/reward dial.
-void _showWorkloadSheet(
-    BuildContext context, GridGuardGame game, int current, int security) {
-  showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: GGColors.panel,
-    shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
-    builder: (ctx) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('DATA CENTER WORKLOAD', style: GGText.heading),
-                Row(
-                  children: [
-                    const Icon(Icons.shield_rounded,
-                        size: 16, color: GGColors.accent),
-                    const SizedBox(width: 3),
-                    Text('SEC $security',
-                        style: GGText.stat.copyWith(color: GGColors.accent)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            const Text(
-                'Higher-value data pays more — but needs more security and draws more raids.',
-                style: GGText.soft),
-            const SizedBox(height: 10),
-            for (var i = 0; i < DcWorkloadCatalog.workloads.length; i++)
-              _WorkloadTile(
-                w: DcWorkloadCatalog.workloads[i],
-                selected: i == current,
-                locked: security < DcWorkloadCatalog.workloads[i].requiredSecurity,
-                onTap: () {
-                  game.setWorkload(i);
-                  Navigator.of(ctx).pop();
-                },
-              ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-class _WorkloadTile extends StatelessWidget {
-  const _WorkloadTile({
-    required this.w,
-    required this.selected,
-    required this.locked,
-    required this.onTap,
-  });
-  final DcWorkload w;
-  final bool selected;
-  final bool locked;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: locked ? 0.55 : 1.0,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: locked ? null : onTap,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color:
-                selected ? GGColors.accent.withValues(alpha: 0.10) : GGColors.bg,
-            border: Border.all(
-                color: selected ? GGColors.accent : GGColors.panelBorder),
-            borderRadius: BorderRadius.circular(6),
-          ),
+        onTap: () => _showWorkloadSheet(
+            context, game, state.workloadIndex, state.security),
+        child: GGPanel(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
-              Text(w.emoji, style: const TextStyle(fontSize: 22)),
-              const SizedBox(width: 10),
+              const Icon(Icons.dns_rounded, size: 16, color: GGColors.ink),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -482,43 +279,31 @@ class _WorkloadTile extends StatelessWidget {
                     Row(
                       children: [
                         Flexible(
-                          child: Text(w.name,
+                          child: Text('${w.emoji} ${w.name}',
                               overflow: TextOverflow.ellipsis,
-                              style: GGText.body
-                                  .copyWith(fontWeight: FontWeight.w700)),
+                              style: GGText.body.copyWith(
+                                  fontWeight: FontWeight.w700, fontSize: 13)),
                         ),
-                        if (locked) ...[
-                          const SizedBox(width: 4),
-                          const Icon(Icons.lock_rounded,
-                              size: 13, color: GGColors.danger),
-                          Text(' SEC ${w.requiredSecurity}',
-                              style: GGText.soft.copyWith(color: GGColors.danger)),
-                        ],
+                        const SizedBox(width: 6),
+                        Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                                color: statusColor, shape: BoxShape.circle)),
+                        const SizedBox(width: 2),
+                        Text(statusText,
+                            style: GGText.soft.copyWith(color: statusColor)),
                       ],
                     ),
-                    Text(w.blurb, style: GGText.soft),
+                    Text(
+                      'DC ×${state.dataCenterCount} · +${state.dcIncome.toStringAsFixed(0)}\$ -${state.dcDraw.toStringAsFixed(0)}⚡  ·  🔋${state.energyCapacity.toStringAsFixed(0)}⚡  ·  🛡${state.security}',
+                      style: GGText.soft,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('+${w.income.toStringAsFixed(0)}\$/s',
-                      style: GGText.soft.copyWith(
-                          color: GGColors.good, fontWeight: FontWeight.w700)),
-                  Text('-${w.draw.toStringAsFixed(0)}⚡/s',
-                      style: GGText.soft.copyWith(color: GGColors.accent)),
-                  Text('🔥 ${w.threat.toStringAsFixed(1)}x',
-                      style: GGText.soft.copyWith(color: GGColors.danger)),
-                ],
-              ),
-              if (selected)
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Icon(Icons.check_circle_rounded,
-                      color: GGColors.accent, size: 20),
-                ),
+              const Icon(Icons.tune_rounded, size: 18, color: GGColors.inkSoft),
             ],
           ),
         ),
@@ -526,6 +311,7 @@ class _WorkloadTile extends StatelessWidget {
     );
   }
 }
+
 
 class _BuildTray extends StatelessWidget {
   const _BuildTray({
@@ -583,6 +369,10 @@ class _TowerButton extends StatelessWidget {
         return Icons.solar_power_rounded;
       case TowerType.windTurbine:
         return Icons.wind_power_rounded;
+      case TowerType.bess:
+        return Icons.battery_charging_full_rounded;
+      case TowerType.dataCenter:
+        return Icons.dns_rounded;
       case TowerType.scissorBarrier:
         return Icons.content_cut_rounded;
       case TowerType.shockTransformer:

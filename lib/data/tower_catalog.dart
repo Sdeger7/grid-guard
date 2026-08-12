@@ -31,6 +31,30 @@ class TowerCatalog {
         TowerTier(cost: 125, mwPerSecond: 17),
       ],
     ),
+    TowerType.bess: TowerSpec(
+      type: TowerType.bess,
+      name: 'BESS Unit',
+      category: TowerCategory.storage,
+      tint: Color(0xFF3A4E6B),
+      placeableOn: TilePlacement.safeZone,
+      tiers: [
+        TowerTier(cost: 60, capacity: 50),
+        TowerTier(cost: 90, capacity: 100),
+        TowerTier(cost: 130, capacity: 170),
+      ],
+    ),
+    TowerType.dataCenter: TowerSpec(
+      type: TowerType.dataCenter,
+      name: 'Data Center',
+      category: TowerCategory.datacenter,
+      tint: Color(0xFF5B6B85),
+      placeableOn: TilePlacement.safeZone,
+      tiers: [
+        TowerTier(cost: 90, dcPower: 1.0),
+        TowerTier(cost: 140, dcPower: 2.0),
+        TowerTier(cost: 200, dcPower: 3.5),
+      ],
+    ),
     TowerType.scissorBarrier: TowerSpec(
       type: TowerType.scissorBarrier,
       name: 'Automated Scissor Barrier',
@@ -87,6 +111,8 @@ class TowerCatalog {
   static const List<TowerType> buildTray = [
     TowerType.pvPanel,
     TowerType.windTurbine,
+    TowerType.bess,
+    TowerType.dataCenter,
     TowerType.scissorBarrier,
     TowerType.shockTransformer,
   ];

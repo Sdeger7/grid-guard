@@ -9,8 +9,14 @@ enum TowerCategory {
   /// Deals damage, optionally area/chaining (e.g. Shock Transformer).
   damage,
 
-  /// Generates MW income (PV Panel).
+  /// Generates energy (PV Panel, Wind Turbine).
   economy,
+
+  /// Adds battery storage capacity (BESS).
+  storage,
+
+  /// Consumes energy to earn money — runs the workload (Data Center).
+  datacenter,
 }
 
 /// Stable identifiers for every placeable structure. Kept as an enum so level
@@ -18,6 +24,8 @@ enum TowerCategory {
 enum TowerType {
   pvPanel,
   windTurbine,
+  bess,
+  dataCenter,
   scissorBarrier,
   shockTransformer,
 }
@@ -36,6 +44,8 @@ class TowerTier {
     this.chainRadius = 0,
     this.chainBonus = 1.0,
     this.energyCost = 0,
+    this.capacity = 0,
+    this.dcPower = 0,
   });
 
   /// MW cost to reach this tier (to *build* for tier 0, to *upgrade into* for
@@ -66,6 +76,12 @@ class TowerTier {
 
   /// Energy drawn from the BESS per shot (damage towers). No energy → no shot.
   final double energyCost;
+
+  /// Storage capacity this unit adds to the grid (BESS units).
+  final double capacity;
+
+  /// Data-center output multiplier: income/draw = workload × dcPower (DC units).
+  final double dcPower;
 }
 
 /// Full, immutable definition of a tower: its identity, family, visual key and

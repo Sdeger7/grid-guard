@@ -17,6 +17,7 @@ import 'components/arc_effect.dart';
 import 'components/burst_effect.dart';
 import 'components/core_component.dart';
 import 'components/enemy_component.dart';
+import 'components/facility_component.dart';
 import 'components/floating_text.dart';
 import 'components/ground_tile.dart';
 import 'components/night_overlay.dart';
@@ -119,10 +120,7 @@ class GridGuardGame extends FlameGame {
   // Data Center + firing towers consume it. Money is the build/upgrade currency,
   // earned by the Data Center while it stays powered. Score comes from kills.
   double energy = 0;
-  double energyCapacity = 0;
   double money = 0;
-  int bessLevel = 1;
-  int dcLevel = 1;
   bool dcPowered = false;
 
   double coreIntegrity = 0;
@@ -137,8 +135,21 @@ class GridGuardGame extends FlameGame {
   final List<EnemyComponent> enemies = [];
   final List<PvPanelComponent> pvPanels = [];
   final List<WindTurbineComponent> windTurbines = [];
+  final List<FacilityComponent> bessUnits = [];
+  final List<FacilityComponent> dataCenters = [];
   final Map<TileCoord, PositionComponent> _occupied = {};
   final Map<TileCoord, TowerComponent> _slowTowers = {};
+
+  /// Total battery capacity: a small base plus every placed BESS unit.
+  double get energyCapacity =>
+      config.bessCapacity +
+      bessUnits.fold(0.0, (s, u) => s + u.currentTier.capacity);
+
+  /// Combined Data-Center power (sum of dcPower across placed DCs).
+  double get dcTotalPower =>
+      dataCenters.fold(0.0, (s, u) => s + u.currentTier.dcPower);
+
+  int get dataCenterCount => dataCenters.length;
 
   /// Total PV output (energy/sec) from every placed panel.
   /// Raw combined nameplate output of all PV panels (before sunlight).
@@ -205,18 +216,14 @@ class GridGuardGame extends FlameGame {
     _publishSnapshot(force: true);
   }
 
-  /// Data Center energy draw per second (workload × DC-level scaling).
-  double get dcDraw => workload.draw * (1 + 0.25 * (dcLevel - 1));
+  /// Total Data Center energy draw per second (workload × total DC power).
+  double get dcDraw => workload.draw * dcTotalPower;
 
-  /// Money earned per second while powered (workload × DC-level scaling).
-  double get dcIncome => workload.income * (1 + 0.35 * (dcLevel - 1));
+  /// Total money earned per second while powered (workload × total DC power).
+  double get dcIncome => workload.income * dcTotalPower;
 
   /// How hot the base runs — scales raid frequency and size.
   double get threatMultiplier => workload.threat;
-
-  int get bessUpgradeCost => 80 * bessLevel;
-  int get dcUpgradeCost => 100 * dcLevel;
-  static const double bessCapacityPerLevel = 40;
 
   /// Set from the HUD build tray; null == inspect/select mode.
   TowerType? selectedBuild;
@@ -241,7 +248,6 @@ class GridGuardGame extends FlameGame {
     await _loadSprites();
 
     money = config.startMoney.toDouble();
-    energyCapacity = config.bessCapacity;
     energy = config.startEnergy;
     timeOfDay = config.startTimeOfDay;
     coreIntegrity = config.coreIntegrity;
@@ -385,29 +391,14 @@ class GridGuardGame extends FlameGame {
     if (comp is TowerComponent && comp.canUpgrade) cost = comp.upgradeCost;
     if (comp is PvPanelComponent && comp.canUpgrade) cost = comp.upgradeCost;
     if (comp is WindTurbineComponent && comp.canUpgrade) cost = comp.upgradeCost;
+    if (comp is FacilityComponent && comp.canUpgrade) cost = comp.upgradeCost;
     if (cost == null || !_spendMoney(cost)) return;
     if (comp is TowerComponent) comp.upgrade();
     if (comp is PvPanelComponent) comp.upgrade();
     if (comp is WindTurbineComponent) comp.upgrade();
+    if (comp is FacilityComponent) comp.upgrade();
     _emitSfx(Sfx.towerPlace);
     _selectStructure(coord); // refresh panel
-  }
-
-  /// Money sink — a bigger battery holds more energy to ride out draw spikes.
-  void upgradeBess() {
-    if (!_spendMoney(bessUpgradeCost)) return;
-    bessLevel++;
-    energyCapacity += bessCapacityPerLevel;
-    _emitSfx(Sfx.towerPlace);
-    _publishSnapshot(force: true);
-  }
-
-  /// Money sink — a bigger Data Center earns more, but draws more power too.
-  void upgradeDc() {
-    if (!_spendMoney(dcUpgradeCost)) return;
-    dcLevel++;
-    _emitSfx(Sfx.towerPlace);
-    _publishSnapshot(force: true);
   }
 
   // ---- Update loop ----
@@ -457,9 +448,9 @@ class GridGuardGame extends FlameGame {
     // 1) Solar + wind charge the battery (solar needs daylight; wind doesn't).
     energy = (energy + generation * dt).clamp(0, energyCapacity);
 
-    // 2) Data Center consumes to run, and pays out while powered.
+    // 2) Data Centers consume to run, and pay out while powered.
     final draw = dcDraw * dt;
-    if (energy >= draw) {
+    if (dcTotalPower > 0 && energy >= draw) {
       energy -= draw;
       money += dcIncome * dt;
       dcPowered = true;
@@ -544,20 +535,36 @@ class GridGuardGame extends FlameGame {
     if (!_spendMoney(spec.tier(0).cost)) return;
 
     late final PositionComponent comp;
-    if (spec.category == TowerCategory.economy) {
-      if (spec.type == TowerType.windTurbine) {
-        final w = WindTurbineComponent(spec: spec, coord: coord);
-        windTurbines.add(w);
-        comp = w;
-      } else {
-        final pv = PvPanelComponent(spec: spec, coord: coord);
-        pvPanels.add(pv);
-        comp = pv;
-      }
-    } else {
-      final tower = TowerComponent(spec: spec, coord: coord);
-      if (spec.category == TowerCategory.slow) _slowTowers[coord] = tower;
-      comp = tower;
+    switch (spec.category) {
+      case TowerCategory.economy:
+        if (spec.type == TowerType.windTurbine) {
+          final w = WindTurbineComponent(spec: spec, coord: coord);
+          windTurbines.add(w);
+          comp = w;
+        } else {
+          final pv = PvPanelComponent(spec: spec, coord: coord);
+          pvPanels.add(pv);
+          comp = pv;
+        }
+        break;
+      case TowerCategory.storage:
+        final b = FacilityComponent(
+            spec: spec, coord: coord, spriteKey: 'bess', widthTiles: 1.6);
+        bessUnits.add(b);
+        comp = b;
+        break;
+      case TowerCategory.datacenter:
+        final d = FacilityComponent(
+            spec: spec, coord: coord, spriteKey: 'core', widthTiles: 1.9);
+        dataCenters.add(d);
+        comp = d;
+        break;
+      case TowerCategory.slow:
+      case TowerCategory.damage:
+        final tower = TowerComponent(spec: spec, coord: coord);
+        if (spec.category == TowerCategory.slow) _slowTowers[coord] = tower;
+        comp = tower;
+        break;
     }
     worldRoot.add(comp);
     _occupied[coord] = comp;
@@ -582,6 +589,11 @@ class GridGuardGame extends FlameGame {
       maxTier = comp.spec.maxTier;
       cost = comp.upgradeCost;
     } else if (comp is WindTurbineComponent) {
+      name = comp.spec.name;
+      tier = comp.tier;
+      maxTier = comp.spec.maxTier;
+      cost = comp.upgradeCost;
+    } else if (comp is FacilityComponent) {
       name = comp.spec.name;
       tier = comp.tier;
       maxTier = comp.spec.maxTier;
@@ -801,10 +813,7 @@ class GridGuardGame extends FlameGame {
       sunFactor: sunFactor,
       windFactor: windFactor,
       isNight: isNight,
-      bessLevel: bessLevel,
-      dcLevel: dcLevel,
-      bessUpgradeCost: bessUpgradeCost,
-      dcUpgradeCost: dcUpgradeCost,
+      dataCenterCount: dataCenterCount,
       workloadIndex: workloadIndex,
       security: securityRating,
       coreIntegrity: coreIntegrity,

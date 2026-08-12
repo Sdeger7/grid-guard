@@ -28,23 +28,6 @@ class CoreComponent extends IsoComponent {
 
   @override
   void render(Canvas canvas) {
-    // Real art if present: BESS drawn behind-left, Data Center (core) in front.
-    final dc = game.spritesFor('core');
-    final bess = game.spritesFor('bess');
-    if (dc != null || bess != null) {
-      // BESS sits one tile behind-left of the Data Center so both read clearly.
-      if (bess != null) {
-        canvas.save();
-        canvas.translate(-game.iso.halfW * 0.9, -game.iso.halfH * 1.25);
-        drawUnitSprite(canvas, bess.first, widthTiles: 1.7);
-        canvas.restore();
-      }
-      if (dc != null) {
-        drawUnitSprite(canvas, dc.first, widthTiles: 2.1);
-      }
-      return;
-    }
-
     final halfW = game.iso.halfW;
     final halfH = game.iso.halfH;
 
