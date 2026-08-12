@@ -16,6 +16,7 @@ import '../models/tower_type.dart';
 import 'components/arc_effect.dart';
 import 'components/burst_effect.dart';
 import 'components/core_component.dart';
+import 'components/drone_bay_component.dart';
 import 'components/enemy_component.dart';
 import 'components/facility_component.dart';
 import 'components/floating_text.dart';
@@ -135,6 +136,7 @@ class GridGuardGame extends FlameGame {
   final List<WindTurbineComponent> windTurbines = [];
   final List<FacilityComponent> bessUnits = [];
   final List<FacilityComponent> dataCenters = [];
+  final List<DroneBayComponent> droneBays = [];
   final Map<TileCoord, PositionComponent> _occupied = {};
   final Map<TileCoord, TowerComponent> _slowTowers = {};
 
@@ -200,6 +202,9 @@ class GridGuardGame extends FlameGame {
         } else if (c.spec.category == TowerCategory.slow) {
           s += c.tier + 1;
         }
+      } else if (c is DroneBayComponent) {
+        // Active air cover counts as strongly as a transformer.
+        s += (c.tier + 1) * 2;
       }
     }
     return s;
@@ -382,11 +387,13 @@ class GridGuardGame extends FlameGame {
     if (comp is PvPanelComponent && comp.canUpgrade) cost = comp.upgradeCost;
     if (comp is WindTurbineComponent && comp.canUpgrade) cost = comp.upgradeCost;
     if (comp is FacilityComponent && comp.canUpgrade) cost = comp.upgradeCost;
+    if (comp is DroneBayComponent && comp.canUpgrade) cost = comp.upgradeCost;
     if (cost == null || !_spendMoney(cost)) return;
     if (comp is TowerComponent) comp.upgrade();
     if (comp is PvPanelComponent) comp.upgrade();
     if (comp is WindTurbineComponent) comp.upgrade();
     if (comp is FacilityComponent) comp.upgrade();
+    if (comp is DroneBayComponent) comp.upgrade();
     _emitSfx(Sfx.towerPlace);
     _selectStructure(coord); // refresh panel
   }
@@ -534,6 +541,11 @@ class GridGuardGame extends FlameGame {
         dataCenters.add(d);
         comp = d;
         break;
+      case TowerCategory.droneBay:
+        final bay = DroneBayComponent(spec: spec, coord: coord);
+        droneBays.add(bay);
+        comp = bay;
+        break;
       case TowerCategory.slow:
       case TowerCategory.damage:
         final tower = TowerComponent(spec: spec, coord: coord);
@@ -569,6 +581,11 @@ class GridGuardGame extends FlameGame {
       maxTier = comp.spec.maxTier;
       cost = comp.upgradeCost;
     } else if (comp is FacilityComponent) {
+      name = comp.spec.name;
+      tier = comp.tier;
+      maxTier = comp.spec.maxTier;
+      cost = comp.upgradeCost;
+    } else if (comp is DroneBayComponent) {
       name = comp.spec.name;
       tier = comp.tier;
       maxTier = comp.spec.maxTier;

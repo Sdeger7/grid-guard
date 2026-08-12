@@ -17,6 +17,9 @@ enum TowerCategory {
 
   /// Consumes energy to earn money — runs the workload (Data Center).
   datacenter,
+
+  /// Launches friendly interceptor drones that hunt raiders (Drone Bay).
+  droneBay,
 }
 
 /// Stable identifiers for every placeable structure. Kept as an enum so level
@@ -26,6 +29,7 @@ enum TowerType {
   windTurbine,
   bess,
   dataCenter,
+  droneBay,
   scissorBarrier,
   shockTransformer,
 }
@@ -46,6 +50,7 @@ class TowerTier {
     this.energyCost = 0,
     this.capacity = 0,
     this.dcPower = 0,
+    this.droneCount = 0,
   });
 
   /// MW cost to reach this tier (to *build* for tier 0, to *upgrade into* for
@@ -82,6 +87,9 @@ class TowerTier {
 
   /// Data-center output multiplier: income/draw = workload × dcPower (DC units).
   final double dcPower;
+
+  /// How many interceptor drones this bay keeps in the air (Drone Bay).
+  final int droneCount;
 }
 
 /// Full, immutable definition of a tower: its identity, family, visual key and

@@ -1,0 +1,233 @@
+import 'dart:math' as math;
+import 'dart:ui';
+
+import 'package:flame/components.dart';
+import 'package:flutter/material.dart' show Colors;
+
+import '../../models/level_config.dart';
+import '../../models/tower_type.dart';
+import 'enemy_component.dart';
+import 'iso_box.dart';
+import 'iso_component.dart';
+
+/// A friendly interceptor drone. It launches from its bay, flies out to hunt the
+/// nearest raider inside the bay's range, shoots it, and returns to orbit the
+/// bay when there's nothing to chase. Answers the all-directions air raids that
+/// static towers struggle to cover.
+class InterceptorDrone extends IsoComponent {
+  InterceptorDrone({required this.bay, required this.slot})
+      : super(tile: bay.tile.clone(), depthBias: 0.6);
+
+  final DroneBayComponent bay;
+
+  /// Index in the bay's squadron — spreads drones around the idle orbit.
+  final int slot;
+
+  double _cooldown = 0;
+  double _spin = 0;
+  double _fireFlash = 0;
+  EnemyComponent? _target;
+
+  @override
+  void update(double dt) {
+    _spin += dt * 12;
+    if (_fireFlash > 0) _fireFlash = (_fireFlash - dt).clamp(0, 1);
+    if (_cooldown > 0) _cooldown -= dt;
+
+    final t = bay.currentTier;
+
+    // Drop a dead/out-of-range target.
+    final cur = _target;
+    if (cur == null ||
+        cur.isDead ||
+        (cur.tile - bay.tile).length > t.range + 1.0) {
+      _target = bay.pickTarget();
+    }
+
+    final target = _target;
+    if (target != null && !target.isDead) {
+      // Close in and engage.
+      final to = target.tile - tile;
+      final dist = to.length;
+      final speed = 3.2;
+      if (dist > 0.55) {
+        tile += to.normalized() * math.min(speed * dt, dist);
+      }
+      if (dist <= 1.6 && _cooldown <= 0 && game.tryDrawEnergy(t.energyCost)) {
+        target.takeDamage(t.damage);
+        game.spawnArc(tile.clone(), target.tile.clone(), primary: false);
+        _cooldown = t.fireInterval;
+        _fireFlash = 0.1;
+      }
+    } else {
+      // Idle: orbit the bay.
+      final a = _spin * 0.12 + slot * (2 * math.pi / 3);
+      final orbit = Vector2(math.cos(a), math.sin(a)) * 0.9;
+      final home = bay.tile + orbit;
+      final to = home - tile;
+      if (to.length > 0.05) {
+        tile += to.normalized() * math.min(2.4 * dt, to.length);
+      }
+    }
+
+    super.update(dt);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final halfW = game.iso.halfW;
+    final halfH = game.iso.halfH;
+    final altitude = halfH * 2.1;
+
+    // Ground shadow.
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset.zero, width: halfW * 0.3, height: halfH * 0.2),
+      Paint()..color = Colors.black.withValues(alpha: 0.12),
+    );
+
+    canvas.save();
+    canvas.translate(0, -altitude);
+
+    // Small friendly quadcopter, green so it reads as ours.
+    final body = _fireFlash > 0 ? const Color(0xFFEAFFF3) : const Color(0xFF19B36B);
+    final arm = Paint()
+      ..color = const Color(0xFF14603C)
+      ..strokeWidth = 1.6;
+    for (final tp in [
+      Offset(halfW * 0.2, -halfH * 0.1),
+      Offset(-halfW * 0.2, -halfH * 0.1),
+      Offset(halfW * 0.2, halfH * 0.1),
+      Offset(-halfW * 0.2, halfH * 0.1),
+    ]) {
+      canvas.drawLine(Offset.zero, tp, arm);
+      final s = 0.75 + 0.25 * math.sin(_spin + tp.dx);
+      canvas.drawOval(
+        Rect.fromCenter(center: tp, width: 8 * s, height: 3),
+        Paint()..color = const Color(0x99CFF5E2),
+      );
+    }
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: 11, height: 7),
+      Paint()..color = body,
+    );
+    canvas.drawCircle(
+        Offset(0, -1), 1.6, Paint()..color = const Color(0xFFFFE08A));
+    canvas.restore();
+  }
+}
+
+/// The Drone Bay: a landing pad that keeps a squadron of [InterceptorDrone]s in
+/// the air. The bay itself doesn't shoot — its drones do.
+class DroneBayComponent extends IsoComponent {
+  DroneBayComponent({
+    required this.spec,
+    required this.coord,
+    this.tier = 0,
+  }) : super(
+          tile: Vector2(coord.col.toDouble(), coord.row.toDouble()),
+          depthBias: 0.2,
+        );
+
+  final TowerSpec spec;
+  final TileCoord coord;
+  int tier;
+
+  final List<InterceptorDrone> drones = [];
+  double _beacon = 0;
+
+  TowerTier get currentTier => spec.tier(tier);
+  bool get canUpgrade => tier < spec.maxTier;
+  int? get upgradeCost => canUpgrade ? spec.tier(tier + 1).cost : null;
+
+  void upgrade() {
+    if (canUpgrade) tier++;
+    _syncSquadron();
+  }
+
+  /// Nearest live raider within range, for a drone to intercept.
+  EnemyComponent? pickTarget() {
+    EnemyComponent? best;
+    var bestD = double.infinity;
+    for (final e in game.enemies) {
+      if (e.isDead) continue;
+      final d = (e.tile - tile).length;
+      if (d <= currentTier.range && d < bestD) {
+        bestD = d;
+        best = e;
+      }
+    }
+    return best;
+  }
+
+  void _syncSquadron() {
+    final want = currentTier.droneCount;
+    while (drones.length < want) {
+      final d = InterceptorDrone(bay: this, slot: drones.length);
+      drones.add(d);
+      parent?.add(d);
+    }
+  }
+
+  @override
+  void onMount() {
+    super.onMount();
+    _syncSquadron();
+  }
+
+  @override
+  void onRemove() {
+    for (final d in drones) {
+      d.removeFromParent();
+    }
+    drones.clear();
+    super.onRemove();
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _beacon += dt * 3;
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final halfW = game.iso.halfW;
+    final halfH = game.iso.halfH;
+
+    // Low landing pad.
+    final shades = faceShades(const Color(0xFF33465C));
+    drawIsoBox(
+      canvas,
+      halfW: halfW,
+      halfH: halfH,
+      height: halfH * 0.35,
+      top: shades.top,
+      left: shades.left,
+      right: shades.right,
+      edge: spec.tint.withValues(alpha: 0.8),
+      footScale: 0.8,
+    );
+
+    // Landing circle + pulsing beacon.
+    canvas.save();
+    canvas.translate(0, -halfH * 0.35);
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset.zero, width: halfW * 0.9, height: halfH * 0.9),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..color = spec.tint.withValues(alpha: 0.9),
+    );
+    final beat = 0.5 + 0.5 * math.sin(_beacon);
+    canvas.drawCircle(Offset.zero, 2 + 1.5 * beat,
+        Paint()..color = spec.tint.withValues(alpha: 0.4 + 0.4 * beat));
+    canvas.restore();
+
+    for (var i = 0; i <= tier; i++) {
+      canvas.drawCircle(Offset(-6 + i * 6.0, -halfH * 1.6), 2.0,
+          Paint()..color = const Color(0xFFFFE08A));
+    }
+  }
+}

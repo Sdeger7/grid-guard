@@ -514,6 +514,8 @@ class _TowerButton extends StatelessWidget {
         return Icons.battery_charging_full_rounded;
       case TowerType.dataCenter:
         return Icons.dns_rounded;
+      case TowerType.droneBay:
+        return Icons.flight_takeoff_rounded;
       case TowerType.scissorBarrier:
         return Icons.content_cut_rounded;
       case TowerType.shockTransformer:

@@ -55,6 +55,24 @@ class TowerCatalog {
         TowerTier(cost: 200, dcPower: 3.5),
       ],
     ),
+    TowerType.droneBay: TowerSpec(
+      type: TowerType.droneBay,
+      name: 'Drone Bay',
+      category: TowerCategory.droneBay,
+      tint: Color(0xFF19B36B),
+      placeableOn: TilePlacement.any,
+      tiers: [
+        TowerTier(
+            cost: 80, damage: 9, range: 4.5, fireInterval: 0.55,
+            energyCost: 1.2, droneCount: 1),
+        TowerTier(
+            cost: 130, damage: 14, range: 5.5, fireInterval: 0.45,
+            energyCost: 1.6, droneCount: 2),
+        TowerTier(
+            cost: 190, damage: 20, range: 6.5, fireInterval: 0.38,
+            energyCost: 2.0, droneCount: 3),
+      ],
+    ),
     TowerType.scissorBarrier: TowerSpec(
       type: TowerType.scissorBarrier,
       name: 'Automated Scissor Barrier',
@@ -77,26 +95,26 @@ class TowerCatalog {
       tiers: [
         TowerTier(
             cost: 70,
-            damage: 14,
-            range: 2.2,
-            fireInterval: 0.9,
-            chainRadius: 1.4,
+            damage: 20,
+            range: 3.4,
+            fireInterval: 0.7,
+            chainRadius: 1.6,
             chainBonus: 1.5,
             energyCost: 2.5),
         TowerTier(
             cost: 110,
-            damage: 24,
-            range: 2.6,
-            fireInterval: 0.8,
-            chainRadius: 1.6,
+            damage: 34,
+            range: 4.0,
+            fireInterval: 0.6,
+            chainRadius: 1.9,
             chainBonus: 1.75,
             energyCost: 3.5),
         TowerTier(
             cost: 170,
-            damage: 40,
-            range: 3.0,
-            fireInterval: 0.7,
-            chainRadius: 1.9,
+            damage: 55,
+            range: 4.6,
+            fireInterval: 0.5,
+            chainRadius: 2.2,
             chainBonus: 2.0,
             energyCost: 5),
       ],
@@ -113,6 +131,7 @@ class TowerCatalog {
     TowerType.windTurbine,
     TowerType.bess,
     TowerType.dataCenter,
+    TowerType.droneBay,
     TowerType.scissorBarrier,
     TowerType.shockTransformer,
   ];
