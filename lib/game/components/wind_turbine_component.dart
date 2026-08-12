@@ -46,9 +46,9 @@ class WindTurbineComponent extends IsoComponent {
   void render(Canvas canvas) {
     final art = game.spritesFor('wind_turbine');
     if (art != null) {
-      // Turbines are tall — give them a bit more height headroom.
+      // Turbine base pad is small in a tall frame — scale up so it fills a tile.
       drawUnitSprite(canvas, art[tier.clamp(0, art.length - 1)],
-          widthTiles: 1.7);
+          widthTiles: 2.2);
       return;
     }
 

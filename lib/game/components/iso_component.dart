@@ -48,19 +48,20 @@ abstract class IsoComponent extends PositionComponent
   }
 
   /// Draws a unit [sprite] seated on the tile: scaled to [widthTiles] tile
-  /// widths, its base resting just below the tile centre. Used when real art is
-  /// available; otherwise components draw procedurally.
+  /// widths, with the frame's bottom sunk [sinkFrac] of its height below the
+  /// tile centre (these art frames carry empty space under the base pad, so a
+  /// small sink lands the visible base on the tile). Used when real art exists.
   void drawUnitSprite(
     Canvas canvas,
     Sprite sprite, {
     double widthTiles = 1.5,
-    double baseLift = 0.45,
+    double sinkFrac = 0.16,
   }) {
     final w = game.iso.tileWidth * widthTiles;
     final h = w * sprite.srcSize.y / sprite.srcSize.x;
     sprite.render(
       canvas,
-      position: Vector2(0, game.iso.halfH * baseLift),
+      position: Vector2(0, h * sinkFrac),
       size: Vector2(w, h),
       anchor: Anchor.bottomCenter,
     );
