@@ -31,6 +31,8 @@ jobs:
   apk:
     name: Build APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to publish the rolling release
     steps:
       - uses: actions/checkout@v4
 
@@ -79,3 +81,21 @@ jobs:
           name: grid-guard-apk
           path: dist/*.apk
           retention-days: 30
+
+      # A rolling "latest" release gives a plain, one-tap download link that
+      # works on a phone without unzipping or signing in.
+      - name: Publish to the latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Grid Guard — latest build
+          body: |
+            Newest Android build, updated automatically on every push.
+
+            **Install:** tap the `.apk` below, then allow installs from this
+            source when Android asks.
+
+            Commit: ${{ github.sha }}
+          files: dist/*.apk
+          prerelease: true
+          make_latest: true
