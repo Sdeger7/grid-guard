@@ -1,8 +1,9 @@
 name: Build Android APK
 
-# Builds an installable APK on GitHub's runners (this repo has no committed
-# android/ folder and the dev container has no Android SDK, so the platform
-# scaffolding is regenerated here before building).
+# Two jobs: a fast Dart check (analyze + tests) that catches code errors in ~2
+# minutes, and the APK build. This repo has no committed android/ folder and the
+# dev container has no Android SDK, so the platform scaffolding is regenerated
+# here before building.
 on:
   push:
     branches: ["**"]
@@ -12,7 +13,23 @@ on:
   workflow_dispatch:
 
 jobs:
+  analyze:
+    name: Analyze & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+      - name: Test
+        run: flutter test
+
   apk:
+    name: Build APK
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,10 +50,24 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Gradle's first run downloads its distribution, which intermittently
+      # drops on hosted runners — retry before giving up.
       - name: Build release APK
-        run: flutter build apk --release
+        run: |
+          for attempt in 1 2 3; do
+            echo "::group::APK build attempt $attempt"
+            if flutter build apk --release; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "Attempt $attempt failed; retrying in 20s..."
+            sleep 20
+          done
+          echo "APK build failed after 3 attempts"
+          exit 1
 
-      - name: Rename APK
+      - name: Collect APK
         run: |
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk \
