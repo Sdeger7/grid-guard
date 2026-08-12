@@ -87,94 +87,93 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final net = state.netEnergy;
     final netLabel = '${net >= 0 ? '+' : ''}${net.toStringAsFixed(0)}/s';
+    // Bars stay pinned; the stat strip scrolls so a narrow phone never clips it.
+    final stats = <Widget>[
+      _Stat(
+        icon: state.isNight ? Icons.nightlight_round : Icons.wb_sunny_rounded,
+        color: state.isNight ? GGColors.accent : GGColors.star,
+        label: state.isNight ? '—' : '${(state.sunFactor * 100).round()}%',
+        caption: 'SUN',
+      ),
+      _Stat(
+        icon: Icons.wind_power_rounded,
+        color: GGColors.teal,
+        label: '${(state.windFactor * 100).round()}%',
+        caption: 'WIND',
+      ),
+      _Stat(
+        icon: Icons.attach_money_rounded,
+        color: GGColors.good,
+        label: '${state.money}',
+        caption: 'MONEY',
+      ),
+      _Stat(
+        icon: Icons.currency_bitcoin_rounded,
+        color: GGColors.amber,
+        label: state.coins.toStringAsFixed(1),
+        caption: 'COIN',
+      ),
+      _Stat(
+        icon: Icons.local_fire_department_rounded,
+        color: GGColors.danger,
+        label: '${state.threat.toStringAsFixed(1)}x',
+        caption: 'THREAT',
+      ),
+      _Stat(
+        icon: Icons.stacked_line_chart_rounded,
+        color: GGColors.ink,
+        label: '${state.score}',
+        caption: 'SCORE',
+      ),
+      _Stat(
+        icon: Icons.waves_rounded,
+        color: GGColors.accentWarm,
+        label: state.waveNumber == 0
+            ? '—'
+            : state.endless
+                ? '${state.waveNumber}'
+                : '${state.waveNumber}/${state.totalWaves}',
+        caption: state.endless ? 'RAID' : 'WAVE',
+      ),
+    ];
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
       child: GGPanel(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _MiniBar(
-                    label: 'CORE',
-                    fraction: state.integrityFraction,
-                    color: state.integrityFraction > 0.5
-                        ? GGColors.good
-                        : state.integrityFraction > 0.25
-                            ? GGColors.accentWarm
-                            : GGColors.danger,
-                  ),
-                  const SizedBox(height: 4),
-                  _MiniBar(
-                    label: 'BESS ⚡ $netLabel',
-                    fraction: state.energyFraction,
-                    color: state.energy <= 0.5
-                        ? GGColors.danger
-                        : net < 0
-                            ? GGColors.accentWarm
-                            : GGColors.accent,
-                    trailing:
-                        '${state.energy.toStringAsFixed(0)}/${state.energyCapacity.toStringAsFixed(0)}',
-                  ),
-                ],
+            _MiniBar(
+              label: 'CORE',
+              fraction: state.integrityFraction,
+              color: state.integrityFraction > 0.5
+                  ? GGColors.good
+                  : state.integrityFraction > 0.25
+                      ? GGColors.accentWarm
+                      : GGColors.danger,
+            ),
+            const SizedBox(height: 3),
+            _MiniBar(
+              label: 'BESS ⚡ $netLabel',
+              fraction: state.energyFraction,
+              color: state.energy <= 0.5
+                  ? GGColors.danger
+                  : net < 0
+                      ? GGColors.accentWarm
+                      : GGColors.accent,
+              trailing:
+                  '${state.energy.toStringAsFixed(0)}/${state.energyCapacity.toStringAsFixed(0)}',
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 34,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: stats.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                itemBuilder: (_, i) => stats[i],
               ),
-            ),
-            const SizedBox(width: 12),
-            _Stat(
-              icon: state.isNight
-                  ? Icons.nightlight_round
-                  : Icons.wb_sunny_rounded,
-              color: state.isNight ? GGColors.accent : GGColors.star,
-              label: state.isNight ? '—' : '${(state.sunFactor * 100).round()}%',
-              caption: 'SUN',
-            ),
-            const SizedBox(width: 10),
-            _Stat(
-              icon: Icons.wind_power_rounded,
-              color: GGColors.teal,
-              label: '${(state.windFactor * 100).round()}%',
-              caption: 'WIND',
-            ),
-            const SizedBox(width: 10),
-            _Stat(
-              icon: Icons.attach_money_rounded,
-              color: GGColors.good,
-              label: '${state.money}',
-              caption: 'MONEY',
-            ),
-            const SizedBox(width: 12),
-            _Stat(
-              icon: Icons.currency_bitcoin_rounded,
-              color: GGColors.amber,
-              label: state.coins.toStringAsFixed(1),
-              caption: 'COIN',
-            ),
-            const SizedBox(width: 10),
-            _Stat(
-              icon: Icons.local_fire_department_rounded,
-              color: GGColors.danger,
-              label: '${state.threat.toStringAsFixed(1)}x',
-              caption: 'THREAT',
-            ),
-            const SizedBox(width: 10),
-            _Stat(
-              icon: Icons.stacked_line_chart_rounded,
-              color: GGColors.ink,
-              label: '${state.score}',
-              caption: 'SCORE',
-            ),
-            const SizedBox(width: 12),
-            _Stat(
-              icon: Icons.waves_rounded,
-              color: GGColors.accentWarm,
-              label: state.waveNumber == 0
-                  ? '—'
-                  : state.endless
-                      ? '${state.waveNumber}'
-                      : '${state.waveNumber}/${state.totalWaves}',
-              caption: state.endless ? 'RAID' : 'WAVE',
             ),
           ],
         ),
@@ -493,22 +492,36 @@ class _BuildTray extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Fixed-width buttons in a horizontal scroller: six units fit any phone,
+    // and the inspect toggle stays pinned on the right.
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
       child: Row(
         children: [
-          for (final type in TowerCatalog.buildTray) ...[
-            Expanded(
-              child: _TowerButton(
-                type: type,
-                money: money,
-                selected: selectedBuild == type,
-                onTap: () =>
-                    onSelectBuild(selectedBuild == type ? null : type),
+          Expanded(
+            child: SizedBox(
+              height: 62,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: TowerCatalog.buildTray.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                itemBuilder: (_, i) {
+                  final type = TowerCatalog.buildTray[i];
+                  return SizedBox(
+                    width: 70,
+                    child: _TowerButton(
+                      type: type,
+                      money: money,
+                      selected: selectedBuild == type,
+                      onTap: () =>
+                          onSelectBuild(selectedBuild == type ? null : type),
+                    ),
+                  );
+                },
               ),
             ),
-            const SizedBox(width: 8),
-          ],
+          ),
+          const SizedBox(width: 6),
           _InspectButton(
             active: selectedBuild == null,
             onTap: () => onSelectBuild(null),

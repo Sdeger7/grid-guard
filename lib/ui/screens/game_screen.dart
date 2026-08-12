@@ -183,7 +183,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTapDown: (details) => _game.handleTapAt(
+              onTapUp: (details) => _game.handleTapAt(
                 Vector2(details.localPosition.dx, details.localPosition.dy),
               ),
               child: GameWidget(game: _game),
