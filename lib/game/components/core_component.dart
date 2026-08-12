@@ -28,6 +28,13 @@ class CoreComponent extends IsoComponent {
 
   @override
   void render(Canvas canvas) {
+    // Real art if present (single frame), else procedural.
+    final art = game.spritesFor('core');
+    if (art != null) {
+      drawUnitSprite(canvas, art.first, widthTiles: 2.3, baseLift: 0.5);
+      return;
+    }
+
     final halfW = game.iso.halfW;
     final halfH = game.iso.halfH;
 

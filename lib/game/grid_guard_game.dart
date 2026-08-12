@@ -287,6 +287,13 @@ class GridGuardGame extends FlameGame {
         // No art for this unit yet — fine, it stays procedural.
       }
     }
+
+    // Single-frame structures (no tiers).
+    for (final key in ['core']) {
+      try {
+        sprites[key] = [Sprite(await images.load('$key.png'))];
+      } catch (_) {/* stays procedural */}
+    }
   }
 
   void _buildBoard() {
