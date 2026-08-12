@@ -5,37 +5,27 @@ import 'package:flame/components.dart';
 import '../../models/level_config.dart';
 import '../../models/tower_type.dart';
 import 'iso_box.dart';
-import 'iso_component.dart';
+import 'structure_component.dart';
 
 /// A buildable grid facility with a fixed footprint: BESS units (add storage)
 /// and Data Centers (earn money, draw power). Renders real art when present
 /// ([spriteKey]) else a simple procedural box; the game aggregates their tier
 /// stats.
-class FacilityComponent extends IsoComponent {
+class FacilityComponent extends StructureComponent {
   FacilityComponent({
-    required this.spec,
-    required this.coord,
+    required super.spec,
+    required super.coord,
     required this.spriteKey,
     required this.widthTiles,
-    this.tier = 0,
-  }) : super(
-          tile: Vector2(coord.col.toDouble(), coord.row.toDouble()),
-          depthBias: 0.2,
-        );
+    super.tier,
+  }) : super(depthBias: 0.2);
 
-  final TowerSpec spec;
-  final TileCoord coord;
   final String spriteKey;
   final double widthTiles;
-  int tier;
 
-  TowerTier get currentTier => spec.tier(tier);
-  bool get canUpgrade => tier < spec.maxTier;
-  int? get upgradeCost => canUpgrade ? spec.tier(tier + 1).cost : null;
-
-  void upgrade() {
-    if (canUpgrade) tier++;
-  }
+  /// Facilities are the big fixed plant — sturdier than field equipment.
+  @override
+  double get baseMaxHealth => 110.0 + 70.0 * tier;
 
   @override
   void render(Canvas canvas) {
@@ -44,6 +34,7 @@ class FacilityComponent extends IsoComponent {
       drawUnitSprite(canvas, art[tier.clamp(0, art.length - 1)],
           widthTiles: widthTiles, sinkFrac: 0.22);
       _pips(canvas);
+      renderDamageOverlay(canvas);
       return;
     }
 
@@ -63,6 +54,7 @@ class FacilityComponent extends IsoComponent {
       footScale: 0.8,
     );
     _pips(canvas);
+    renderDamageOverlay(canvas);
   }
 
   void _pips(Canvas canvas) {

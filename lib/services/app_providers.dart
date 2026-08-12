@@ -66,6 +66,31 @@ class ProfileNotifier extends Notifier<PlayerProfile> {
     await _save.saveProfile(state);
   }
 
+  /// Banks COIN mined in a run and updates endless records.
+  Future<void> bankRunResults({
+    required int coins,
+    required int raid,
+    required int score,
+  }) async {
+    state = state.copyWith(
+      coins: state.coins + coins,
+      bestRaid: raid > state.bestRaid ? raid : state.bestRaid,
+      bestScore: score > state.bestScore ? score : state.bestScore,
+    );
+    await _save.saveProfile(state);
+  }
+
+  /// Buys a premium package with COIN. Returns false when short.
+  Future<bool> buyPackage(String id, int price) async {
+    if (state.coins < price || state.ownedPackages.contains(id)) return false;
+    state = state.copyWith(
+      coins: state.coins - price,
+      ownedPackages: {...state.ownedPackages, id},
+    );
+    await _save.saveProfile(state);
+    return true;
+  }
+
   Future<void> markPurchased(String sku) async {
     state = state.copyWith(purchasedSkus: {...state.purchasedSkus, sku});
     await _save.saveProfile(state);

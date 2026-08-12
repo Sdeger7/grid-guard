@@ -7,6 +7,7 @@ import 'package:flutter/material.dart' show Colors;
 import '../../models/enemy_type.dart';
 import 'iso_box.dart';
 import 'iso_component.dart';
+import 'structure_component.dart';
 
 /// An airborne hostile that flies in a straight line from its spawn point on the
 /// map edge toward the base at the centre — raids come from all four sides, not
@@ -54,13 +55,47 @@ class EnemyComponent extends IsoComponent {
     }
   }
 
+  /// Structure currently being strafed, if any. Raiders hit everything — panels,
+  /// turbines, bays, towers — not just the base.
+  StructureComponent? _prey;
+  double _attackCooldown = 0;
+
+  /// Seconds between strafing runs, and damage per run.
+  static const double attackInterval = 1.1;
+  double get attackDamage => spec.coreDamage * 1.6;
+
   @override
   void update(double dt) {
     if (_dead) return;
 
+    _bob += dt * 6;
+    if (_hitFlash > 0) _hitFlash = (_hitFlash - dt).clamp(0, 1);
+    if (_attackCooldown > 0) _attackCooldown -= dt;
+
+    // Re-acquire a nearby structure to maul; fall back to the base.
+    final prey = _prey;
+    if (prey == null || prey.isDestroyed || !prey.isMounted) {
+      _prey = game.nearestStructureTo(tile, within: 2.6);
+    }
+
+    final aim = _prey?.tile ?? target;
     final slow = game.slowMultiplierAt(tile);
-    final toTarget = target - tile;
-    final dist = toTarget.length;
+    final toAim = aim - tile;
+    final dist = toAim.length;
+
+    if (_prey != null) {
+      // Hover over the structure and strafe it.
+      if (dist > 0.5) {
+        final step = speed * slow * dt;
+        tile += toAim.normalized() * (step < dist ? step : dist);
+        pathDistance += step;
+      } else if (_attackCooldown <= 0) {
+        game.enemyAttackStructure(this, _prey!);
+        _attackCooldown = attackInterval;
+      }
+      super.update(dt);
+      return;
+    }
 
     if (dist <= 0.15) {
       game.onEnemyReachedCore(this);
@@ -70,11 +105,8 @@ class EnemyComponent extends IsoComponent {
     }
 
     final step = speed * slow * dt;
-    tile += toTarget.normalized() * (step < dist ? step : dist);
+    tile += toAim.normalized() * (step < dist ? step : dist);
     pathDistance += step;
-
-    _bob += dt * 6;
-    if (_hitFlash > 0) _hitFlash = (_hitFlash - dt).clamp(0, 1);
     super.update(dt);
   }
 

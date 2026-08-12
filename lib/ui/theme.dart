@@ -15,6 +15,7 @@ class GGColors {
   static const danger = Color(0xFFE23D4B);
   static const mw = Color(0xFF2E7DF6);
   static const star = Color(0xFFF5B301);
+  static const amber = Color(0xFFE09B12);
 }
 
 class GGText {

@@ -9,6 +9,7 @@ import '../../models/tower_type.dart';
 import 'enemy_component.dart';
 import 'iso_box.dart';
 import 'iso_component.dart';
+import 'structure_component.dart';
 
 /// A friendly interceptor drone. It launches from its bay, flies out to hunt the
 /// nearest raider inside the bay's range, shoots it, and returns to orbit the
@@ -141,29 +142,19 @@ class InterceptorDrone extends IsoComponent {
 
 /// The Drone Bay: a landing pad that keeps a squadron of [InterceptorDrone]s in
 /// the air. The bay itself doesn't shoot — its drones do.
-class DroneBayComponent extends IsoComponent {
+class DroneBayComponent extends StructureComponent {
   DroneBayComponent({
-    required this.spec,
-    required this.coord,
-    this.tier = 0,
-  }) : super(
-          tile: Vector2(coord.col.toDouble(), coord.row.toDouble()),
-          depthBias: 0.2,
-        );
-
-  final TowerSpec spec;
-  final TileCoord coord;
-  int tier;
+    required super.spec,
+    required super.coord,
+    super.tier,
+  }) : super(depthBias: 0.2);
 
   final List<InterceptorDrone> drones = [];
   double _beacon = 0;
 
-  TowerTier get currentTier => spec.tier(tier);
-  bool get canUpgrade => tier < spec.maxTier;
-  int? get upgradeCost => canUpgrade ? spec.tier(tier + 1).cost : null;
-
+  @override
   void upgrade() {
-    if (canUpgrade) tier++;
+    super.upgrade();
     _syncSquadron();
   }
 
@@ -251,5 +242,6 @@ class DroneBayComponent extends IsoComponent {
       canvas.drawCircle(Offset(-6 + i * 6.0, -halfH * 1.6), 2.0,
           Paint()..color = const Color(0xFFFFE08A));
     }
+    renderDamageOverlay(canvas);
   }
 }

@@ -6,46 +6,31 @@ import '../../models/level_config.dart';
 import '../../models/tower_type.dart';
 import 'enemy_component.dart';
 import 'iso_box.dart';
-import 'iso_component.dart';
+import 'structure_component.dart';
 
 /// A placed defensive structure. One component covers both families:
 ///  - [TowerCategory.slow] (Scissor Barrier): deals no damage; the game reads
 ///    its tier's `slowMultiplier` when enemies cross its tile.
 ///  - [TowerCategory.damage] (Shock Transformer): targets and fires a chaining
 ///    arc, with a bonus when [chainThreshold]+ enemies are clustered.
-class TowerComponent extends IsoComponent {
+class TowerComponent extends StructureComponent {
   TowerComponent({
-    required this.spec,
-    required this.coord,
-    this.tier = 0,
-  }) : super(
-          tile: Vector2(coord.col.toDouble(), coord.row.toDouble()),
-          depthBias: 0.2,
-        );
-
-  final TowerSpec spec;
-  final TileCoord coord;
-  int tier;
+    required super.spec,
+    required super.coord,
+    super.tier,
+  }) : super(depthBias: 0.2);
 
   double _cooldown = 0;
   double _fireFlash = 0;
   bool _starved = false;
-
-  TowerTier get currentTier => spec.tier(tier);
-  bool get canUpgrade => tier < spec.maxTier;
-
-  /// MW cost to upgrade to the next tier, or null if maxed.
-  int? get upgradeCost => canUpgrade ? spec.tier(tier + 1).cost : null;
-
-  void upgrade() {
-    if (canUpgrade) tier++;
-  }
 
   @override
   void update(double dt) {
     super.update(dt);
     if (_fireFlash > 0) _fireFlash = (_fireFlash - dt).clamp(0, 1);
     if (spec.category != TowerCategory.damage) return;
+    // Knocked-out towers can't fire until repaired.
+    if (isOffline) return;
 
     _cooldown -= dt;
     if (_cooldown > 0) return;
@@ -118,6 +103,7 @@ class TowerComponent extends IsoComponent {
       if (_starved) _drawStarved(canvas);
     }
     _drawTierPips(canvas, game.iso.halfH);
+    renderDamageOverlay(canvas);
   }
 
   /// A red "no power" marker so the player sees the BESS is starving this tower.

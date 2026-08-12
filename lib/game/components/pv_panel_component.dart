@@ -5,32 +5,17 @@ import 'package:flame/components.dart';
 import '../../models/level_config.dart';
 import '../../models/tower_type.dart';
 import 'iso_box.dart';
-import 'iso_component.dart';
+import 'structure_component.dart';
 
 /// A PV Panel: a solar array on a safe-zone tile that feeds energy into the
 /// BESS. It is a passive producer — the game sums every panel's output
 /// ([GridGuardGame.pvOutput]) each tick, so the component itself just renders.
-class PvPanelComponent extends IsoComponent {
+class PvPanelComponent extends StructureComponent {
   PvPanelComponent({
-    required this.spec,
-    required this.coord,
-    this.tier = 0,
-  }) : super(
-          tile: Vector2(coord.col.toDouble(), coord.row.toDouble()),
-          depthBias: 0.18,
-        );
-
-  final TowerSpec spec;
-  final TileCoord coord;
-  int tier;
-
-  TowerTier get currentTier => spec.tier(tier);
-  bool get canUpgrade => tier < spec.maxTier;
-  int? get upgradeCost => canUpgrade ? spec.tier(tier + 1).cost : null;
-
-  void upgrade() {
-    if (canUpgrade) tier++;
-  }
+    required super.spec,
+    required super.coord,
+    super.tier,
+  }) : super(depthBias: 0.18);
 
   @override
   void render(Canvas canvas) {
@@ -39,6 +24,7 @@ class PvPanelComponent extends IsoComponent {
     if (art != null) {
       drawUnitSprite(canvas, art[tier.clamp(0, art.length - 1)],
           widthTiles: 1.0, sinkFrac: 0.30);
+      renderDamageOverlay(canvas);
       return;
     }
 
@@ -107,6 +93,7 @@ class PvPanelComponent extends IsoComponent {
     canvas.restore();
 
     _tierPips(canvas, halfH);
+    renderDamageOverlay(canvas);
   }
 
   void _tierPips(Canvas canvas, double halfH) {

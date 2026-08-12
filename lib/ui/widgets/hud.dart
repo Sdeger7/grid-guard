@@ -21,6 +21,8 @@ class Hud extends StatelessWidget {
     required this.onSelectBuild,
     required this.onStart,
     required this.onUpgrade,
+    required this.onRepair,
+    required this.onRepairAll,
   });
 
   final GridGuardGame game;
@@ -30,6 +32,8 @@ class Hud extends StatelessWidget {
   final ValueChanged<TowerType?> onSelectBuild;
   final VoidCallback onStart;
   final VoidCallback onUpgrade;
+  final VoidCallback onRepair;
+  final VoidCallback onRepairAll;
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +52,16 @@ class Hud extends StatelessWidget {
           if (selected != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: _UpgradePanel(selected: selected!, onUpgrade: onUpgrade),
+              child: _UpgradePanel(
+                  selected: selected!,
+                  money: s?.money ?? 0,
+                  onUpgrade: onUpgrade,
+                  onRepair: onRepair),
+            ),
+          if (s != null && s.damagedCount > 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
+              child: _RepairAllBar(state: s, onRepairAll: onRepairAll),
             ),
           if (s != null && s.phase == RunPhase.building)
             Padding(
@@ -132,6 +145,20 @@ class _TopBar extends StatelessWidget {
               caption: 'MONEY',
             ),
             const SizedBox(width: 12),
+            _Stat(
+              icon: Icons.currency_bitcoin_rounded,
+              color: GGColors.amber,
+              label: state.coins.toStringAsFixed(1),
+              caption: 'COIN',
+            ),
+            const SizedBox(width: 10),
+            _Stat(
+              icon: Icons.local_fire_department_rounded,
+              color: GGColors.danger,
+              label: '${state.threat.toStringAsFixed(1)}x',
+              caption: 'THREAT',
+            ),
+            const SizedBox(width: 10),
             _Stat(
               icon: Icons.stacked_line_chart_rounded,
               color: GGColors.ink,
@@ -580,42 +607,184 @@ class _InspectButton extends StatelessWidget {
   }
 }
 
+/// Selected-structure panel: condition, repair and upgrade in one place.
 class _UpgradePanel extends StatelessWidget {
-  const _UpgradePanel({required this.selected, required this.onUpgrade});
+  const _UpgradePanel({
+    required this.selected,
+    required this.money,
+    required this.onUpgrade,
+    required this.onRepair,
+  });
   final SelectedStructure selected;
+  final int money;
   final VoidCallback onUpgrade;
+  final VoidCallback onRepair;
 
   @override
   Widget build(BuildContext context) {
     final maxed = selected.upgradeCost == null;
+    final frac = selected.healthFraction;
+    final hpColor = frac > 0.6
+        ? GGColors.good
+        : frac > 0.3
+            ? GGColors.amber
+            : GGColors.danger;
     return GGPanel(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(selected.name,
+                              overflow: TextOverflow.ellipsis,
+                              style: GGText.heading),
+                        ),
+                        if (selected.isOffline) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: GGColors.danger,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('OFFLINE',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800)),
+                          ),
+                        ],
+                      ],
+                    ),
+                    Text('Tier ${selected.tier + 1} / ${selected.maxTier + 1}',
+                        style: GGText.soft),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              Container(
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  color: GGColors.bg,
+                                  border:
+                                      Border.all(color: GGColors.panelBorder),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                              FractionallySizedBox(
+                                widthFactor: frac.clamp(0.0, 1.0),
+                                child: Container(
+                                  height: 7,
+                                  decoration: BoxDecoration(
+                                    color: hpColor,
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text('${(frac * 100).round()}%', style: GGText.soft),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (selected.needsRepair)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed:
+                        money >= selected.repairCost ? onRepair : null,
+                    icon: const Icon(Icons.build_rounded, size: 16),
+                    label: Text('Repair \$${selected.repairCost}'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: GGColors.amber,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+              if (selected.needsRepair && !maxed) const SizedBox(width: 8),
+              if (!maxed)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: money >= (selected.upgradeCost ?? 0)
+                        ? onUpgrade
+                        : null,
+                    icon: const Icon(Icons.upgrade_rounded, size: 16),
+                    label: Text('Upgrade \$${selected.upgradeCost}'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: GGColors.accent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+              if (maxed && !selected.needsRepair)
+                const Expanded(
+                  child: Center(
+                      child: Text('MAX TIER · OPERATIONAL',
+                          style: GGText.soft)),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Prompt to fix everything damaged in one tap between raids.
+class _RepairAllBar extends StatelessWidget {
+  const _RepairAllBar({required this.state, required this.onRepairAll});
+  final LevelState state;
+  final VoidCallback onRepairAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final afford = state.money >= state.totalRepairCost;
+    return GGPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      borderColor: GGColors.amber,
       child: Row(
         children: [
+          const Icon(Icons.build_circle_rounded,
+              color: GGColors.amber, size: 20),
+          const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(selected.name, style: GGText.heading),
-                Text('Tier ${selected.tier + 1} / ${selected.maxTier + 1}',
-                    style: GGText.soft),
-              ],
+            child: Text(
+              '${state.damagedCount} damaged structure${state.damagedCount == 1 ? '' : 's'}',
+              style: GGText.body.copyWith(fontWeight: FontWeight.w700),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (maxed)
-            const Text('MAX', style: GGText.heading)
-          else
-            ElevatedButton.icon(
-              onPressed: onUpgrade,
-              icon: const Icon(Icons.upgrade_rounded, size: 18),
-              label: Text('Upgrade  \$${selected.upgradeCost}'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: GGColors.accent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6)),
-              ),
+          ElevatedButton(
+            onPressed: onRepairAll,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: afford ? GGColors.amber : GGColors.inkSoft,
+              foregroundColor: Colors.white,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
+            child: Text('Repair all \$${state.totalRepairCost}'),
+          ),
         ],
       ),
     );

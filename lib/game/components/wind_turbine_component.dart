@@ -6,40 +6,25 @@ import 'package:flame/components.dart';
 import '../../models/level_config.dart';
 import '../../models/tower_type.dart';
 import 'iso_box.dart';
-import 'iso_component.dart';
+import 'structure_component.dart';
 
 /// A Wind Turbine: an economy producer whose output the game scales by the wind
 /// factor (works day AND night, unlike PV). Its blades spin faster when the wind
 /// is stronger. Like PV panels, the game sums every turbine's output.
-class WindTurbineComponent extends IsoComponent {
+class WindTurbineComponent extends StructureComponent {
   WindTurbineComponent({
-    required this.spec,
-    required this.coord,
-    this.tier = 0,
-  }) : super(
-          tile: Vector2(coord.col.toDouble(), coord.row.toDouble()),
-          depthBias: 0.18,
-        );
-
-  final TowerSpec spec;
-  final TileCoord coord;
-  int tier;
+    required super.spec,
+    required super.coord,
+    super.tier,
+  }) : super(depthBias: 0.18);
 
   double _spin = 0;
-
-  TowerTier get currentTier => spec.tier(tier);
-  bool get canUpgrade => tier < spec.maxTier;
-  int? get upgradeCost => canUpgrade ? spec.tier(tier + 1).cost : null;
-
-  void upgrade() {
-    if (canUpgrade) tier++;
-  }
 
   @override
   void update(double dt) {
     super.update(dt);
     // Blades track the wind — faster gusts, faster spin.
-    _spin += dt * (1.0 + game.windFactor * 6.0);
+    if (!isOffline) _spin += dt * (1.0 + game.windFactor * 6.0);
   }
 
   @override
@@ -48,6 +33,7 @@ class WindTurbineComponent extends IsoComponent {
     if (art != null) {
       drawUnitSprite(canvas, art[tier.clamp(0, art.length - 1)],
           widthTiles: 1.3, sinkFrac: 0.24);
+      renderDamageOverlay(canvas);
       return;
     }
 
@@ -99,5 +85,6 @@ class WindTurbineComponent extends IsoComponent {
       canvas.drawCircle(Offset(-6 + i * 6.0, -poleH - 14), 2.0,
           Paint()..color = const Color(0xFFFFE08A));
     }
+    renderDamageOverlay(canvas);
   }
 }

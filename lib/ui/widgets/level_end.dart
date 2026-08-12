@@ -211,6 +211,88 @@ class _LosePanelState extends State<LosePanel> {
   }
 }
 
+/// Endless run summary: how far you got and what you banked.
+class SurvivalEndPanel extends StatelessWidget {
+  const SurvivalEndPanel({
+    super.key,
+    required this.raid,
+    required this.score,
+    required this.coins,
+    required this.bestRaid,
+    required this.onRetry,
+    required this.onMenu,
+    required this.onPremium,
+  });
+
+  final int raid;
+  final int score;
+  final int coins;
+  final int bestRaid;
+  final VoidCallback onRetry;
+  final VoidCallback onMenu;
+  final VoidCallback onPremium;
+
+  @override
+  Widget build(BuildContext context) {
+    final isRecord = raid >= bestRaid && raid > 0;
+    return _Scrim(
+      child: GGPanel(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('BASE OVERRUN', style: GGText.title),
+            const SizedBox(height: 4),
+            Text(isRecord ? 'New record!' : 'Best raid: \$bestRaid',
+                style: GGText.soft.copyWith(
+                    color: isRecord ? GGColors.good : GGColors.inkSoft)),
+            const SizedBox(height: 16),
+            _RewardRow(label: 'Raids survived', value: '\$raid'),
+            _RewardRow(label: 'Score', value: '\$score'),
+            _RewardRow(
+                label: 'COIN banked', value: '+\$coins', highlight: coins > 0),
+            const SizedBox(height: 16),
+            if (coins > 0)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onPremium,
+                  icon: const Icon(Icons.currency_bitcoin_rounded),
+                  label: const Text('Spend COIN on perks'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: GGColors.amber,
+                    side: const BorderSide(color: GGColors.amber),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                      onPressed: onMenu, child: const Text('Main Menu')),
+                ),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onRetry,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: GGColors.good,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('Rebuild'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _RewardRow extends StatelessWidget {
   const _RewardRow(
       {required this.label, required this.value, this.highlight = false});

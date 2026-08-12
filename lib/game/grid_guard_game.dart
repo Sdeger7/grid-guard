@@ -6,6 +6,7 @@ import 'package:flame/game.dart';
 
 import '../data/dc_workload.dart';
 import '../data/enemy_catalog.dart';
+import '../data/premium_packages.dart';
 import '../data/tower_catalog.dart';
 import '../data/zone_theme.dart';
 import '../models/enemy_type.dart';
@@ -24,6 +25,7 @@ import 'components/ground_tile.dart';
 import 'components/night_overlay.dart';
 import 'components/wind_turbine_component.dart';
 import 'components/pv_panel_component.dart';
+import 'components/structure_component.dart';
 import 'components/tower_component.dart';
 import 'systems/iso.dart';
 import 'systems/wave_spawner.dart';
@@ -37,12 +39,22 @@ class SelectedStructure {
     required this.tier,
     required this.maxTier,
     required this.upgradeCost,
+    this.healthFraction = 1.0,
+    this.repairCost = 0,
+    this.isOffline = false,
   });
   final TileCoord coord;
   final String name;
   final int tier;
   final int maxTier;
   final int? upgradeCost;
+
+  /// Condition of the selected building and what a repair would cost.
+  final double healthFraction;
+  final int repairCost;
+  final bool isOffline;
+
+  bool get needsRepair => repairCost > 0;
 }
 
 /// Callbacks bridging the Flame game to the Flutter/Riverpod layer, so the game
@@ -90,10 +102,18 @@ class _PendingSpawn {
 /// pacing, win/lose logic and input. All rendering is depth-sorted through
 /// component priorities set by [IsoComponent].
 class GridGuardGame extends FlameGame {
-  GridGuardGame({required this.config, required this.callbacks});
+  GridGuardGame({
+    required this.config,
+    required this.callbacks,
+    this.perks = const PremiumPackage(
+        id: '_none', name: '', emoji: '', price: 0, blurb: ''),
+  });
 
   final LevelConfig config;
   final GameCallbacks callbacks;
+
+  /// Combined premium perks the player owns, applied to this run.
+  final PremiumPackage perks;
 
   // ---- Shake tuning: single source of truth (design asks for one place). ----
   static const double shakeDurationDefault = 0.16; // 160ms
@@ -143,6 +163,7 @@ class GridGuardGame extends FlameGame {
   /// Total battery capacity: a small base plus every placed BESS unit.
   double get energyCapacity =>
       config.bessCapacity +
+      perks.capacityBonus +
       bessUnits.fold(0.0, (s, u) => s + u.currentTier.capacity);
 
   /// Combined Data-Center power (sum of dcPower across placed DCs).
@@ -223,10 +244,11 @@ class GridGuardGame extends FlameGame {
   double get dcDraw => workload.draw * dcTotalPower;
 
   /// Total money earned per second while powered (workload × total DC power).
-  double get dcIncome => workload.income * dcTotalPower;
+  double get dcIncome =>
+      workload.income * dcTotalPower * perks.incomeMultiplier;
 
   /// How hot the base runs — scales raid frequency and size.
-  double get threatMultiplier => workload.threat;
+  double get threatMultiplier => workload.threat * growthThreat;
 
   /// Set from the HUD build tray; null == inspect/select mode.
   TowerType? selectedBuild;
@@ -249,11 +271,12 @@ class GridGuardGame extends FlameGame {
 
     await _loadSprites();
 
-    money = config.startMoney.toDouble();
-    energy = config.startEnergy;
+    money = config.startMoney + perks.startMoneyBonus.toDouble();
+    integrityMax = config.coreIntegrity + perks.startCoreBonus;
+    coreIntegrity = integrityMax;
     timeOfDay = config.startTimeOfDay;
-    coreIntegrity = config.coreIntegrity;
-    integrityMax = config.coreIntegrity;
+    energy = math.min(config.startEnergy + perks.startEnergyBonus,
+        config.bessCapacity + perks.capacityBonus);
 
     worldRoot = PositionComponent();
     add(worldRoot);
@@ -386,20 +409,13 @@ class GridGuardGame extends FlameGame {
     final coord = _selectedCoord;
     if (coord == null) return;
     final comp = _occupied[coord];
-    int? cost;
-    if (comp is TowerComponent && comp.canUpgrade) cost = comp.upgradeCost;
-    if (comp is PvPanelComponent && comp.canUpgrade) cost = comp.upgradeCost;
-    if (comp is WindTurbineComponent && comp.canUpgrade) cost = comp.upgradeCost;
-    if (comp is FacilityComponent && comp.canUpgrade) cost = comp.upgradeCost;
-    if (comp is DroneBayComponent && comp.canUpgrade) cost = comp.upgradeCost;
+    if (comp is! StructureComponent || !comp.canUpgrade) return;
+    final cost = comp.upgradeCost;
     if (cost == null || !_spendMoney(cost)) return;
-    if (comp is TowerComponent) comp.upgrade();
-    if (comp is PvPanelComponent) comp.upgrade();
-    if (comp is WindTurbineComponent) comp.upgrade();
-    if (comp is FacilityComponent) comp.upgrade();
-    if (comp is DroneBayComponent) comp.upgrade();
+    comp.upgrade();
     _emitSfx(Sfx.towerPlace);
-    _selectStructure(coord); // refresh panel
+    _selectStructure(coord);
+    _publishSnapshot(force: true);
   }
 
   // ---- Update loop ----
@@ -410,6 +426,7 @@ class GridGuardGame extends FlameGame {
 
     if (phase != RunPhase.won && phase != RunPhase.lost) {
       _tickEconomy(dt);
+      _tickCoins(dt);
     }
 
     if (phase == RunPhase.inProgress) {
@@ -463,8 +480,121 @@ class GridGuardGame extends FlameGame {
     }
   }
 
+  void _tickCoins(double dt) {
+    coinsEarned += coinRate * dt;
+  }
+
   /// Energy held back from the Data Centers so defences can always fire.
   double get defenceReserve => math.min(energyCapacity * 0.25, 25);
+
+  // ---- Structures: damage, repair, destruction ----
+
+  /// Every player-built structure, keyed by tile.
+  Iterable<StructureComponent> get structures =>
+      _occupied.values.whereType<StructureComponent>();
+
+  /// Closest live structure to [pos] within [within] tiles — what a raider mauls.
+  StructureComponent? nearestStructureTo(Vector2 pos, {double within = 2.5}) {
+    StructureComponent? best;
+    var bestD = within;
+    for (final s in structures) {
+      if (s.isDestroyed) continue;
+      final d = (s.tile - pos).length;
+      if (d < bestD) {
+        bestD = d;
+        best = s;
+      }
+    }
+    return best;
+  }
+
+  /// A raider strafes a structure. Destroyed buildings are removed from the map
+  /// and have to be rebuilt at full price.
+  void enemyAttackStructure(EnemyComponent e, StructureComponent s) {
+    final destroyed = s.takeStructureDamage(e.attackDamage);
+    addShake(shakeMagnitudeLight);
+    _emitSfx(Sfx.coreDamage);
+    if (destroyed) {
+      destroyStructure(s);
+      addShake(shakeMagnitudeHeavy);
+    }
+    _publishSnapshot(force: true);
+  }
+
+  void destroyStructure(StructureComponent s) {
+    _occupied.remove(s.coord);
+    _slowTowers.remove(s.coord);
+    pvPanels.remove(s);
+    windTurbines.remove(s);
+    bessUnits.remove(s);
+    dataCenters.remove(s);
+    droneBays.remove(s);
+    worldRoot.add(BurstEffect(tile: s.tile.clone(), color: const Color(0xFFE23D4B)));
+    s.removeFromParent();
+    if (_selectedCoord == s.coord) _clearSelection();
+  }
+
+  /// Repairs the selected structure for money.
+  void repairSelected() {
+    final coord = _selectedCoord;
+    if (coord == null) return;
+    final s = _occupied[coord];
+    if (s is! StructureComponent || !s.needsRepair) return;
+    final cost = repairCostOf(s);
+    if (cost <= 0 || !_spendMoney(cost)) return;
+    s.repairFully();
+    _emitSfx(Sfx.towerPlace);
+    _selectStructure(coord);
+    _publishSnapshot(force: true);
+  }
+
+  /// Repairs everything you can afford, cheapest first — the button you mash
+  /// between raids.
+  void repairAll() {
+    final damaged = structures.where((s) => s.needsRepair).toList()
+      ..sort((a, b) => repairCostOf(a).compareTo(repairCostOf(b)));
+    for (final s in damaged) {
+      final cost = repairCostOf(s);
+      if (cost <= 0) continue;
+      if (!_spendMoney(cost)) break;
+      s.repairFully();
+    }
+    _emitSfx(Sfx.towerPlace);
+    _publishSnapshot(force: true);
+  }
+
+  /// Repair bill after premium discounts.
+  int repairCostOf(StructureComponent s) =>
+      (s.repairCost * (1 - perks.repairDiscount)).ceil();
+
+  int get totalRepairCost =>
+      structures.fold(0, (sum, s) => sum + repairCostOf(s));
+  int get damagedCount => structures.where((s) => s.needsRepair).length;
+
+  // ---- Coins: earned by crypto mining, spent on premium packages ----
+
+  /// Coins mined this run (whole coins are banked to the profile at run end).
+  double coinsEarned = 0;
+
+  /// Coins per second while a crypto workload runs powered — scales with how
+  /// much Data Center capacity is pointed at it.
+  double get coinRate =>
+      workload.minesCoins && dcPowered ? 0.05 * dcTotalPower : 0.0;
+
+  /// Total invested value on the board — bigger base, bigger target.
+  int get baseValue {
+    var v = 0;
+    for (final s in structures) {
+      for (var t = 0; t <= s.tier; t++) {
+        v += s.spec.tier(t).cost;
+      }
+    }
+    return v;
+  }
+
+  /// Growth itself raises the stakes: a richer base draws heavier raids on top
+  /// of the workload's own threat.
+  double get growthThreat => 1.0 + (baseValue / 1200.0).clamp(0.0, 1.4);
 
   /// Towers call this to spend energy on a shot. Returns false (don't fire) when
   /// the BESS is too low — that's how starving the grid makes defences fail.
@@ -572,41 +702,19 @@ class GridGuardGame extends FlameGame {
   void _selectStructure(TileCoord coord) {
     _selectedCoord = coord;
     final comp = _occupied[coord];
-    String name = '';
-    int tier = 0, maxTier = 0;
-    int? cost;
-    if (comp is TowerComponent) {
-      name = comp.spec.name;
-      tier = comp.tier;
-      maxTier = comp.spec.maxTier;
-      cost = comp.upgradeCost;
-    } else if (comp is PvPanelComponent) {
-      name = comp.spec.name;
-      tier = comp.tier;
-      maxTier = comp.spec.maxTier;
-      cost = comp.upgradeCost;
-    } else if (comp is WindTurbineComponent) {
-      name = comp.spec.name;
-      tier = comp.tier;
-      maxTier = comp.spec.maxTier;
-      cost = comp.upgradeCost;
-    } else if (comp is FacilityComponent) {
-      name = comp.spec.name;
-      tier = comp.tier;
-      maxTier = comp.spec.maxTier;
-      cost = comp.upgradeCost;
-    } else if (comp is DroneBayComponent) {
-      name = comp.spec.name;
-      tier = comp.tier;
-      maxTier = comp.spec.maxTier;
-      cost = comp.upgradeCost;
+    if (comp is! StructureComponent) {
+      callbacks.onSelection?.call(null);
+      return;
     }
     callbacks.onSelection?.call(SelectedStructure(
       coord: coord,
-      name: name,
-      tier: tier,
-      maxTier: maxTier,
-      upgradeCost: cost,
+      name: comp.spec.name,
+      tier: comp.tier,
+      maxTier: comp.spec.maxTier,
+      upgradeCost: comp.upgradeCost,
+      healthFraction: comp.healthFraction,
+      repairCost: repairCostOf(comp),
+      isOffline: comp.isOffline,
     ));
   }
 
@@ -842,6 +950,11 @@ class GridGuardGame extends FlameGame {
       dataCenterCount: dataCenterCount,
       workloadIndex: workloadIndex,
       security: securityRating,
+      coins: coinsEarned,
+      damagedCount: damagedCount,
+      totalRepairCost: totalRepairCost,
+      threat: threatMultiplier,
+      baseValue: baseValue,
       coreIntegrity: coreIntegrity,
       maxCoreIntegrity: integrityMax,
       waveNumber: waveNumber,

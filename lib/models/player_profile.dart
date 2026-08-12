@@ -27,7 +27,21 @@ class PlayerProfile {
     this.purchasedSkus = const {},
     this.levelsCompletedSinceInterstitial = 0,
     this.totalLevelsCompleted = 0,
+    this.coins = 0,
+    this.bestRaid = 0,
+    this.bestScore = 0,
+    this.ownedPackages = const {},
   });
+
+  /// COIN mined by crypto workloads — the permanent currency for premium packs.
+  final int coins;
+
+  /// Best endless run so far.
+  final int bestRaid;
+  final int bestScore;
+
+  /// Premium packages bought with COIN.
+  final Set<String> ownedPackages;
 
   /// Permanent soft currency.
   final int gridCredits;
@@ -75,6 +89,10 @@ class PlayerProfile {
     Set<String>? purchasedSkus,
     int? levelsCompletedSinceInterstitial,
     int? totalLevelsCompleted,
+    int? coins,
+    int? bestRaid,
+    int? bestScore,
+    Set<String>? ownedPackages,
   }) {
     return PlayerProfile(
       gridCredits: gridCredits ?? this.gridCredits,
@@ -89,6 +107,10 @@ class PlayerProfile {
           this.levelsCompletedSinceInterstitial,
       totalLevelsCompleted:
           totalLevelsCompleted ?? this.totalLevelsCompleted,
+      coins: coins ?? this.coins,
+      bestRaid: bestRaid ?? this.bestRaid,
+      bestScore: bestScore ?? this.bestScore,
+      ownedPackages: ownedPackages ?? this.ownedPackages,
     );
   }
 
@@ -105,6 +127,10 @@ class PlayerProfile {
         'purchasedSkus': purchasedSkus.toList(),
         'levelsCompletedSinceInterstitial': levelsCompletedSinceInterstitial,
         'totalLevelsCompleted': totalLevelsCompleted,
+        'coins': coins,
+        'bestRaid': bestRaid,
+        'bestScore': bestScore,
+        'ownedPackages': ownedPackages.toList(),
       };
 
   factory PlayerProfile.fromJson(Map<String, dynamic> json) {
@@ -133,6 +159,12 @@ class PlayerProfile {
       levelsCompletedSinceInterstitial:
           json['levelsCompletedSinceInterstitial'] as int? ?? 0,
       totalLevelsCompleted: json['totalLevelsCompleted'] as int? ?? 0,
+      coins: json['coins'] as int? ?? 0,
+      bestRaid: json['bestRaid'] as int? ?? 0,
+      bestScore: json['bestScore'] as int? ?? 0,
+      ownedPackages:
+          (json['ownedPackages'] as List?)?.map((e) => e as String).toSet() ??
+              const {},
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/levels.dart';
+import '../../data/premium_packages.dart';
 import '../../game/grid_guard_game.dart' as gg;
 import '../../models/level_config.dart';
 import '../../models/level_state.dart';
@@ -13,6 +14,7 @@ import '../../services/monetization_service.dart';
 import '../theme.dart';
 import '../widgets/hud.dart';
 import '../widgets/level_end.dart';
+import 'premium_screen.dart';
 
 /// Hosts one level: the Flame [gg.GridGuardGame] plus the Flutter HUD and
 /// win/lose overlays. Owns the glue between the game's callbacks and Riverpod
@@ -41,6 +43,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     super.initState();
     _game = gg.GridGuardGame(
       config: widget.config,
+      perks: PremiumCatalog.effectiveOf(
+          ref.read(profileProvider).ownedPackages),
       callbacks: gg.GameCallbacks(
         onSnapshot: _onSnapshot,
         onFinished: _onFinished,
@@ -86,8 +90,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   Future<void> _onFinished(LevelResult result) async {
     setState(() => _result = result);
-    if (result.isWin && !_resultApplied) {
-      _resultApplied = true;
+    if (_resultApplied) return;
+    _resultApplied = true;
+
+    // Endless runs bank mined COIN and update records; campaign levels award
+    // stars/credits as before.
+    if (widget.config.endless) {
+      await ref.read(profileProvider.notifier).bankRunResults(
+            coins: _game.coinsEarned.floor(),
+            raid: _game.raidCount,
+            score: result.finalScore,
+          );
+    } else if (result.isWin) {
       await ref.read(profileProvider.notifier).applyLevelResult(
             result,
             zone: widget.config.zone,
@@ -158,8 +172,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final result = _result;
-    final showWin = result != null && result.isWin;
-    final showLose = result != null && !result.isWin;
+    final endless = widget.config.endless;
+    final showSurvivalEnd = result != null && endless;
+    final showWin = result != null && !endless && result.isWin;
+    final showLose = result != null && !endless && !result.isWin;
 
     return Scaffold(
       body: Stack(
@@ -185,6 +201,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 _game.startWaves();
               },
               onUpgrade: _game.upgradeSelected,
+              onRepair: _game.repairSelected,
+              onRepairAll: _game.repairAll,
             ),
           ),
           Positioned(
@@ -197,6 +215,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
             ),
           ),
+          if (showSurvivalEnd)
+            SurvivalEndPanel(
+              raid: _game.raidCount,
+              score: result.finalScore,
+              coins: _game.coinsEarned.floor(),
+              bestRaid: ref.watch(profileProvider).bestRaid,
+              onRetry: _retry,
+              onMenu: _menu,
+              onPremium: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PremiumScreen())),
+            ),
           if (showWin)
             WinPanel(
               result: result,

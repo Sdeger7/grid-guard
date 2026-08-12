@@ -42,6 +42,11 @@ class LevelState {
     required this.dataCenterCount,
     required this.workloadIndex,
     required this.security,
+    required this.coins,
+    required this.damagedCount,
+    required this.totalRepairCost,
+    required this.threat,
+    required this.baseValue,
     required this.coreIntegrity,
     required this.maxCoreIntegrity,
     required this.waveNumber,
@@ -81,6 +86,17 @@ class LevelState {
 
   /// Current base security rating (gates high-value workloads).
   final int security;
+
+  /// COIN mined this run (crypto workloads only).
+  final double coins;
+
+  /// Damaged structures and what it costs to fix them all.
+  final int damagedCount;
+  final int totalRepairCost;
+
+  /// Live raid pressure and how much the base is worth (drives that pressure).
+  final double threat;
+  final int baseValue;
 
   // Core / waves.
   final double coreIntegrity;

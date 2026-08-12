@@ -6,6 +6,7 @@ import '../../services/app_providers.dart';
 import '../theme.dart';
 import 'game_screen.dart';
 import 'level_select_screen.dart';
+import 'premium_screen.dart';
 import 'store_screen.dart';
 
 /// Title screen. Minimal engineering-dashboard framing with entry points to the
@@ -58,6 +59,14 @@ class MainMenuScreen extends ConsumerWidget {
                 color: GGColors.accent,
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => const LevelSelectScreen())),
+              ),
+              const SizedBox(height: 12),
+              _MenuButton(
+                icon: Icons.currency_bitcoin_rounded,
+                label: 'PREMIUM',
+                color: GGColors.amber,
+                onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const PremiumScreen())),
               ),
               const SizedBox(height: 12),
               _MenuButton(

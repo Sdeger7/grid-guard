@@ -13,7 +13,12 @@ class DcWorkload {
     required this.threat,
     required this.requiredSecurity,
     required this.blurb,
+    this.minesCoins = false,
   });
+
+  /// Crypto workloads mint the game's own coin alongside their cash income —
+  /// coins are the permanent currency that buys premium packages.
+  final bool minesCoins;
 
   final String name;
   final String emoji;
@@ -62,7 +67,8 @@ class DcWorkloadCatalog {
       draw: 8,
       threat: 1.3,
       requiredSecurity: 6,
-      blurb: 'Lucrative — and a known target.',
+      blurb: 'Mints COIN — and a known target.',
+      minesCoins: true,
     ),
     DcWorkload(
       name: 'Bank Records',
