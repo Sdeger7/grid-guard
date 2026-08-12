@@ -26,6 +26,10 @@ class GroundTile extends IsoComponent {
   Color road;
   Color accent;
 
+  /// Set for tiles on the outer ring — they fade into the surrounding field so
+  /// the map doesn't end on a hard cut edge.
+  bool isEdge = false;
+
   late final double _halfW = game.iso.halfW;
   late final double _halfH = game.iso.halfH;
 
@@ -57,9 +61,13 @@ class GroundTile extends IsoComponent {
 
     // Grass with a subtle per-tile shade shift (lerp keeps this portable across
     // Flutter colour APIs).
-    final grass = _n < 0.5
+    var grass = _n < 0.5
         ? Color.lerp(fill, const Color(0xFF2F5F2A), _n * 0.22)!
         : Color.lerp(fill, const Color(0xFFBFE08A), (_n - 0.5) * 0.20)!;
+    // Outer ring blends toward the darker surrounding field.
+    if (isEdge) {
+      grass = Color.lerp(grass, const Color(0xFF3E6B39), 0.55)!;
+    }
     canvas.drawPath(diamond, Paint()..color = grass);
 
     // A few blades of grass for texture (skipped on the base's own tile).

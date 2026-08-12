@@ -89,30 +89,52 @@ class InterceptorDrone extends IsoComponent {
     canvas.save();
     canvas.translate(0, -altitude);
 
-    // Small friendly quadcopter, green so it reads as ours.
-    final body = _fireFlash > 0 ? const Color(0xFFEAFFF3) : const Color(0xFF19B36B);
+    // Friendly interceptor: bright green, sized to read against enemy raiders.
+    final body =
+        _fireFlash > 0 ? const Color(0xFFEAFFF3) : const Color(0xFF23D97E);
     final arm = Paint()
-      ..color = const Color(0xFF14603C)
-      ..strokeWidth = 1.6;
+      ..color = const Color(0xFF0E4F31)
+      ..strokeWidth = 2.4;
     for (final tp in [
-      Offset(halfW * 0.2, -halfH * 0.1),
-      Offset(-halfW * 0.2, -halfH * 0.1),
-      Offset(halfW * 0.2, halfH * 0.1),
-      Offset(-halfW * 0.2, halfH * 0.1),
+      Offset(halfW * 0.42, -halfH * 0.2),
+      Offset(-halfW * 0.42, -halfH * 0.2),
+      Offset(halfW * 0.42, halfH * 0.2),
+      Offset(-halfW * 0.42, halfH * 0.2),
     ]) {
       canvas.drawLine(Offset.zero, tp, arm);
       final s = 0.75 + 0.25 * math.sin(_spin + tp.dx);
+      // Rotor hub + disc.
+      canvas.drawCircle(tp, 2.6, Paint()..color = const Color(0xFF0E4F31));
       canvas.drawOval(
-        Rect.fromCenter(center: tp, width: 8 * s, height: 3),
-        Paint()..color = const Color(0x99CFF5E2),
+        Rect.fromCenter(center: tp, width: 17 * s, height: 4.5),
+        Paint()..color = const Color(0xCCCFF5E2),
       );
     }
+
+    // Hull with a darker outline so it pops against grass.
+    final hull =
+        Rect.fromCenter(center: Offset.zero, width: 22, height: 13);
+    canvas.drawOval(hull, Paint()..color = body);
     canvas.drawOval(
-      Rect.fromCenter(center: Offset.zero, width: 11, height: 7),
-      Paint()..color = body,
+      hull,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..color = const Color(0xFF0E4F31),
     );
+    // Cockpit sensor.
     canvas.drawCircle(
-        Offset(0, -1), 1.6, Paint()..color = const Color(0xFFFFE08A));
+        const Offset(0, -1.5), 3, Paint()..color = const Color(0xFFFFE08A));
+
+    // Friendly marker ring above, so you can always find your own drones.
+    canvas.drawCircle(
+      const Offset(0, -13),
+      3.2,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..color = const Color(0xFF23D97E),
+    );
     canvas.restore();
   }
 }

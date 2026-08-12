@@ -322,7 +322,10 @@ class GridGuardGame extends FlameGame {
           fill: theme.ground,
           road: road,
           accent: theme.accent,
-        ));
+        )..isEdge = c == 0 ||
+            r == 0 ||
+            c == config.gridCols - 1 ||
+            r == config.gridRows - 1);
       }
     }
 
