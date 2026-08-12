@@ -8,28 +8,32 @@ import '../../models/enemy_type.dart';
 import 'iso_box.dart';
 import 'iso_component.dart';
 
-/// A hostile unit walking the path in tile space. Health/speed are the
-/// already-scaled values for its wave; movement is driven by [pathDistance] along
-/// [PathSystem], so it stays correct under any projection. Slow towers modulate
-/// its speed via a per-tile multiplier the game supplies.
+/// An airborne hostile that flies in a straight line from its spawn point on the
+/// map edge toward the base at the centre — raids come from all four sides, not
+/// down a fixed lane. Slow fields (Scissor Barriers) drag it down wherever it
+/// passes; reaching the centre damages the base.
 class EnemyComponent extends IsoComponent {
   EnemyComponent({
     required this.spec,
     required this.maxHealth,
     required this.speed,
+    required Vector2 spawn,
+    required this.target,
   })  : health = maxHealth,
-        super(tile: Vector2.zero(), depthBias: 0.08);
+        super(tile: spawn.clone(), depthBias: 0.5);
 
   final EnemySpec spec;
   final double maxHealth;
 
-  /// Base movement speed (tiles/sec), already scaled for the wave.
+  /// Base movement speed (tiles/sec), already scaled for the raid.
   final double speed;
+
+  /// Tile position it flies toward (the base).
+  final Vector2 target;
 
   double health;
 
-  /// Distance travelled along the path, in tile-space units. Named
-  /// `pathDistance` to avoid shadowing Flame's `PositionComponent.distance()`.
+  /// Distance travelled, in tile-space units (used for target prioritisation).
   double pathDistance = 0;
 
   bool _dead = false;
@@ -53,20 +57,24 @@ class EnemyComponent extends IsoComponent {
   @override
   void update(double dt) {
     if (_dead) return;
-    final path = game.path;
-    final curPos = path.positionAtDistance(pathDistance);
-    final slow = game.slowMultiplierAt(curPos);
-    pathDistance += speed * slow * dt;
-    _bob += dt * 6;
-    if (_hitFlash > 0) _hitFlash = (_hitFlash - dt).clamp(0, 1);
 
-    if (pathDistance >= path.totalLength) {
+    final slow = game.slowMultiplierAt(tile);
+    final toTarget = target - tile;
+    final dist = toTarget.length;
+
+    if (dist <= 0.15) {
       game.onEnemyReachedCore(this);
       _dead = true;
       removeFromParent();
       return;
     }
-    tile = path.positionAtDistance(pathDistance);
+
+    final step = speed * slow * dt;
+    tile += toTarget.normalized() * (step < dist ? step : dist);
+    pathDistance += step;
+
+    _bob += dt * 6;
+    if (_hitFlash > 0) _hitFlash = (_hitFlash - dt).clamp(0, 1);
     super.update(dt);
   }
 
@@ -82,20 +90,23 @@ class EnemyComponent extends IsoComponent {
     }
   }
 
-  /// Saboteur Drone: a hovering quadcopter — body + four rotor arms.
+  /// Saboteur Drone: an airborne quadcopter flying well above the board — body,
+  /// four spinning rotors, and a shadow cast on the ground below it.
   void _renderDrone(Canvas canvas, Color base) {
     final halfW = game.iso.halfW;
     final halfH = game.iso.halfH;
-    final hover = 3.0 + 1.6 * math.sin(_bob);
+    // Cruising altitude + a gentle bob, drawn as a screen-space lift.
+    final altitude = halfH * 1.9 + 2.0 * math.sin(_bob);
+
+    // Shadow stays on the ground, under the flight position.
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset.zero, width: halfW * 0.45, height: halfH * 0.3),
+      Paint()..color = Colors.black.withValues(alpha: 0.14),
+    );
 
     canvas.save();
-    canvas.translate(0, -hover);
-
-    // Faint ground shadow.
-    canvas.drawOval(
-      Rect.fromCenter(center: Offset(0, hover), width: halfW * 0.5, height: halfH * 0.35),
-      Paint()..color = Colors.black.withValues(alpha: 0.12),
-    );
+    canvas.translate(0, -altitude);
 
     // Four arms + spinning rotors at the diagonal tips.
     final arm = Paint()
@@ -109,9 +120,11 @@ class EnemyComponent extends IsoComponent {
     ];
     for (final tp in tips) {
       canvas.drawLine(Offset.zero, tp, arm);
+      // Rotor disc — widens with the spin so it reads as turning.
+      final spin = 0.75 + 0.25 * math.sin(_bob * 3 + tp.dx);
       canvas.drawOval(
-        Rect.fromCenter(center: tp, width: 11, height: 5),
-        Paint()..color = const Color(0x66AEB6C2),
+        Rect.fromCenter(center: tp, width: 13 * spin, height: 4),
+        Paint()..color = const Color(0x88AEB6C2),
       );
     }
 
@@ -132,15 +145,40 @@ class EnemyComponent extends IsoComponent {
         2.2, Paint()..color = const Color(0xFFFFE08A));
     canvas.restore();
 
-    _drawHealthBar(canvas, halfW, halfH * 0.4 + hover);
+    _drawHealthBar(canvas, halfW, halfH * 0.4 + altitude);
   }
 
-  /// Malware Crawler: a squat armoured slab with spikes and a glitch slice.
+  /// Malware Gunship: a heavy airborne carrier — armoured hull with spikes,
+  /// slung under twin lift rotors, flying lower and slower than the drone.
   void _renderMalware(Canvas canvas, Color base) {
     final halfW = game.iso.halfW;
     final halfH = game.iso.halfH;
     final shades = faceShades(base);
     final h = halfH * 0.85;
+    final altitude = halfH * 1.35 + 1.5 * math.sin(_bob * 0.7);
+
+    // Ground shadow.
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset.zero, width: halfW * 0.62, height: halfH * 0.4),
+      Paint()..color = Colors.black.withValues(alpha: 0.16),
+    );
+
+    canvas.save();
+    canvas.translate(0, -altitude);
+
+    // Twin lift rotors above the hull.
+    for (final dx in [-halfW * 0.3, halfW * 0.3]) {
+      canvas.drawLine(Offset(dx, -h), Offset(dx, -h - 5),
+          Paint()
+            ..color = const Color(0xFF2A2E36)
+            ..strokeWidth = 2);
+      final spin = 0.7 + 0.3 * math.sin(_bob * 2.5 + dx);
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(dx, -h - 6), width: 20 * spin, height: 4),
+        Paint()..color = const Color(0x88AEB6C2),
+      );
+    }
 
     drawIsoBox(
       canvas,
@@ -170,8 +208,9 @@ class EnemyComponent extends IsoComponent {
       Rect.fromCenter(center: Offset(0, -h * 0.55), width: 8, height: 3),
       Paint()..color = const Color(0xFF3FE0D0),
     );
+    canvas.restore();
 
-    _drawHealthBar(canvas, halfW, h);
+    _drawHealthBar(canvas, halfW, h + altitude);
   }
 
   void _drawHealthBar(Canvas canvas, double halfW, double topY) {

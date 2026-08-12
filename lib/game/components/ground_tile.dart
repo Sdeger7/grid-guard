@@ -81,8 +81,9 @@ class GroundTile extends IsoComponent {
         break;
 
       case TileKind.core:
+        // The base's own tile: a bright reserved platform at the map centre.
         canvas.drawPath(base, Paint()..color = fill);
-        _drawPad(canvas, Color.lerp(fill, accent, 0.30)!);
+        _drawPad(canvas, Color.lerp(fill, accent, 0.36)!);
         break;
     }
   }

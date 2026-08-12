@@ -39,10 +39,14 @@ class IsoProjection {
   }
 
   /// Screen position -> nearest integer tile, or null if outside the grid.
+  ///
+  /// [tileToScreen] maps an integer tile to its *centre*, so picking must round
+  /// (not floor) — flooring shifts every hit by half a tile and reads as
+  /// "everything lands one square off".
   TileCoord? screenToTileCoord(double x, double y, int cols, int rows) {
     final t = screenToTile(x, y);
-    final col = t.x.floor();
-    final row = t.y.floor();
+    final col = t.x.round();
+    final row = t.y.round();
     if (col < 0 || row < 0 || col >= cols || row >= rows) return null;
     return TileCoord(col, row);
   }

@@ -25,7 +25,6 @@ import 'components/wind_turbine_component.dart';
 import 'components/pv_panel_component.dart';
 import 'components/tower_component.dart';
 import 'systems/iso.dart';
-import 'systems/path_system.dart';
 import 'systems/wave_spawner.dart';
 
 /// Describes the currently-selected placed structure, handed to the HUD so it
@@ -101,7 +100,6 @@ class GridGuardGame extends FlameGame {
   static const double shakeMagnitudeHeavy = 10;
 
   late final IsoProjection iso;
-  late final PathSystem path;
   late final WaveSpawner spawner;
   late final ZoneTheme theme;
   late final CoreComponent core;
@@ -242,7 +240,6 @@ class GridGuardGame extends FlameGame {
   @override
   Future<void> onLoad() async {
     iso = IsoProjection(tileWidth: 64);
-    path = PathSystem(config.path);
     theme = ZoneTheme.forZone(config.zone);
 
     await _loadSprites();
@@ -302,26 +299,20 @@ class GridGuardGame extends FlameGame {
     }
   }
 
+  /// The base's tile (map centre), as integer coordinates.
+  TileCoord get baseCoord =>
+      TileCoord(config.gridCols ~/ 2, config.gridRows ~/ 2);
+
   void _buildBoard() {
-    final pathTiles = path.pathTiles;
-    // A single ground tone (no checker) with a darker "lane" tone for the route.
+    // Open yard: every tile is plain buildable ground — no lanes, no pads. The
+    // base sits at the centre and raids fly in from every edge.
     final road = Color.lerp(theme.ground, const Color(0xFF1A2230), 0.16)!;
     for (var r = 0; r < config.gridRows; r++) {
       for (var c = 0; c < config.gridCols; c++) {
         final coord = TileCoord(c, r);
-        TileKind kind = TileKind.ground;
-        if (coord == config.spawnTile) {
-          kind = TileKind.spawn;
-        } else if (coord == config.coreTile) {
-          kind = TileKind.core;
-        } else if (pathTiles.contains(coord)) {
-          kind = TileKind.path;
-        } else if (config.safeZones.contains(coord)) {
-          kind = TileKind.safeZone;
-        }
         worldRoot.add(GroundTile(
           tile: Vector2(c.toDouble(), r.toDouble()),
-          kind: kind,
+          kind: coord == baseCoord ? TileKind.core : TileKind.ground,
           fill: theme.ground,
           road: road,
           accent: theme.accent,
@@ -330,8 +321,7 @@ class GridGuardGame extends FlameGame {
     }
 
     core = CoreComponent(
-      tile: Vector2(
-          config.coreTile.col.toDouble(), config.coreTile.row.toDouble()),
+      tile: Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
       accent: theme.accent,
     );
     worldRoot.add(core);
@@ -514,24 +504,9 @@ class GridGuardGame extends FlameGame {
     if (phase == RunPhase.won || phase == RunPhase.lost) return;
     final spec = TowerCatalog.of(type);
 
-    final onPath = path.isOnPath(coord);
-    final isSafe = config.safeZones.contains(coord);
-    final isEndpoint =
-        coord == config.spawnTile || coord == config.coreTile;
-
-    bool allowed;
-    switch (spec.placeableOn) {
-      case TilePlacement.path:
-        allowed = onPath && !isEndpoint;
-        break;
-      case TilePlacement.safeZone:
-        allowed = isSafe;
-        break;
-      case TilePlacement.any:
-        allowed = !isEndpoint;
-        break;
-    }
-    if (!allowed) return;
+    // Free placement: any empty tile works. The only reserved tile is the base
+    // itself at the centre.
+    if (coord == baseCoord) return;
     if (!_spendMoney(spec.tier(0).cost)) return;
 
     late final PositionComponent comp;
@@ -685,12 +660,36 @@ class GridGuardGame extends FlameGame {
 
   // ---- Wave callbacks ----
 
+  /// Tile position of the base (map centre) — everything converges here.
+  Vector2 get baseTile =>
+      Vector2((config.gridCols - 1) / 2, (config.gridRows - 1) / 2);
+
+  /// Picks a random point just outside one of the four map edges, so raids come
+  /// in from all sides rather than down a single lane.
+  Vector2 _randomEdgeSpawn() {
+    final cols = config.gridCols.toDouble();
+    final rows = config.gridRows.toDouble();
+    const pad = 1.5;
+    switch (_rng.nextInt(4)) {
+      case 0: // north
+        return Vector2(_rng.nextDouble() * cols, -pad);
+      case 1: // south
+        return Vector2(_rng.nextDouble() * cols, rows - 1 + pad);
+      case 2: // west
+        return Vector2(-pad, _rng.nextDouble() * rows);
+      default: // east
+        return Vector2(cols - 1 + pad, _rng.nextDouble() * rows);
+    }
+  }
+
   void _spawnEnemy(EnemyType type, double healthScale, double speedScale) {
     final spec = EnemyCatalog.of(type);
     final e = EnemyComponent(
       spec: spec,
       maxHealth: spec.baseHealth * healthScale,
       speed: spec.baseSpeed * speedScale,
+      spawn: _randomEdgeSpawn(),
+      target: baseTile,
     );
     enemies.add(e);
     worldRoot.add(e);
