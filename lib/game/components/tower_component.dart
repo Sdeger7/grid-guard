@@ -183,9 +183,16 @@ class TowerComponent extends IsoComponent {
         Paint()..color = const Color(0xFFEAF6F4));
   }
 
-  /// 6300A Shock Transformer: an orange housing with ceramic insulator stacks
-  /// and an emitter node that flares white when it fires.
+  /// 6300A Shock Transformer: real art when available (kule.png, one frame per
+  /// tier), else a procedural orange housing with insulator stacks.
   void _renderTransformer(Canvas canvas) {
+    final art = game.spritesFor('kule');
+    if (art != null) {
+      drawUnitSprite(canvas, art[tier.clamp(0, art.length - 1)],
+          widthTiles: 1.15, sinkFrac: 0.26);
+      return;
+    }
+
     final halfW = game.iso.halfW;
     final halfH = game.iso.halfH;
     final base = spec.tint;

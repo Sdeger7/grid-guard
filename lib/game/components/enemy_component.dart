@@ -90,6 +90,14 @@ class EnemyComponent extends IsoComponent {
     }
   }
 
+  /// Which of the three drone models to show: tougher raids field bigger craft.
+  int get _sizeIndex {
+    final ratio = maxHealth / spec.baseHealth;
+    if (ratio < 1.6) return 0;
+    if (ratio < 2.6) return 1;
+    return 2;
+  }
+
   /// Saboteur Drone: an airborne quadcopter flying well above the board — body,
   /// four spinning rotors, and a shadow cast on the ground below it.
   void _renderDrone(Canvas canvas, Color base) {
@@ -104,6 +112,21 @@ class EnemyComponent extends IsoComponent {
           center: Offset.zero, width: halfW * 0.45, height: halfH * 0.3),
       Paint()..color = Colors.black.withValues(alpha: 0.14),
     );
+
+    // Real art if present — pick the model by raid scaling.
+    final art = game.spritesFor('sabodrone');
+    if (art != null) {
+      canvas.save();
+      canvas.translate(0, -altitude);
+      final sprite = art[_sizeIndex.clamp(0, art.length - 1)];
+      final w = game.iso.tileWidth * (0.95 + 0.15 * _sizeIndex);
+      final h = w * sprite.srcSize.y / sprite.srcSize.x;
+      sprite.render(canvas,
+          position: Vector2.zero(), size: Vector2(w, h), anchor: Anchor.center);
+      canvas.restore();
+      _drawHealthBar(canvas, halfW, halfH * 0.4 + altitude);
+      return;
+    }
 
     canvas.save();
     canvas.translate(0, -altitude);

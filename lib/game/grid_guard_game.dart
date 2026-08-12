@@ -279,7 +279,8 @@ class GridGuardGame extends FlameGame {
       'pv_panel',
       'wind_turbine',
       'scissor_barrier',
-      'shock_transformer',
+      'kule', // Shock Transformer (3 tiers)
+      'sabodrone', // Saboteur Drone (3 sizes, by raid scaling)
     ];
     for (final key in keys) {
       try {
