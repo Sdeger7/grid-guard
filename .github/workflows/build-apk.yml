@@ -58,7 +58,7 @@ jobs:
         run: |
           for attempt in 1 2 3; do
             echo "::group::APK build attempt $attempt"
-            if flutter build apk --release; then
+            if flutter build apk --release --split-per-abi; then
               echo "::endgroup::"
               exit 0
             fi
@@ -69,11 +69,19 @@ jobs:
           echo "APK build failed after 3 attempts"
           exit 1
 
+      # Per-ABI APKs are ~a third the size of the fat one, which matters a lot
+      # when the install path is "download it on a phone over mobile data".
+      # arm64-v8a covers essentially every phone made since ~2016.
       - name: Collect APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk \
-             "dist/grid-guard-${GITHUB_SHA::7}.apk"
+          # Fixed names so the release download URL never changes and each
+          # build replaces the last one instead of piling up.
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk \
+             dist/grid-guard-arm64.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk \
+             dist/grid-guard-arm32.apk
+          ls -lh dist
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -92,8 +100,10 @@ jobs:
           body: |
             Newest Android build, updated automatically on every push.
 
-            **Install:** tap the `.apk` below, then allow installs from this
-            source when Android asks.
+            **Install:** tap `grid-guard-arm64.apk` below (that's the right one
+            for any phone from roughly 2016 onward), then allow installs from
+            this source when Android asks. `arm32` is the fallback for older
+            devices.
 
             Commit: ${{ github.sha }}
           files: dist/*.apk
