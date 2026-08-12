@@ -14,6 +14,7 @@ import '../../services/monetization_service.dart';
 import '../theme.dart';
 import '../widgets/hud.dart';
 import '../widgets/level_end.dart';
+import '../widgets/tutorial_overlay.dart';
 import 'premium_screen.dart';
 
 /// Hosts one level: the Flame [gg.GridGuardGame] plus the Flutter HUD and
@@ -37,6 +38,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   LevelResult? _result;
   bool _continueUsed = false;
   bool _resultApplied = false;
+
+  /// Set once the player closes the coach; keeps it gone for the rest of the run.
+  bool _tipsDismissed = false;
 
   @override
   void initState() {
@@ -205,6 +209,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               onRepairAll: _game.repairAll,
             ),
           ),
+          // Coaching sits above the HUD but never over an end-of-run panel.
+          if (_snapshot != null && result == null)
+            Positioned.fill(
+              child: SafeArea(
+                child: TutorialOverlay(
+                  state: _snapshot!,
+                  dismissed: _tipsDismissed,
+                  onDismiss: () => setState(() => _tipsDismissed = true),
+                ),
+              ),
+            ),
           Positioned(
             top: 8,
             right: 8,
