@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flame/components.dart';
 
 import '../grid_guard_game.dart';
@@ -43,5 +45,24 @@ abstract class IsoComponent extends PositionComponent
   void update(double dt) {
     super.update(dt);
     syncIso();
+  }
+
+  /// Draws a unit [sprite] seated on the tile: scaled to [widthTiles] tile
+  /// widths, its base resting just below the tile centre. Used when real art is
+  /// available; otherwise components draw procedurally.
+  void drawUnitSprite(
+    Canvas canvas,
+    Sprite sprite, {
+    double widthTiles = 1.5,
+    double baseLift = 0.45,
+  }) {
+    final w = game.iso.tileWidth * widthTiles;
+    final h = w * sprite.srcSize.y / sprite.srcSize.x;
+    sprite.render(
+      canvas,
+      position: Vector2(0, game.iso.halfH * baseLift),
+      size: Vector2(w, h),
+      anchor: Anchor.bottomCenter,
+    );
   }
 }

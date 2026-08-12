@@ -105,6 +105,13 @@ class GridGuardGame extends FlameGame {
   late final ZoneTheme theme;
   late final CoreComponent core;
 
+  /// Real unit sprites keyed by asset name (e.g. 'pv_panel'), each a list of 3
+  /// tier frames sliced from a horizontal strip. A key is absent when the file
+  /// isn't present, so components fall back to procedural drawing per unit.
+  final Map<String, List<Sprite>> sprites = {};
+
+  List<Sprite>? spritesFor(String key) => sprites[key];
+
   late final PositionComponent worldRoot;
 
   // ---- Live run state (real energy-flow economy) ----
@@ -231,6 +238,8 @@ class GridGuardGame extends FlameGame {
     path = PathSystem(config.path);
     theme = ZoneTheme.forZone(config.zone);
 
+    await _loadSprites();
+
     money = config.startMoney.toDouble();
     energyCapacity = config.bessCapacity;
     energy = config.startEnergy;
@@ -252,6 +261,32 @@ class GridGuardGame extends FlameGame {
 
     _recenter();
     _publishSnapshot(force: true);
+  }
+
+  /// Loads any available unit art. Each file (e.g. assets/images/pv_panel.png)
+  /// is a horizontal strip of 3 tier frames; a missing file is simply skipped
+  /// and that unit keeps its procedural look.
+  Future<void> _loadSprites() async {
+    const keys = [
+      'pv_panel',
+      'wind_turbine',
+      'scissor_barrier',
+      'shock_transformer',
+    ];
+    for (final key in keys) {
+      try {
+        final img = await images.load('$key.png');
+        final fw = img.width / 3;
+        final fh = img.height.toDouble();
+        sprites[key] = [
+          for (var i = 0; i < 3; i++)
+            Sprite(img,
+                srcPosition: Vector2(i * fw, 0), srcSize: Vector2(fw, fh)),
+        ];
+      } catch (_) {
+        // No art for this unit yet — fine, it stays procedural.
+      }
+    }
   }
 
   void _buildBoard() {

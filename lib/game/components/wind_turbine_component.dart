@@ -44,6 +44,14 @@ class WindTurbineComponent extends IsoComponent {
 
   @override
   void render(Canvas canvas) {
+    final art = game.spritesFor('wind_turbine');
+    if (art != null) {
+      // Turbines are tall — give them a bit more height headroom.
+      drawUnitSprite(canvas, art[tier.clamp(0, art.length - 1)],
+          widthTiles: 1.7);
+      return;
+    }
+
     final halfW = game.iso.halfW;
     final halfH = game.iso.halfH;
     final poleH = halfH * (2.0 + 0.3 * tier);
