@@ -81,6 +81,9 @@ jobs:
              dist/grid-guard-arm64.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk \
              dist/grid-guard-arm32.apk
+          # Some mobile browsers stall or refuse on a direct .apk download; a
+          # zip of the same file always comes through.
+          (cd dist && zip -q grid-guard-apk.zip grid-guard-arm64.apk)
           ls -lh dist
 
       - name: Upload APK artifact
@@ -103,9 +106,12 @@ jobs:
             **Install:** tap `grid-guard-arm64.apk` below (that's the right one
             for any phone from roughly 2016 onward), then allow installs from
             this source when Android asks. `arm32` is the fallback for older
-            devices.
+            devices, and `grid-guard-apk.zip` holds the same arm64 build for
+            browsers that refuse a direct `.apk` download.
 
             Commit: ${{ github.sha }}
-          files: dist/*.apk
+          files: |
+            dist/*.apk
+            dist/*.zip
           prerelease: true
           make_latest: true
