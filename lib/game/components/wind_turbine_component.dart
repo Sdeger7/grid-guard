@@ -47,7 +47,7 @@ class WindTurbineComponent extends IsoComponent {
     final art = game.spritesFor('wind_turbine');
     if (art != null) {
       drawUnitSprite(canvas, art[tier.clamp(0, art.length - 1)],
-          widthTiles: 1.5);
+          widthTiles: 1.3, sinkFrac: 0.24);
       return;
     }
 

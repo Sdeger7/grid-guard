@@ -38,7 +38,7 @@ class PvPanelComponent extends IsoComponent {
     final art = game.spritesFor('pv_panel');
     if (art != null) {
       drawUnitSprite(canvas, art[tier.clamp(0, art.length - 1)],
-          widthTiles: 1.15);
+          widthTiles: 1.0, sinkFrac: 0.30);
       return;
     }
 
