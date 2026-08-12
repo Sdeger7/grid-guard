@@ -313,6 +313,147 @@ class _FacilitiesRow extends StatelessWidget {
 }
 
 
+/// Bottom sheet to choose the Data Center's workload — the risk/reward dial.
+void _showWorkloadSheet(
+    BuildContext context, GridGuardGame game, int current, int security) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: GGColors.panel,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('DATA CENTER WORKLOAD', style: GGText.heading),
+                Row(
+                  children: [
+                    const Icon(Icons.shield_rounded,
+                        size: 16, color: GGColors.accent),
+                    const SizedBox(width: 3),
+                    Text('SEC $security',
+                        style: GGText.stat.copyWith(color: GGColors.accent)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            const Text(
+                'Higher-value data pays more — but needs more security and draws more raids. Applies to all your Data Centers.',
+                style: GGText.soft),
+            const SizedBox(height: 10),
+            for (var i = 0; i < DcWorkloadCatalog.workloads.length; i++)
+              _WorkloadTile(
+                w: DcWorkloadCatalog.workloads[i],
+                selected: i == current,
+                locked:
+                    security < DcWorkloadCatalog.workloads[i].requiredSecurity,
+                onTap: () {
+                  game.setWorkload(i);
+                  Navigator.of(ctx).pop();
+                },
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _WorkloadTile extends StatelessWidget {
+  const _WorkloadTile({
+    required this.w,
+    required this.selected,
+    required this.locked,
+    required this.onTap,
+  });
+  final DcWorkload w;
+  final bool selected;
+  final bool locked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: locked ? 0.55 : 1.0,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: locked ? null : onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: selected
+                ? GGColors.accent.withValues(alpha: 0.10)
+                : GGColors.bg,
+            border: Border.all(
+                color: selected ? GGColors.accent : GGColors.panelBorder),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            children: [
+              Text(w.emoji, style: const TextStyle(fontSize: 22)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(w.name,
+                              overflow: TextOverflow.ellipsis,
+                              style: GGText.body
+                                  .copyWith(fontWeight: FontWeight.w700)),
+                        ),
+                        if (locked) ...[
+                          const SizedBox(width: 4),
+                          const Icon(Icons.lock_rounded,
+                              size: 13, color: GGColors.danger),
+                          Text(' SEC ${w.requiredSecurity}',
+                              style:
+                                  GGText.soft.copyWith(color: GGColors.danger)),
+                        ],
+                      ],
+                    ),
+                    Text(w.blurb, style: GGText.soft),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('+${w.income.toStringAsFixed(0)}\$/s',
+                      style: GGText.soft.copyWith(
+                          color: GGColors.good, fontWeight: FontWeight.w700)),
+                  Text('-${w.draw.toStringAsFixed(0)}⚡/s',
+                      style: GGText.soft.copyWith(color: GGColors.accent)),
+                  Text('🔥 ${w.threat.toStringAsFixed(1)}x',
+                      style: GGText.soft.copyWith(color: GGColors.danger)),
+                ],
+              ),
+              if (selected)
+                const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: Icon(Icons.check_circle_rounded,
+                      color: GGColors.accent, size: 20),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _BuildTray extends StatelessWidget {
   const _BuildTray({
     required this.money,
