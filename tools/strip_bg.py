@@ -44,6 +44,14 @@ def strip(path):
     out = np.asarray(im).copy()
     out[bg, 3] = 0
 
+    # Semi-transparent glow flattened onto the checkerboard isn't neutral, so the
+    # test above misses it and it shows up as a coloured checker halo. Those
+    # pixels stay pale and washed out, unlike the solid subject or a saturated
+    # light source — drop them too.
+    sat = mx - mn
+    haze = (out[..., 3] > 0) & (lum >= 150) & (sat <= 85)
+    out[haze, 3] = 0
+
     # Feather the 1px fringe so edges aren't harsh.
     edge = bg ^ ndimage.binary_erosion(bg)
     keep_edge = edge & ~bg
