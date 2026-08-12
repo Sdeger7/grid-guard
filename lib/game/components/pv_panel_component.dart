@@ -37,7 +37,8 @@ class PvPanelComponent extends IsoComponent {
     // Use real art if it's been dropped into assets, else draw procedurally.
     final art = game.spritesFor('pv_panel');
     if (art != null) {
-      drawUnitSprite(canvas, art[tier.clamp(0, art.length - 1)]);
+      drawUnitSprite(canvas, art[tier.clamp(0, art.length - 1)],
+          widthTiles: 1.15);
       return;
     }
 
