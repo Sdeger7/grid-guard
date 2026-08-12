@@ -28,10 +28,19 @@ class CoreComponent extends IsoComponent {
 
   @override
   void render(Canvas canvas) {
-    // Real art if present (single frame), else procedural.
-    final art = game.spritesFor('core');
-    if (art != null) {
-      drawUnitSprite(canvas, art.first, widthTiles: 2.3, baseLift: 0.5);
+    // Real art if present: BESS drawn behind-left, Data Center (core) in front.
+    final dc = game.spritesFor('core');
+    final bess = game.spritesFor('bess');
+    if (dc != null || bess != null) {
+      if (bess != null) {
+        canvas.save();
+        canvas.translate(-game.iso.halfW * 0.85, -game.iso.halfH * 0.2);
+        drawUnitSprite(canvas, bess.first, widthTiles: 1.7, baseLift: 0.5);
+        canvas.restore();
+      }
+      if (dc != null) {
+        drawUnitSprite(canvas, dc.first, widthTiles: 2.2, baseLift: 0.5);
+      }
       return;
     }
 

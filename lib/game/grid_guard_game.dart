@@ -288,8 +288,8 @@ class GridGuardGame extends FlameGame {
       }
     }
 
-    // Single-frame structures (no tiers).
-    for (final key in ['core']) {
+    // Single-frame structures (no tiers): the Data Center (core) and BESS.
+    for (final key in ['core', 'bess']) {
       try {
         sprites[key] = [Sprite(await images.load('$key.png'))];
       } catch (_) {/* stays procedural */}
