@@ -187,6 +187,27 @@ class EnemyComponent extends IsoComponent {
       Paint()..color = Colors.black.withValues(alpha: 0.16),
     );
 
+    // Real art: the gunship flies the heaviest craft in the sheet, tinted so it
+    // still reads as the tanky variant rather than a plain drone.
+    final art = game.spritesFor('sabodrone');
+    if (art != null) {
+      canvas.save();
+      canvas.translate(0, -altitude);
+      final sprite = art.last;
+      final w = game.iso.tileWidth * 1.25;
+      final sh = w * sprite.srcSize.y / sprite.srcSize.x;
+      sprite.render(canvas,
+          position: Vector2.zero(),
+          size: Vector2(w, sh),
+          anchor: Anchor.center,
+          overridePaint: Paint()
+            ..colorFilter =
+                ColorFilter.mode(base.withValues(alpha: 0.45), BlendMode.srcATop));
+      canvas.restore();
+      _drawHealthBar(canvas, halfW, h + altitude);
+      return;
+    }
+
     canvas.save();
     canvas.translate(0, -altitude);
 

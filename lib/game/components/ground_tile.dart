@@ -55,14 +55,11 @@ class GroundTile extends IsoComponent {
       ..lineTo(-w, 0)
       ..close();
 
-    // Grass with subtle per-tile shade variation.
-    final shade = 0.94 + _n * 0.12;
-    final grass = Color.fromARGB(
-      255,
-      (fill.r * 255 * shade).clamp(0, 255).round(),
-      (fill.g * 255 * shade).clamp(0, 255).round(),
-      (fill.b * 255 * shade).clamp(0, 255).round(),
-    );
+    // Grass with a subtle per-tile shade shift (lerp keeps this portable across
+    // Flutter colour APIs).
+    final grass = _n < 0.5
+        ? Color.lerp(fill, const Color(0xFF2F5F2A), _n * 0.22)!
+        : Color.lerp(fill, const Color(0xFFBFE08A), (_n - 0.5) * 0.20)!;
     canvas.drawPath(diamond, Paint()..color = grass);
 
     // A few blades of grass for texture (skipped on the base's own tile).

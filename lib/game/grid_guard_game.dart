@@ -446,9 +446,12 @@ class GridGuardGame extends FlameGame {
     // 1) Solar + wind charge the battery (solar needs daylight; wind doesn't).
     energy = (energy + generation * dt).clamp(0, energyCapacity);
 
-    // 2) Data Centers consume to run, and pay out while powered.
+    // 2) Data Centers consume to run, and pay out while powered — but they only
+    //    get what's above the defence reserve, so a greedy workload can't starve
+    //    the towers and leave the base defenceless.
     final draw = dcDraw * dt;
-    if (dcTotalPower > 0 && energy >= draw) {
+    final spare = energy - defenceReserve;
+    if (dcTotalPower > 0 && spare >= draw) {
       energy -= draw;
       money += dcIncome * dt;
       dcPowered = true;
@@ -456,6 +459,9 @@ class GridGuardGame extends FlameGame {
       dcPowered = false;
     }
   }
+
+  /// Energy held back from the Data Centers so defences can always fire.
+  double get defenceReserve => math.min(energyCapacity * 0.25, 25);
 
   /// Towers call this to spend energy on a shot. Returns false (don't fire) when
   /// the BESS is too low — that's how starving the grid makes defences fail.
