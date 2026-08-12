@@ -254,8 +254,28 @@ class GridGuardGame extends FlameGame {
   TowerType? selectedBuild;
   TileCoord? _selectedCoord;
 
-  Vector2 _baseOffset = Vector2.zero();
-  double _scale = 1;
+  /// Scale that fits the whole grid on screen. The view the player actually
+  /// sees is this times [_zoom], shifted by [_pan] — so pinching and dragging
+  /// never fight the fit logic, and a resize recomputes the fit while keeping
+  /// whatever zoom the player chose.
+  double _fitScale = 1;
+  double _zoom = 1;
+  Vector2 _pan = Vector2.zero();
+
+  static const double minZoom = 0.7;
+  static const double maxZoom = 3.5;
+
+  double get _scale => _fitScale * _zoom;
+
+  /// Where the world's origin sits on screen at the current zoom, before pan.
+  Vector2 get _fitOrigin {
+    final gridCenter =
+        iso.tileToScreen(config.gridCols / 2, config.gridRows / 2);
+    return Vector2(size.x / 2, size.y * 0.56) - gridCenter * _scale;
+  }
+
+  Vector2 get _baseOffset => _fitOrigin + _pan;
+
   double _shakeTime = 0;
   double _shakeMag = 0;
   double _snapshotTimer = 0;
@@ -361,18 +381,55 @@ class GridGuardGame extends FlameGame {
 
   void _recenter() {
     if (size.x == 0 || size.y == 0) return;
-    final gridCenter = iso.tileToScreen(
-        config.gridCols / 2, config.gridRows / 2);
     final bounds = iso.worldBounds(config.gridCols, config.gridRows);
     const pad = 40.0;
     final scaleX = (size.x - pad) / bounds.width;
     // Reserve the top third for the HUD by fitting into ~70% of height.
     final scaleY = (size.y * 0.72 - pad) / bounds.height;
-    _scale = math.min(scaleX, scaleY).clamp(0.4, 2.5);
+    _fitScale = math.min(scaleX, scaleY).clamp(0.4, 2.5);
+    _applyView();
+  }
 
+  void _applyView() {
     worldRoot.scale = Vector2.all(_scale);
-    _baseOffset = Vector2(size.x / 2, size.y * 0.56) - gridCenter * _scale;
     worldRoot.position = _baseOffset.clone();
+  }
+
+  /// Pinch-to-zoom about [focal] (a point in widget coordinates), so the tile
+  /// under the player's fingers stays put instead of sliding away.
+  void zoomBy(double factor, Vector2 focal) {
+    final before = _scale;
+    final world = (focal - _baseOffset) / before;
+    _zoom = (_zoom * factor).clamp(minZoom, maxZoom);
+    // Re-derive the pan that keeps [world] under [focal] at the new scale.
+    _pan = focal - world * _scale - _fitOrigin;
+    _clampPan();
+    _applyView();
+  }
+
+  /// Drag the map. [delta] is a screen-space movement.
+  void panBy(Vector2 delta) {
+    _pan += delta;
+    _clampPan();
+    _applyView();
+  }
+
+  /// Snap back to the fitted, centred view.
+  void resetView() {
+    _zoom = 1;
+    _pan = Vector2.zero();
+    _applyView();
+  }
+
+  /// Keeps the grid from being dragged entirely off screen.
+  void _clampPan() {
+    final bounds = iso.worldBounds(config.gridCols, config.gridRows);
+    final limitX = bounds.width * _scale * 0.5 + size.x * 0.25;
+    final limitY = bounds.height * _scale * 0.5 + size.y * 0.25;
+    _pan = Vector2(
+      _pan.x.clamp(-limitX, limitX),
+      _pan.y.clamp(-limitY, limitY),
+    );
   }
 
   @override
@@ -614,7 +671,7 @@ class GridGuardGame extends FlameGame {
           Vector2((_rng.nextDouble() - 0.5) * 2 * k,
               (_rng.nextDouble() - 0.5) * 2 * k);
     } else {
-      worldRoot.position = _baseOffset.clone();
+      _applyView();
     }
   }
 

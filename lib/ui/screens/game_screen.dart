@@ -42,6 +42,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   /// Set once the player closes the coach; keeps it gone for the rest of the run.
   bool _tipsDismissed = false;
 
+  // Pinch/pan bookkeeping between onScaleUpdate callbacks.
+  double _gestureScale = 1;
+  Offset _gestureFocal = Offset.zero;
+
   @override
   void initState() {
     super.initState();
@@ -173,6 +177,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   void _menu() => Navigator.of(context).pop();
 
+  /// Button zoom pivots on the middle of the viewport.
+  Vector2 _viewCentre() {
+    final s = MediaQuery.sizeOf(context);
+    return Vector2(s.width / 2, s.height / 2);
+  }
+
   @override
   Widget build(BuildContext context) {
     final result = _result;
@@ -190,6 +200,25 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               onTapUp: (details) => _game.handleTapAt(
                 Vector2(details.localPosition.dx, details.localPosition.dy),
               ),
+              // Pinch to zoom, drag to pan. Tap still wins the gesture arena
+              // when the finger doesn't travel, so placing stays a single tap.
+              onScaleStart: (d) {
+                _gestureScale = 1;
+                _gestureFocal = d.localFocalPoint;
+              },
+              onScaleUpdate: (d) {
+                final focal = d.localFocalPoint;
+                if (d.pointerCount >= 2 && d.scale > 0 && _gestureScale > 0) {
+                  _game.zoomBy(d.scale / _gestureScale,
+                      Vector2(focal.dx, focal.dy));
+                  _gestureScale = d.scale;
+                }
+                final move = focal - _gestureFocal;
+                _gestureFocal = focal;
+                if (move != Offset.zero) {
+                  _game.panBy(Vector2(move.dx, move.dy));
+                }
+              },
               child: GameWidget(game: _game),
             ),
           ),
@@ -230,6 +259,32 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
             ),
           ),
+          // Explicit zoom controls, for players who'd rather not pinch.
+          Positioned(
+            right: 8,
+            bottom: 150,
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ViewButton(
+                    icon: Icons.add_rounded,
+                    onTap: () => _game.zoomBy(1.25, _viewCentre()),
+                  ),
+                  const SizedBox(height: 6),
+                  _ViewButton(
+                    icon: Icons.remove_rounded,
+                    onTap: () => _game.zoomBy(0.8, _viewCentre()),
+                  ),
+                  const SizedBox(height: 6),
+                  _ViewButton(
+                    icon: Icons.center_focus_strong_rounded,
+                    onTap: _game.resetView,
+                  ),
+                ],
+              ),
+            ),
+          ),
           if (showSurvivalEnd)
             SurvivalEndPanel(
               raid: _game.raidCount,
@@ -256,6 +311,32 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               onMenu: _menu,
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// A small translucent map-control button (zoom in/out, recentre).
+class _ViewButton extends StatelessWidget {
+  const _ViewButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: GGColors.panel.withValues(alpha: 0.92),
+      shape: const CircleBorder(
+        side: BorderSide(color: GGColors.panelBorder),
+      ),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(icon, size: 20, color: GGColors.ink),
+        ),
       ),
     );
   }

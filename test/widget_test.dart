@@ -19,8 +19,8 @@ void main() {
     );
     await tester.pump();
 
-    // The main menu is the entry screen; its PLAY/MARKET actions prove boot.
-    expect(find.text('PLAY'), findsOneWidget);
+    // The main menu is the entry screen; its actions prove the app booted.
+    expect(find.text('BASE · SURVIVAL'), findsOneWidget);
     expect(find.text('MARKET'), findsOneWidget);
   });
 }
