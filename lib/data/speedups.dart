@@ -83,7 +83,7 @@ class SpeedupCatalog {
       priceLabel: '\$4.99',
       effect: SpeedupEffect.cash,
       amount: 5000,
-      blurb: '+\$5,000 straight into the build fund.',
+      blurb: '+5,000 MONEY straight into the build fund.',
     ),
     Speedup(
       sku: 'watt_250',

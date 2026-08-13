@@ -56,10 +56,10 @@ class OfflinePanel extends StatelessWidget {
                         'online at reduced output.', style: GGText.soft),
                     const SizedBox(height: 14),
                     _Row(
-                      icon: Icons.attach_money_rounded,
+                      icon: Icons.paid_rounded,
                       color: GGColors.good,
                       label: 'Earned',
-                      value: '\$${report.money}',
+                      value: '${report.money}M',
                     ),
                     if (report.coins > 0) ...[
                       const SizedBox(height: 8),

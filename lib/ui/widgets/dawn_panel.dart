@@ -52,7 +52,7 @@ class DawnPanel extends StatelessWidget {
                       icon: Icons.shield_moon_rounded,
                       color: GGColors.good,
                       text: 'Night held',
-                      value: '+\$${report.bonus}',
+                      value: '+${report.bonus}M',
                     ),
                     if (report.coins > 0) ...[
                       const SizedBox(height: 6),
@@ -86,9 +86,10 @@ class DawnPanel extends StatelessWidget {
                                 size: 14, color: GGColors.inkSoft),
                             const SizedBox(width: 8),
                             Expanded(child: Text(m.title, style: GGText.soft)),
-                            Text('+${m.reward.toStringAsFixed(1)} ⚡WTT',
+                            // Missions pay MONEY; only mining mints WATT.
+                            Text('+${m.reward}M',
                                 style: GGText.soft.copyWith(
-                                    color: GGColors.amber,
+                                    color: GGColors.good,
                                     fontWeight: FontWeight.w800)),
                           ],
                         ),

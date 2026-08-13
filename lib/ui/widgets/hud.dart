@@ -123,9 +123,9 @@ class _TopBar extends StatelessWidget {
         caption: 'WIND',
       ),
       _Stat(
-        icon: Icons.attach_money_rounded,
+        icon: Icons.paid_rounded,
         color: GGColors.good,
-        label: '${state.money}',
+        label: '${state.money}M',
         caption: 'MONEY',
       ),
       _Stat(
@@ -371,7 +371,7 @@ class _FacilitiesRow extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      'DC ×${state.dataCenterCount} · +${state.dcIncome.toStringAsFixed(0)}\$ -${state.dcDraw.toStringAsFixed(0)}⚡  ·  🔋${state.energyCapacity.toStringAsFixed(0)}⚡  ·  🛡${state.security}',
+                      'DC ×${state.dataCenterCount} · +${state.dcIncome.toStringAsFixed(0)}M -${state.dcDraw.toStringAsFixed(0)}⚡  ·  🔋${state.energyCapacity.toStringAsFixed(0)}⚡  ·  🛡${state.security}',
                       style: GGText.soft,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -506,7 +506,7 @@ class _WorkloadTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('+${w.income.toStringAsFixed(0)}\$/s',
+                  Text('+${w.income.toStringAsFixed(0)}M/s',
                       style: GGText.soft.copyWith(
                           color: GGColors.good, fontWeight: FontWeight.w700)),
                   Text('-${w.draw.toStringAsFixed(0)}⚡/s',
@@ -632,9 +632,10 @@ class _TowerButton extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.attach_money_rounded,
-                    size: 12, color: GGColors.good),
-                Text('$cost',
+                // The in-game unit is MONEY, deliberately not a dollar sign:
+                // real prices in the services sheet are the only $ in the app.
+                const Icon(Icons.paid_rounded, size: 12, color: GGColors.good),
+                Text('${cost}M',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -775,7 +776,7 @@ class _UpgradePanel extends StatelessWidget {
                     onPressed:
                         money >= selected.repairCost ? onRepair : null,
                     icon: const Icon(Icons.build_rounded, size: 16),
-                    label: Text('Repair \$${selected.repairCost}'),
+                    label: Text('Repair ${selected.repairCost}M'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: GGColors.amber,
                       foregroundColor: Colors.white,
@@ -791,7 +792,7 @@ class _UpgradePanel extends StatelessWidget {
                         ? onUpgrade
                         : null,
                     icon: const Icon(Icons.upgrade_rounded, size: 16),
-                    label: Text('Upgrade \$${selected.upgradeCost}'),
+                    label: Text('Upgrade ${selected.upgradeCost}M'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: GGColors.accent,
                       foregroundColor: Colors.white,
@@ -845,7 +846,7 @@ class _RepairAllBar extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
-            child: Text('Repair all \$${state.totalRepairCost}'),
+            child: Text('Repair all ${state.totalRepairCost}M'),
           ),
         ],
       ),
@@ -918,7 +919,7 @@ void _showExchangeSheet(
           title: Text(label, style: GGText.body),
           subtitle: Text(
               '${amount.toStringAsFixed(2)} WATT → '
-              '\$${(amount * GridGuardGame.wattToCash).round()}',
+              '${(amount * GridGuardGame.wattToCash).round()}M',
               style: GGText.soft),
           onTap: affordable
               ? () {
@@ -954,7 +955,7 @@ void _showExchangeSheet(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Text(
                   'Only Crypto Mining mints WATT. Rate: 1 WATT = '
-                  '\$${GridGuardGame.wattToCash.round()}. Spent WATT is gone '
+                  '${GridGuardGame.wattToCash.round()}M. Spent WATT is gone '
                   'from your perk budget.',
                   style: GGText.soft),
             ),

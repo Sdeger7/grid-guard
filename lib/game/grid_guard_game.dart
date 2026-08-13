@@ -863,7 +863,7 @@ class GridGuardGame extends FlameGame {
     coinsEarned -= amount;
     money += amount * wattToCash;
     spawnFloatingText(
-      '+\$${(amount * wattToCash).round()}',
+      '+${(amount * wattToCash).round()}M',
       Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
       const Color(0xFF2FBF71),
     );
@@ -959,7 +959,7 @@ class GridGuardGame extends FlameGame {
       _sceneryTiles.remove(coord);
       _pondTiles.remove(coord);
       spawnFloatingText(
-        '-\$$clearing clearing',
+        '-${clearing}M clearing',
         Vector2(coord.col.toDouble(), coord.row.toDouble()),
         const Color(0xFFE0A050),
       );
