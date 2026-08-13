@@ -17,6 +17,10 @@ class PremiumPackage {
     this.incomeMultiplier = 1.0,
     this.repairDiscount = 0.0,
     this.startCoreBonus = 0,
+    this.gridExportRate = 0.0,
+    this.chargeRateBonus = 0.0,
+    this.miningBonus = 0.0,
+    this.offlineHoursBonus = 0,
   });
 
   final String id;
@@ -36,6 +40,20 @@ class PremiumPackage {
   /// Fraction knocked off repair bills, 0..1.
   final double repairDiscount;
   final double startCoreBonus;
+
+  /// Money per second earned by exporting surplus energy to the public grid,
+  /// per unit of surplus. The utility connection is the big one: it turns a
+  /// well-built site into a second income stream that never sleeps.
+  final double gridExportRate;
+
+  /// Extra battery charge per second, independent of sun and wind.
+  final double chargeRateBonus;
+
+  /// Added to the crypto-mining rate — the only WATT multiplier there is.
+  final double miningBonus;
+
+  /// Extra hours of banked offline production.
+  final int offlineHoursBonus;
 }
 
 class PremiumCatalog {
@@ -88,6 +106,39 @@ class PremiumCatalog {
       blurb: 'Data Centers earn 25% more money.',
       incomeMultiplier: 1.25,
     ),
+    PremiumPackage(
+      id: 'night_shift',
+      name: 'Night Shift Crew',
+      emoji: '🌙',
+      price: 260,
+      blurb: 'Banked offline production runs for 16 hours instead of 8.',
+      offlineHoursBonus: 8,
+    ),
+    PremiumPackage(
+      id: 'asic_farm',
+      name: 'ASIC Farm',
+      emoji: '🧮',
+      price: 400,
+      blurb: 'Crypto Mining mints 50% more WATT.',
+      miningBonus: 0.5,
+    ),
+    PremiumPackage(
+      id: 'diesel_backup',
+      name: 'Diesel Backup',
+      emoji: '🛢️',
+      price: 500,
+      blurb: 'A generator trickles +4 energy/s day and night.',
+      chargeRateBonus: 4,
+    ),
+    PremiumPackage(
+      id: 'grid_connection',
+      name: 'Utility Interconnect',
+      emoji: '🏗️',
+      price: 900,
+      blurb: 'Sell surplus power back to the public grid, around the clock. '
+          'The site stops being an island.',
+      gridExportRate: 0.8,
+    ),
   ];
 
   static PremiumPackage byId(String id) =>
@@ -101,8 +152,16 @@ class PremiumCatalog {
     var income = 1.0;
     var repair = 0.0;
     var core = 0.0;
+    var export = 0.0;
+    var charge = 0.0;
+    var mining = 0.0;
+    var offline = 0;
     for (final p in packages) {
       if (!owned.contains(p.id)) continue;
+      export += p.gridExportRate;
+      charge += p.chargeRateBonus;
+      mining += p.miningBonus;
+      offline += p.offlineHoursBonus;
       money += p.startMoneyBonus;
       energy += p.startEnergyBonus;
       capacity += p.capacityBonus;
@@ -122,6 +181,10 @@ class PremiumCatalog {
       incomeMultiplier: income,
       repairDiscount: repair.clamp(0.0, 0.7),
       startCoreBonus: core,
+      gridExportRate: export,
+      chargeRateBonus: charge,
+      miningBonus: mining,
+      offlineHoursBonus: offline,
     );
   }
 }

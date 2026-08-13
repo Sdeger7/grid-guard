@@ -249,8 +249,10 @@ class GridGuardGame extends FlameGame {
   double get effectiveWindOutput =>
       windOutput * windFactor * weather.windScale;
 
-  /// Total energy generated right now (solar + wind).
-  double get generation => effectivePvOutput + effectiveWindOutput;
+  /// Total energy generated right now: solar + wind, plus any always-on
+  /// generator the player has unlocked.
+  double get generation =>
+      effectivePvOutput + effectiveWindOutput + perks.chargeRateBonus;
 
   /// The Data Center's current workload — sets income, draw and threat.
   int workloadIndex = 0;
@@ -692,7 +694,21 @@ class GridGuardGame extends FlameGame {
         .clamp(0.15, 1.0);
 
     // 1) Solar + wind charge the battery (solar needs daylight; wind doesn't).
+    final beforeCharge = energy;
     energy = (energy + generation * dt).clamp(0, energyCapacity);
+
+    // 1b) With a utility interconnect, whatever the battery couldn't take is
+    //     exported for cash instead of being thrown away — the reward for
+    //     overbuilding generation.
+    if (perks.gridExportRate > 0) {
+      final wanted = generation * dt;
+      final absorbed = energy - beforeCharge;
+      final spilled = (wanted - absorbed).clamp(0.0, double.infinity);
+      if (spilled > 0) {
+        money += spilled * perks.gridExportRate;
+        gridExportEarned += spilled * perks.gridExportRate;
+      }
+    }
 
     // 2) Data Centers consume to run, and pay out while powered — but they only
     //    get what's above the defence reserve, so a greedy workload can't starve
@@ -808,6 +824,9 @@ class GridGuardGame extends FlameGame {
   /// Coins mined this run (whole coins are banked to the profile at run end).
   double coinsEarned = 0;
 
+  /// Cash earned by exporting surplus power, for the HUD to show off.
+  double gridExportEarned = 0;
+
   /// What one WATT fetches when sold for cash. WATT is deliberately scarce —
   /// only mining hardware mints it — so cashing out is a real decision: spend
   /// it on permanent perks, or burn it to get through a bad week.
@@ -830,7 +849,9 @@ class GridGuardGame extends FlameGame {
   /// Coins per second while a crypto workload runs powered — scales with how
   /// much Data Center capacity is pointed at it.
   double get coinRate =>
-      workload.minesCoins && dcPowered ? 0.05 * dcTotalPower : 0.0;
+      workload.minesCoins && dcPowered
+          ? 0.05 * dcTotalPower * (1 + perks.miningBonus)
+          : 0.0;
 
   /// Total invested value on the board — bigger base, bigger target.
   int get baseValue {
@@ -1235,7 +1256,7 @@ class GridGuardGame extends FlameGame {
         (DateTime.now().millisecondsSinceEpoch - save.savedAtMs) / 1000.0;
     if (away <= 0) return const OfflineReport(seconds: 0, money: 0, coins: 0);
 
-    const maxOfflineSeconds = 8 * 3600.0; // 8 hours of banked production
+    final maxOfflineSeconds = (8 + perks.offlineHoursBonus) * 3600.0;
     const offlineRate = 0.35; // unattended sites run at a third of full pace
     final seconds = math.min(away, maxOfflineSeconds);
 

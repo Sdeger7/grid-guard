@@ -107,7 +107,7 @@ class LevelConfig {
     this.startMoney = 120,
     this.startEnergy = 30,
     this.bessCapacity = 60,
-    this.dayLength = 80,
+    this.dayLength = 240,
     this.startTimeOfDay = 0.33,
     this.endless = false,
   });
