@@ -101,11 +101,48 @@ class MainMenuScreen extends ConsumerWidget {
                   Text('${profile.energyCores} Cores', style: GGText.soft),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              // Balance changes across versions can leave an old site holding
+              // values that no longer make sense, so abandoning it has to be
+              // possible — behind a confirmation, since it is permanent.
+              TextButton.icon(
+                onPressed: () => _confirmAbandon(context, ref),
+                icon: const Icon(Icons.delete_outline_rounded,
+                    size: 16, color: GGColors.inkSoft),
+                label: Text('Abandon site and start over',
+                    style: GGText.soft),
+              ),
+              const SizedBox(height: 4),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _confirmAbandon(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Abandon the site?'),
+        content: const Text(
+            'Every structure, all your cash and the day count are gone for '
+            'good. Mined WATT, perks and cosmetics are kept.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Keep playing')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Abandon')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await ref.read(saveServiceProvider).clearBase();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Site abandoned. Next run starts fresh.')),
     );
   }
 }

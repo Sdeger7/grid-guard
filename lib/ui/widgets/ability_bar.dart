@@ -84,8 +84,11 @@ class _AbilityButton extends StatelessWidget {
                     active
                         ? 'ON'
                         : ready
-                            ? ability.name.split(' ').first.toUpperCase()
+                            ? ability.shortName
                             : '${cooldownLeft.ceil()}s',
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    softWrap: false,
                     style: GGText.soft.copyWith(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,

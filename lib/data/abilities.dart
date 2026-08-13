@@ -34,11 +34,16 @@ class Ability {
     required this.duration,
     required this.cooldown,
     required this.blurb,
+    required this.shortName,
   });
 
   final AbilityKind kind;
   final String name;
   final String emoji;
+
+  /// Four or five characters, for the button face — full names wrap badly on a
+  /// phone-sized button.
+  final String shortName;
 
   /// Seconds the effect lasts. Zero for instant abilities.
   final double duration;
@@ -54,6 +59,7 @@ class AbilityCatalog {
     Ability(
       kind: AbilityKind.overcharge,
       name: 'Overcharge',
+      shortName: 'BOOST',
       emoji: '⚡',
       duration: 20,
       cooldown: 120,
@@ -62,6 +68,7 @@ class AbilityCatalog {
     Ability(
       kind: AbilityKind.shutdown,
       name: 'Emergency Stop',
+      shortName: 'STOP',
       emoji: '⏹️',
       duration: 30,
       cooldown: 90,
@@ -70,6 +77,7 @@ class AbilityCatalog {
     Ability(
       kind: AbilityKind.blackout,
       name: 'Go Dark',
+      shortName: 'DARK',
       emoji: '🌑',
       duration: 10,
       cooldown: 150,
@@ -78,6 +86,7 @@ class AbilityCatalog {
     Ability(
       kind: AbilityKind.crew,
       name: 'Crew Callout',
+      shortName: 'CREW',
       emoji: '🔧',
       duration: 0,
       cooldown: 180,
