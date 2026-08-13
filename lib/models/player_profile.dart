@@ -36,10 +36,14 @@ class PlayerProfile {
     this.lastPlayedEpochDay = 0,
     this.streakClaimedEpochDay = 0,
     this.challengeScores = const {},
+    this.challengeStakes = const {},
+    this.challengeSettled = const {},
   });
 
-  /// WATT mined by crypto workloads — the permanent currency for premium packs.
-  final int coins;
+  /// WATT mined by crypto workloads — the permanent currency for perks and
+  /// cosmetics. Fractional, because mining produces hundredths per hour: held
+  /// as a whole number it rounded every session's earnings to nothing.
+  final double coins;
 
   /// Best endless run so far.
   final int bestRaid;
@@ -57,6 +61,11 @@ class PlayerProfile {
 
   /// Best score per weekly challenge, keyed by week number.
   final Map<int, int> challengeScores;
+
+  /// WATT staked on each challenge week, and which weeks have already paid
+  /// out — a run settles exactly once.
+  final Map<int, double> challengeStakes;
+  final Map<int, bool> challengeSettled;
 
   /// Which cosmetic set is worn in each slot, keyed by SkinSlot.name. What is
   /// owned lives in [ownedSkins].
@@ -108,7 +117,7 @@ class PlayerProfile {
     Set<String>? purchasedSkus,
     int? levelsCompletedSinceInterstitial,
     int? totalLevelsCompleted,
-    int? coins,
+    double? coins,
     int? bestRaid,
     int? bestScore,
     Set<String>? ownedPackages,
@@ -117,6 +126,8 @@ class PlayerProfile {
     int? lastPlayedEpochDay,
     int? streakClaimedEpochDay,
     Map<int, int>? challengeScores,
+    Map<int, double>? challengeStakes,
+    Map<int, bool>? challengeSettled,
   }) {
     return PlayerProfile(
       gridCredits: gridCredits ?? this.gridCredits,
@@ -141,6 +152,8 @@ class PlayerProfile {
       streakClaimedEpochDay:
           streakClaimedEpochDay ?? this.streakClaimedEpochDay,
       challengeScores: challengeScores ?? this.challengeScores,
+      challengeStakes: challengeStakes ?? this.challengeStakes,
+      challengeSettled: challengeSettled ?? this.challengeSettled,
     );
   }
 
@@ -167,6 +180,10 @@ class PlayerProfile {
         'streakClaimedEpochDay': streakClaimedEpochDay,
         'challengeScores':
             challengeScores.map((k, v) => MapEntry(k.toString(), v)),
+        'challengeStakes':
+            challengeStakes.map((k, v) => MapEntry(k.toString(), v)),
+        'challengeSettled':
+            challengeSettled.map((k, v) => MapEntry(k.toString(), v)),
       };
 
   factory PlayerProfile.fromJson(Map<String, dynamic> json) {
@@ -192,6 +209,12 @@ class PlayerProfile {
       challengeScores:
           ((json['challengeScores'] as Map<String, dynamic>?) ?? const {})
               .map((k, v) => MapEntry(int.parse(k), v as int)),
+      challengeStakes:
+          ((json['challengeStakes'] as Map<String, dynamic>?) ?? const {})
+              .map((k, v) => MapEntry(int.parse(k), (v as num).toDouble())),
+      challengeSettled:
+          ((json['challengeSettled'] as Map<String, dynamic>?) ?? const {})
+              .map((k, v) => MapEntry(int.parse(k), v as bool)),
       equippedSkins: ((json['equippedSkins'] as Map<String, dynamic>?) ??
               const <String, dynamic>{})
           .map((k, v) => MapEntry(k, v as String)),
@@ -204,7 +227,7 @@ class PlayerProfile {
       levelsCompletedSinceInterstitial:
           json['levelsCompletedSinceInterstitial'] as int? ?? 0,
       totalLevelsCompleted: json['totalLevelsCompleted'] as int? ?? 0,
-      coins: json['coins'] as int? ?? 0,
+      coins: (json['coins'] as num?)?.toDouble() ?? 0,
       bestRaid: json['bestRaid'] as int? ?? 0,
       bestScore: json['bestScore'] as int? ?? 0,
       ownedPackages:

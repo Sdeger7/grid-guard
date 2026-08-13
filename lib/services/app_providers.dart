@@ -81,7 +81,7 @@ class ProfileNotifier extends Notifier<PlayerProfile> {
 
   /// Banks WATT mined in a run and updates endless records.
   Future<void> bankRunResults({
-    required int coins,
+    required double coins,
     required int raid,
     required int score,
   }) async {
@@ -124,13 +124,43 @@ class ProfileNotifier extends Notifier<PlayerProfile> {
     final reward = StreakCalendar.rewardFor(p.streakDays);
     final updated = p.copyWith(
       streakClaimedEpochDay: today,
-      coins: p.coins + reward.watt.round(),
+      coins: p.coins + reward.watt,
       ownedSkins: reward.skinId == null
           ? p.ownedSkins
           : {...p.ownedSkins, reward.skinId!},
     );
     state = updated;
     await ref.read(saveServiceProvider).saveProfile(updated);
+  }
+
+  /// Takes the entry stake for a week. Returns false when the player cannot
+  /// cover it or has already entered.
+  Future<bool> stakeChallenge(int week, double stake) async {
+    final p = state;
+    if (p.challengeStakes.containsKey(week)) return false;
+    // WATT is held as whole units in the profile, so the smallest stakes are
+    // charged against the thousandths the game actually mines.
+    if (p.coins < stake) return false;
+    final updated = p.copyWith(
+      coins: p.coins - stake,
+      challengeStakes: {...p.challengeStakes, week: stake},
+    );
+    state = updated;
+    await ref.read(saveServiceProvider).saveProfile(updated);
+    return true;
+  }
+
+  /// Pays out a finished week, once.
+  Future<double> settleChallenge(int week, double payout) async {
+    final p = state;
+    if (p.challengeSettled[week] == true) return 0;
+    final updated = p.copyWith(
+      coins: p.coins + payout,
+      challengeSettled: {...p.challengeSettled, week: true},
+    );
+    state = updated;
+    await ref.read(saveServiceProvider).saveProfile(updated);
+    return payout;
   }
 
   /// Records a challenge result, keeping the best score for that week.

@@ -39,6 +39,7 @@ class _ChallengeSheet extends StatelessWidget {
     final challenge = ChallengeCatalog.current();
     final profile = ref.read(profileProvider);
     final best = profile.challengeScores[challenge.week] ?? 0;
+    final staked = profile.challengeStakes[challenge.week];
     final city = CityCatalog.cities[
         challenge.cityIndex.clamp(0, CityCatalog.cities.length - 1)];
     final closes = ChallengeCatalog.endOfWeek();
@@ -95,6 +96,67 @@ class _ChallengeSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
+
+              // Entry stakes. Everything here is WATT, which cannot be bought
+              // at any price — that is what keeps a contest with winners and
+              // losers a contest rather than a wager.
+              if (staked == null) ...[
+                Text('ENTRY STAKE',
+                    style: GGText.soft.copyWith(
+                        letterSpacing: 1.2, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text(
+                    'Stake WATT to enter. Beat the target and it comes back '
+                    'multiplied; fall short and it is gone. Land within 10% of '
+                    'the target and you are refunded.',
+                    style: GGText.soft),
+                const SizedBox(height: 8),
+                for (final stake in ChallengeCatalog.stakes)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                              '₵${stake.toStringAsFixed(2)} → beat '
+                              '${_short(ChallengeCatalog.parFor(challenge, stake))}',
+                              style: GGText.soft),
+                        ),
+                        FilledButton(
+                          onPressed: profile.coins >= stake
+                              ? () async {
+                                  await ref
+                                      .read(profileProvider.notifier)
+                                      .stakeChallenge(challenge.week, stake);
+                                  if (context.mounted) {
+                                    Navigator.of(context).pop();
+                                  }
+                                }
+                              : null,
+                          child: Text('Stake ₵${stake.toStringAsFixed(2)}'),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 10),
+              ] else ...[
+                GGPanel(
+                  borderColor: GGColors.amber,
+                  padding: const EdgeInsets.all(10),
+                  child: Text(
+                      'Staked ₵${staked.toStringAsFixed(2)} · target '
+                      '${_short(ChallengeCatalog.parFor(challenge, staked))} · '
+                      'you are at ${_short(live)}',
+                      style: GGText.soft.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: live >=
+                                  ChallengeCatalog.parFor(challenge, staked)
+                              ? GGColors.good
+                              : GGColors.accentWarm)),
+                ),
+                const SizedBox(height: 10),
+              ],
+
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(

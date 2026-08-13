@@ -59,7 +59,7 @@ Future<void> showSiteMenu(
                   const Spacer(),
                   const WattIcon(size: 16),
                   const SizedBox(width: 4),
-                  Text('${profile.coins}',
+                  Text(profile.coins.toStringAsFixed(2),
                       style: GGText.body.copyWith(
                           fontWeight: FontWeight.w800,
                           color: GGColors.amber)),

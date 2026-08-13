@@ -21,6 +21,7 @@ import '../widgets/hud.dart';
 import '../widgets/dawn_panel.dart';
 import '../widgets/level_end.dart';
 import '../widgets/offline_panel.dart';
+import '../../data/challenge.dart';
 import '../widgets/challenge_sheet.dart';
 import '../widgets/city_sheet.dart';
 import '../widgets/report_sheet.dart';
@@ -63,6 +64,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
   /// Today's streak day, set on the first launch of each day.
   int? _streakDay;
+
+  /// Guards the one-time challenge payout.
+  bool _settled = false;
 
   LevelState? _snapshot;
   gg.SelectedStructure? _selected;
@@ -166,6 +170,38 @@ class _GameScreenState extends ConsumerState<GameScreen>
     if (state != AppLifecycleState.resumed) _saveBase();
   }
 
+  /// Pays out a finished challenge run against the target it was staked on.
+  Future<void> _settleChallenge() async {
+    final week = ChallengeCatalog.current();
+    final profile = ref.read(profileProvider);
+    final stake = profile.challengeStakes[week.week];
+    final score = ChallengeCatalog.scoreFor(
+      baseValue: _game.baseValue,
+      money: _game.money.floor(),
+      blackouts: _game.blackoutCount,
+      watt: _game.coinsEarned,
+    );
+    await ref.read(profileProvider.notifier).recordChallengeScore(week.week, score);
+    if (stake == null) return;
+
+    final payout = ChallengeCatalog.payoutFor(
+      stake: stake,
+      score: score,
+      par: ChallengeCatalog.parFor(week, stake),
+    );
+    await ref.read(profileProvider.notifier).settleChallenge(week.week, payout);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(payout <= 0
+            ? 'Week over — short of target, stake lost.'
+            : payout > stake
+                ? 'Week over — target beaten. ₵${payout.toStringAsFixed(2)} returned.'
+                : 'Week over — close enough, stake refunded.'),
+      ),
+    );
+  }
+
   Future<void> _refreshWeather() async {
     final service = ref.read(weatherServiceProvider);
     if (service == null) return;
@@ -189,6 +225,12 @@ class _GameScreenState extends ConsumerState<GameScreen>
   void _onSnapshot(LevelState state) {
     _snapshot = state;
     if (!mounted) return;
+    // A challenge run settles the moment its last day is done.
+    if (widget.challenge && _game.challengeComplete && !_settled) {
+      _settled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _settleChallenge());
+    }
+
     // The game raises a dawn report once per morning; claim it for the UI.
     final dawn = _game.pendingDawn;
     if (dawn != null) {
@@ -235,7 +277,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
     // stars/credits as before.
     if (widget.config.endless) {
       await ref.read(profileProvider.notifier).bankRunResults(
-            coins: _game.coinsEarned.floor(),
+            coins: _game.coinsEarned,
             raid: _game.raidCount,
             score: result.finalScore,
           );
@@ -496,7 +538,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
             SurvivalEndPanel(
               raid: _game.raidCount,
               score: result.finalScore,
-              coins: _game.coinsEarned.floor(),
+              coins: _game.coinsEarned,
               bestRaid: ref.watch(profileProvider).bestRaid,
               onRetry: _retry,
               onMenu: _menu,

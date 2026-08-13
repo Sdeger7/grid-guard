@@ -26,7 +26,7 @@ class PremiumScreen extends ConsumerWidget {
               children: [
                 const WattIcon(size: 18),
                 const SizedBox(width: 3),
-                Text('${profile.coins}', style: GGText.stat),
+                Text(profile.coins.toStringAsFixed(2), style: GGText.stat),
               ],
             ),
           ),

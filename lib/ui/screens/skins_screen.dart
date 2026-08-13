@@ -24,7 +24,7 @@ class SkinsScreen extends ConsumerWidget {
           Center(
             child: Padding(
               padding: const EdgeInsets.only(right: 14),
-              child: Text('₵${profile.coins}',
+              child: Text('₵${profile.coins.toStringAsFixed(2)}',
                   style: GGText.body.copyWith(
                       fontWeight: FontWeight.w800, color: GGColors.amber)),
             ),
