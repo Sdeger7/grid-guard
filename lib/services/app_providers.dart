@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/level_state.dart';
 import '../data/streak.dart';
 import '../models/player_profile.dart';
+import 'leaderboard_service.dart';
 import 'weather_service.dart';
 import '../models/star_rating.dart';
 import '../models/tower_type.dart';
@@ -15,6 +16,12 @@ import 'save_service.dart';
 /// Live weather for the site's province. Optional by design: without it the
 /// game falls back to its own weather model and plays exactly as before.
 final weatherServiceProvider = Provider<WeatherService?>((ref) => null);
+
+/// Where challenge results are recorded. Overridden at startup with the local
+/// implementation; swapping in a networked one is a one-line change here.
+final leaderboardProvider = Provider<LeaderboardService>(
+  (ref) => throw UnimplementedError('leaderboardProvider must be overridden'),
+);
 
 final saveServiceProvider = Provider<SaveService>(
   (ref) => throw UnimplementedError('saveServiceProvider must be overridden'),

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'services/app_providers.dart';
 import 'services/save_service.dart';
+import 'services/leaderboard_service.dart';
 import 'services/weather_service.dart';
 
 Future<void> main() async {
@@ -30,6 +31,8 @@ Future<void> main() async {
       saveServiceProvider.overrideWithValue(saveService),
       weatherServiceProvider
           .overrideWithValue(WeatherService(saveService.prefs)),
+      leaderboardProvider
+          .overrideWithValue(LocalLeaderboard(saveService.prefs)),
     ],
   );
 

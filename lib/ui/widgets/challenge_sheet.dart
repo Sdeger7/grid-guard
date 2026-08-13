@@ -6,6 +6,7 @@ import '../../data/challenge.dart';
 import '../../data/cities.dart';
 import '../../game/grid_guard_game.dart';
 import '../../services/app_providers.dart';
+import '../../services/leaderboard_service.dart';
 import '../theme.dart';
 
 /// The weekly challenge board: this week's brief, your standing on it, and a
@@ -112,6 +113,15 @@ class _ChallengeSheet extends StatelessWidget {
                     ref
                         .read(profileProvider.notifier)
                         .recordChallengeScore(challenge.week, live);
+                    // Recorded locally today; the same call reaches a server
+                    // the day one exists.
+                    ref.read(leaderboardProvider).submit(LeaderboardEntry(
+                          week: challenge.week,
+                          name: 'You',
+                          score: live,
+                          city: city.name,
+                          days: game.dayNumber,
+                        ));
                     if (!context.mounted) return;
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -127,6 +137,27 @@ class _ChallengeSheet extends StatelessWidget {
                   'The card is plain text so it pastes into any chat, and it '
                   'names the week so anyone can check they ran the same one.',
                   style: GGText.soft),
+              const SizedBox(height: 16),
+              Text('YOUR PAST WEEKS',
+                  style: GGText.soft.copyWith(
+                      letterSpacing: 1.2, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              FutureBuilder<List<LeaderboardEntry>>(
+                future: ref.read(leaderboardProvider).history(),
+                builder: (_, snap) {
+                  final rows = snap.data ?? const <LeaderboardEntry>[];
+                  if (rows.isEmpty) {
+                    return Text('No results yet — this is week one for you.',
+                        style: GGText.soft);
+                  }
+                  return Column(
+                    children: [
+                      for (final e in rows.take(8))
+                        _Row('Week ${e.week} · ${e.city}', _short(e.score)),
+                    ],
+                  );
+                },
+              ),
             ],
           ),
         ),
