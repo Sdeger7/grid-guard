@@ -8,6 +8,7 @@ import '../../game/grid_guard_game.dart';
 import '../../models/level_state.dart';
 import '../../models/tower_type.dart';
 import '../theme.dart';
+import 'grid_sheet.dart';
 
 /// The full in-game HUD: a status bar (core + BESS energy + money/score/wave),
 /// a facilities row (Data Center / BESS upgrades), a contextual tower-upgrade
@@ -142,18 +143,12 @@ class _TopBar extends StatelessWidget {
         icon: Icons.electric_meter_rounded,
         color: state.gridImporting ? GGColors.accent : GGColors.inkSoft,
         label: '${state.gridPrice.toStringAsFixed(2)}M',
-        caption: state.gridImporting
-            ? 'BUYING'
-            : GridMarket.bandFor(state.gridPrice),
-        onTap: () {
-          game.gridImportEnabled = !game.gridImportEnabled;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            duration: const Duration(seconds: 2),
-            content: Text(game.gridImportEnabled
-                ? 'Buying grid power when the battery drops below 35%.'
-                : 'Grid buying off — the site runs islanded.'),
-          ));
-        },
+        caption: state.gridContracts > 0
+            ? '${state.gridContracts} DEAL'
+            : state.gridImporting
+                ? 'BUYING'
+                : GridMarket.bandFor(state.gridPrice),
+        onTap: () => showGridSheet(context, game),
       ),
       _Stat(
         icon: Icons.paid_rounded,

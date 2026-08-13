@@ -58,6 +58,7 @@ class LevelState {
     required this.forecastAccuracy,
     required this.gridPrice,
     required this.gridImporting,
+    required this.gridContracts,
     required this.weatherEmoji,
     required this.weatherName,
     required this.nightWavesTotal,
@@ -135,6 +136,9 @@ class LevelState {
   /// Live grid price per unit of energy, and whether the site is buying.
   final double gridPrice;
   final bool gridImporting;
+
+  /// How many fixed-term power contracts are running.
+  final int gridContracts;
 
   /// Today's forecast, for the status strip.
   final String weatherEmoji;

@@ -16,6 +16,7 @@ import '../data/weather.dart';
 import '../data/zone_theme.dart';
 import '../models/enemy_type.dart';
 import '../models/base_save.dart';
+import '../models/grid_contract.dart';
 import '../models/level_config.dart';
 import '../models/level_state.dart';
 import '../models/star_rating.dart';
@@ -808,7 +809,11 @@ class GridGuardGame extends FlameGame {
       }
     }
 
-    // 1c) Buying off the grid. Anyone can import; it just costs whatever the
+    // 1c) Fixed-term contracts settle before spot buying, so a running buy
+    //     contract keeps the battery off the spot market.
+    _tickContracts(dt);
+
+    // 1d) Buying off the grid at spot. Anyone can import; it just costs whatever the
     //     market is asking, which at dusk is brutal and at midday is nearly
     //     free. This is the other half of the same connection.
     if (gridImportEnabled && energyCapacity > 0) {
@@ -824,7 +829,7 @@ class GridGuardGame extends FlameGame {
       }
     }
 
-    // 1d) Intel Centers run whether or not anything else does: they cost cash
+    // 1e) Intel Centers run whether or not anything else does: they cost cash
     //     and power every second they are switched on. Let them brown out
     //     rather than bankrupt the site.
     if (intelCenters.isNotEmpty) {
@@ -995,8 +1000,91 @@ class GridGuardGame extends FlameGame {
   double gridImportSpent = 0;
 
   /// Whether the site tops its battery up from the public grid when it runs
-  /// low. Off by default: buying power is a choice with a bill attached.
+  /// low, at whatever the spot price happens to be. Off by default: buying
+  /// power is a choice with a bill attached.
   bool gridImportEnabled = false;
+
+  /// Fixed-term contracts currently running.
+  final List<GridContract> gridContracts = [];
+
+  /// The imbalance charge multiplier: fail to deliver on a sell contract and
+  /// the grid buys the missing power on your behalf, at a punitive rate. This
+  /// is what stops a sell contract from being free money.
+  static const double imbalancePenalty = 1.6;
+
+  /// Signs a contract at the current spot price. Buy contracts carry the
+  /// utility's markup; sell contracts pay under spot. Returns false if the
+  /// site already has as many as it can manage.
+  bool signContract(GridContractSide side, double rate, double seconds) {
+    if (gridContracts.length >= 4) return false;
+    final spot = gridPrice;
+    final price =
+        side == GridContractSide.buy ? spot * 1.06 : spot * GridMarket.sellFraction;
+    gridContracts.add(GridContract(
+      side: side,
+      price: price,
+      ratePerSecond: rate,
+      totalSeconds: seconds,
+    ));
+    _publishSnapshot(force: true);
+    return true;
+  }
+
+  /// Runs the active contracts for [dt]. Buy contracts deliver power and bill
+  /// you; sell contracts take power off your battery and pay you, or charge
+  /// imbalance for whatever you could not deliver.
+  void _tickContracts(double dt) {
+    if (gridContracts.isEmpty) return;
+    final spot = gridPrice;
+    for (final c in gridContracts) {
+      final step = math.min(dt, c.secondsLeft);
+      if (step <= 0) continue;
+      final want = c.ratePerSecond * step;
+
+      if (c.side == GridContractSide.buy) {
+        final bill = want * c.price;
+        if (money >= bill) {
+          money -= bill;
+          // Power over the battery's brim is simply lost — size your storage.
+          energy = (energy + want).clamp(0, energyCapacity);
+          c.energyMoved += want;
+          c.settled -= bill;
+        }
+      } else {
+        // Deliver from whatever sits above the defence reserve: a sell contract
+        // must never be able to disarm the site.
+        final available = (energy - defenceReserve).clamp(0.0, double.infinity);
+        final delivered = math.min(want, available);
+        energy -= delivered;
+        final paid = delivered * c.price;
+        money += paid;
+        c.energyMoved += delivered;
+        c.settled += paid;
+
+        final missing = want - delivered;
+        if (missing > 0) {
+          final fine = missing * spot * imbalancePenalty;
+          money -= fine;
+          c.shortfall += missing;
+          c.settled -= fine;
+        }
+      }
+      c.secondsLeft -= step;
+    }
+
+    final finished = gridContracts.where((c) => c.isDone).toList();
+    for (final c in finished) {
+      spawnFloatingText(
+        c.shortfall > 0
+            ? 'Contract ended · shortfall'
+            : 'Contract settled ${c.settled >= 0 ? '+' : ''}'
+                '${c.settled.round()}M',
+        Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
+        c.shortfall > 0 ? const Color(0xFFE23D4B) : const Color(0xFF2FBF71),
+      );
+    }
+    gridContracts.removeWhere((c) => c.isDone);
+  }
 
   /// Buy below this fraction of capacity — enough headroom that the towers
   /// never go quiet, without paying to fill a battery the sun would fill free.
@@ -1948,6 +2036,7 @@ class GridGuardGame extends FlameGame {
       forecastAccuracy: forecastAccuracy,
       gridPrice: gridPrice,
       gridImporting: gridImportEnabled,
+      gridContracts: gridContracts.length,
       weatherEmoji: weather.emoji,
       weatherName: weather.name,
       nightWavesTotal: nightWavesTotal,

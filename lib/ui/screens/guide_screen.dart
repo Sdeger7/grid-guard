@@ -92,13 +92,22 @@ class GuideScreen extends StatelessWidget {
                 'in the zone is dumping solar, expensive at dusk and through '
                 'the night when nothing is generating. Weather moves it for '
                 'everyone — a storm dims the whole zone, not just you.\n\n'
-                'Tap the meter in the HUD to buy from the grid: the site '
-                'tops up whenever the battery falls below 35%, at whatever '
-                'the market is asking. Selling is the other half, and it '
-                'needs the Utility Interconnect. You always sell for less '
-                'than you buy, and that spread is exactly why a large battery '
-                'pays for itself: fill it when power is worthless, live off '
-                'it when power is dear.',
+                'Tap the meter in the HUD to open the power desk. There you '
+                'see the spot price and sign fixed-term contracts against it: '
+                'pick a term of one to eight in-game hours and a rate, and '
+                'the price is locked for the whole term whatever the market '
+                'does next. Buy cheap at midday and you carry that price '
+                'through the evening peak.\n\n'
+                'Selling is a commitment, not a bonus. You have to actually '
+                'deliver the rate you signed for, and anything you cannot '
+                'supply is bought on your behalf at a punitive imbalance rate '
+                '— though your defence reserve is never touched to fill a '
+                'contract. You can also leave "top up at spot" on to buy '
+                'automatically below 35% battery, which is convenient and '
+                'usually the worst price you will pay.\n\n'
+                'You always sell for less than you buy, and that spread is '
+                'exactly why a large battery pays for itself: fill it when '
+                'power is worthless, live off it when power is dear.',
           ),
           const _Section(
             emoji: '💥',
