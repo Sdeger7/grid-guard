@@ -72,6 +72,48 @@ class DawnPanel extends StatelessWidget {
                         value: '${report.damaged}',
                       ),
                     ],
+                    if (report.forecast.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Icon(Icons.radar_rounded,
+                              size: 15, color: Color(0xFF7A5CF0)),
+                          const SizedBox(width: 6),
+                          Text('INTEL FORECAST',
+                              style: GGText.soft.copyWith(
+                                  letterSpacing: 1.2,
+                                  fontWeight: FontWeight.w800)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      for (final f in report.forecast)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 3),
+                          child: Row(
+                            children: [
+                              Text(
+                                  f.day == report.day
+                                      ? 'Tonight'
+                                      : 'Night ${f.day}',
+                                  style: GGText.soft),
+                              const Spacer(),
+                              Text(
+                                f.raided
+                                    ? (f.weight > 1.1
+                                        ? 'heavy raid'
+                                        : 'raid expected')
+                                    : 'quiet',
+                                style: GGText.soft.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: f.raided
+                                      ? GGColors.danger
+                                      : GGColors.good,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                     const SizedBox(height: 16),
                     Text("TODAY'S ORDERS",
                         style: GGText.soft.copyWith(

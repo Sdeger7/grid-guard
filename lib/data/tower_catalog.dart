@@ -119,6 +119,32 @@ class TowerCatalog {
             energyCost: 5),
       ],
     ),
+    TowerType.intelCenter: TowerSpec(
+      type: TowerType.intelCenter,
+      name: 'Intel Center',
+      category: TowerCategory.intel,
+      tint: Color(0xFF7A5CF0),
+      placeableOn: TilePlacement.safeZone,
+      tiers: [
+        TowerTier(
+            cost: 1800,
+            energyCost: 0,
+            mwPerSecond: 0,
+            upkeep: 2.5,
+            dcLoad: 0.8,
+            forecastNights: 1),
+        TowerTier(
+            cost: 4200,
+            upkeep: 4.0,
+            dcLoad: 1.2,
+            forecastNights: 2),
+        TowerTier(
+            cost: 9000,
+            upkeep: 6.5,
+            dcLoad: 1.8,
+            forecastNights: 4),
+      ],
+    ),
   };
 
   static TowerSpec of(TowerType type) => _specs[type]!;
@@ -134,5 +160,6 @@ class TowerCatalog {
     TowerType.droneBay,
     TowerType.scissorBarrier,
     TowerType.shockTransformer,
+    TowerType.intelCenter,
   ];
 }

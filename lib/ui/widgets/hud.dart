@@ -123,6 +123,16 @@ class _TopBar extends StatelessWidget {
         label: '${(state.windFactor * 100).round()}%',
         caption: 'WIND',
       ),
+      // With an Intel Center up, tonight stops being a coin flip.
+      if (state.forecastRange > 0)
+        _Stat(
+          icon: Icons.radar_rounded,
+          color: state.tonightRaided ? GGColors.danger : GGColors.good,
+          label: state.tonightRaided
+              ? (state.tonightWeight > 1.1 ? 'HEAVY' : 'RAID')
+              : 'QUIET',
+          caption: 'TONIGHT',
+        ),
       // The market price is a live decision, not decoration: tapping it turns
       // grid buying on and off.
       _Stat(
@@ -629,6 +639,8 @@ class _TowerButton extends StatelessWidget {
         return Icons.content_cut_rounded;
       case TowerType.shockTransformer:
         return Icons.flash_on_rounded;
+      case TowerType.intelCenter:
+        return Icons.radar_rounded;
     }
   }
 

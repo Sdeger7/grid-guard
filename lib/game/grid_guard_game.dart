@@ -102,6 +102,7 @@ class DawnReport {
   const DawnReport({
     required this.day,
     required this.missions,
+    required this.forecast,
     required this.bonus,
     required this.coins,
     required this.weather,
@@ -113,6 +114,9 @@ class DawnReport {
 
   /// Today's objectives, listed so the morning card sets the day's agenda.
   final List<Mission> missions;
+
+  /// What the Intel Center can see of the coming nights. Empty without one.
+  final List<({int day, bool raided, double weight})> forecast;
 
   final int bonus;
   final double coins;
@@ -198,6 +202,7 @@ class GridGuardGame extends FlameGame {
   final List<FacilityComponent> bessUnits = [];
   final List<FacilityComponent> dataCenters = [];
   final List<DroneBayComponent> droneBays = [];
+  final List<FacilityComponent> intelCenters = [];
   final Map<TileCoord, PositionComponent> _occupied = {};
   final Map<TileCoord, TowerComponent> _slowTowers = {};
 
@@ -207,9 +212,24 @@ class GridGuardGame extends FlameGame {
       perks.capacityBonus +
       bessUnits.fold(0.0, (s, u) => s + u.currentTier.capacity);
 
-  /// Combined Data-Center power (sum of dcPower across placed DCs).
-  double get dcTotalPower =>
-      dataCenters.fold(0.0, (s, u) => s + u.currentTier.dcPower);
+  /// Compute the Intel Centers borrow from the Data Centers. Intelligence work
+  /// has to run somewhere, so knowing the future costs you earning capacity.
+  double get intelDcLoad =>
+      intelCenters.fold(0.0, (s, u) => s + u.currentTier.dcLoad);
+
+  /// MONEY per second spent keeping the Intel Centers staffed and online.
+  double get intelUpkeep =>
+      intelCenters.fold(0.0, (s, u) => s + u.currentTier.upkeep);
+
+  /// Energy per second the Intel Centers draw just to stay awake.
+  static const double intelEnergyPerCenter = 1.6;
+
+  /// Combined Data-Center power actually available to earn with, after the
+  /// Intel Centers have taken their share.
+  double get dcTotalPower => (dataCenters.fold(
+              0.0, (s, u) => s + u.currentTier.dcPower) -
+          intelDcLoad)
+      .clamp(0.0, double.infinity);
 
   int get dataCenterCount => dataCenters.length;
 
@@ -755,6 +775,18 @@ class GridGuardGame extends FlameGame {
       }
     }
 
+    // 1d) Intel Centers run whether or not anything else does: they cost cash
+    //     and power every second they are switched on. Let them brown out
+    //     rather than bankrupt the site.
+    if (intelCenters.isNotEmpty) {
+      final bill = intelUpkeep * dt;
+      final juice = intelEnergyPerCenter * intelCenters.length * dt;
+      if (money >= bill && energy >= juice) {
+        money -= bill;
+        energy -= juice;
+      }
+    }
+
     // 2) Data Centers consume to run, and pay out while powered — but they only
     //    get what's above the defence reserve, so a greedy workload can't starve
     //    the towers and leave the base defenceless.
@@ -1051,6 +1083,16 @@ class GridGuardGame extends FlameGame {
             widthTiles: 1.9);
         dataCenters.add(d);
         comp = d;
+        break;
+      case TowerCategory.intel:
+        final intel = FacilityComponent(
+            spec: spec,
+            coord: coord,
+            tier: tier,
+            spriteKey: 'intel',
+            widthTiles: 1.7);
+        intelCenters.add(intel);
+        comp = intel;
         break;
       case TowerCategory.droneBay:
         final bay = DroneBayComponent(spec: spec, coord: coord, tier: tier);
@@ -1519,6 +1561,46 @@ class GridGuardGame extends FlameGame {
     }
   }
 
+  /// Whether night [day] gets raided at all, and how heavy it is.
+  ///
+  /// Not every night is a raid: quiet nights are what make an Intel Center
+  /// worth its price, because knowing which nights are safe is the difference
+  /// between building and cowering. Derived from the day number and the site's
+  /// heat, so it is knowable in advance — that is the whole point.
+  ({bool raided, double weight}) raidForecastFor(int day) {
+    if (day <= 1) return (raided: false, weight: 0);
+    final r = math.Random(day * 4231 + 907);
+    final roll = r.nextDouble();
+    // A hot site is watched constantly; a quiet one is mostly left alone.
+    final chance = (0.35 + 0.30 * threatMultiplier).clamp(0.35, 0.92);
+    if (roll > chance) return (raided: false, weight: 0);
+    // Weight decides how many waves the night carries.
+    final weight = 0.6 + r.nextDouble() * 0.9;
+    return (raided: true, weight: weight);
+  }
+
+  /// How many nights ahead the site can see, from its best Intel Center.
+  int get forecastRange {
+    var best = 0;
+    for (final c in intelCenters) {
+      final n = c.currentTier.forecastNights;
+      if (n > best) best = n;
+    }
+    return best;
+  }
+
+  /// The forecast the player is allowed to see: one entry per night within
+  /// [forecastRange], starting with tonight.
+  List<({int day, bool raided, double weight})> get visibleForecast {
+    final out = <({int day, bool raided, double weight})>[];
+    for (var i = 0; i < forecastRange; i++) {
+      final d = dayNumber + i;
+      final f = raidForecastFor(d);
+      out.add((day: d, raided: f.raided, weight: f.weight));
+    }
+    return out;
+  }
+
   /// Dusk: schedule tonight's waves. Heat decides how many come, spread across
   /// the dark hours so there's always a lull to repair in.
   void _onNightfall() {
@@ -1528,7 +1610,17 @@ class GridGuardGame extends FlameGame {
     // A full night is now twelve real minutes, so a single wave would leave it
     // mostly empty. Heat still decides how heavy the night is; the night's
     // length decides how many pieces that comes in.
-    final waves = (2 + threatMultiplier * 1.8).round().clamp(2, 9);
+    final forecast = raidForecastFor(dayNumber);
+    if (!forecast.raided) {
+      // A quiet night. Nothing comes; the site gets a full dark shift to build.
+      nightWavesTotal = 0;
+      nightWavesDone = 0;
+      _publishSnapshot(force: true);
+      return;
+    }
+
+    final waves =
+        (2 + threatMultiplier * 1.8 * forecast.weight).round().clamp(1, 9);
     // Night is half the cycle; leave the last stretch clear so a night always
     // ends with a breather rather than a spawn.
     final nightSeconds = config.dayLength * 0.5;
@@ -1575,6 +1667,7 @@ class GridGuardGame extends FlameGame {
     pendingDawn = DawnReport(
       day: dayNumber,
       missions: missions,
+      forecast: visibleForecast,
       bonus: lastDawnBonus,
       coins: coinBonus,
       weather: weather,
@@ -1692,6 +1785,10 @@ class GridGuardGame extends FlameGame {
       maxCoreIntegrity: integrityMax,
       waveNumber: waveNumber,
       dayNumber: dayNumber,
+      forecastRange: forecastRange,
+      tonightRaided: forecastRange > 0 && raidForecastFor(dayNumber).raided,
+      tonightWeight:
+          forecastRange > 0 ? raidForecastFor(dayNumber).weight : 0.0,
       gridPrice: gridPrice,
       gridImporting: gridImportEnabled,
       weatherEmoji: weather.emoji,

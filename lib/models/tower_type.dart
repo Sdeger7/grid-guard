@@ -20,6 +20,10 @@ enum TowerCategory {
 
   /// Launches friendly interceptor drones that hunt raiders (Drone Bay).
   droneBay,
+
+  /// Buys warning: forecasts which nights get raided and how hard. Expensive to
+  /// build, expensive to run, and it borrows compute from the Data Centers.
+  intel,
 }
 
 /// Stable identifiers for every placeable structure. Kept as an enum so level
@@ -32,6 +36,7 @@ enum TowerType {
   droneBay,
   scissorBarrier,
   shockTransformer,
+  intelCenter,
 }
 
 /// Immutable per-tier stat block. A [TowerSpec] carries one entry per upgrade
@@ -51,11 +56,24 @@ class TowerTier {
     this.capacity = 0,
     this.dcPower = 0,
     this.droneCount = 0,
+    this.upkeep = 0,
+    this.dcLoad = 0,
+    this.forecastNights = 0,
   });
 
   /// MW cost to reach this tier (to *build* for tier 0, to *upgrade into* for
   /// higher tiers).
   final int cost;
+
+  /// MONEY burned per second keeping this running (staff, licences, uplink).
+  final double upkeep;
+
+  /// Data-Center compute this structure occupies, subtracted from earning
+  /// capacity. Intelligence work has to run on something.
+  final double dcLoad;
+
+  /// How many nights ahead this can forecast.
+  final int forecastNights;
 
   /// Damage per shot (damage towers).
   final double damage;
