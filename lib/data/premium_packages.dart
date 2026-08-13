@@ -41,9 +41,9 @@ class PremiumPackage {
   final double repairDiscount;
   final double startCoreBonus;
 
-  /// Money per second earned by exporting surplus energy to the public grid,
-  /// per unit of surplus. The utility connection is the big one: it turns a
-  /// well-built site into a second income stream that never sleeps.
+  /// How much of the market export price the site actually collects. The
+  /// utility connection is the big one: it turns a well-built site into a
+  /// second income stream priced by the market, not by a fixed rate.
   final double gridExportRate;
 
   /// Extra battery charge per second, independent of sun and wind.
@@ -135,8 +135,8 @@ class PremiumCatalog {
       name: 'Utility Interconnect',
       emoji: '🏗️',
       price: 900,
-      blurb: 'Sell surplus power back to the public grid, around the clock. '
-          'The site stops being an island.',
+      blurb: 'Sell surplus power into the market at the live price. The site '
+          'stops being an island.',
       gridExportRate: 0.8,
     ),
   ];

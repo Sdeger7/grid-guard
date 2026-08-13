@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/dc_workload.dart';
+import '../../data/grid_market.dart';
 import '../../data/tower_catalog.dart';
 import '../../game/grid_guard_game.dart';
 import '../../models/level_state.dart';
@@ -121,6 +122,25 @@ class _TopBar extends StatelessWidget {
         color: GGColors.teal,
         label: '${(state.windFactor * 100).round()}%',
         caption: 'WIND',
+      ),
+      // The market price is a live decision, not decoration: tapping it turns
+      // grid buying on and off.
+      _Stat(
+        icon: Icons.electric_meter_rounded,
+        color: state.gridImporting ? GGColors.accent : GGColors.inkSoft,
+        label: '${state.gridPrice.toStringAsFixed(2)}M',
+        caption: state.gridImporting
+            ? 'BUYING'
+            : GridMarket.bandFor(state.gridPrice),
+        onTap: () {
+          game.gridImportEnabled = !game.gridImportEnabled;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            duration: const Duration(seconds: 2),
+            content: Text(game.gridImportEnabled
+                ? 'Buying grid power when the battery drops below 35%.'
+                : 'Grid buying off — the site runs islanded.'),
+          ));
+        },
       ),
       _Stat(
         icon: Icons.paid_rounded,

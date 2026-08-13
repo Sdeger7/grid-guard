@@ -52,6 +52,8 @@ class LevelState {
     required this.maxCoreIntegrity,
     required this.waveNumber,
     required this.dayNumber,
+    required this.gridPrice,
+    required this.gridImporting,
     required this.weatherEmoji,
     required this.weatherName,
     required this.nightWavesTotal,
@@ -116,6 +118,10 @@ class LevelState {
   /// Which day of the run this is. Raids only happen at night, so the day
   /// number is the real progress marker the player counts.
   final int dayNumber;
+
+  /// Live grid price per unit of energy, and whether the site is buying.
+  final double gridPrice;
+  final bool gridImporting;
 
   /// Today's forecast, for the status strip.
   final String weatherEmoji;

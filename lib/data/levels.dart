@@ -37,7 +37,7 @@ class LevelCatalog {
     startMoney: 420,
     startEnergy: 60,
     bessCapacity: 90,
-    dayLength: 240,
+    dayLength: 1440,
     startTimeOfDay: 0.33,
     endless: true,
   );

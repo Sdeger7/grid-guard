@@ -6,6 +6,7 @@ import 'package:flame/game.dart';
 
 import '../data/dc_workload.dart';
 import '../data/enemy_catalog.dart';
+import '../data/grid_market.dart';
 import '../data/premium_packages.dart';
 import '../data/missions.dart';
 import '../data/speedups.dart';
@@ -730,8 +731,27 @@ class GridGuardGame extends FlameGame {
       final absorbed = energy - beforeCharge;
       final spilled = (wanted - absorbed).clamp(0.0, double.infinity);
       if (spilled > 0) {
-        money += spilled * perks.gridExportRate;
-        gridExportEarned += spilled * perks.gridExportRate;
+        // Sold at the live market rate — surplus is worth most when the zone is
+        // short, which is exactly when your battery would rather keep it.
+        final paid = spilled * gridSellPrice * perks.gridExportRate;
+        money += paid;
+        gridExportEarned += paid;
+      }
+    }
+
+    // 1c) Buying off the grid. Anyone can import; it just costs whatever the
+    //     market is asking, which at dusk is brutal and at midday is nearly
+    //     free. This is the other half of the same connection.
+    if (gridImportEnabled && energyCapacity > 0) {
+      final floor = energyCapacity * importThreshold;
+      if (energy < floor) {
+        final wanted = math.min(floor - energy, 25.0 * dt);
+        final bill = wanted * gridPrice;
+        if (money >= bill) {
+          money -= bill;
+          energy = (energy + wanted).clamp(0, energyCapacity);
+          gridImportSpent += bill;
+        }
       }
     }
 
@@ -851,6 +871,28 @@ class GridGuardGame extends FlameGame {
 
   /// Cash earned by exporting surplus power, for the HUD to show off.
   double gridExportEarned = 0;
+
+  /// Cash spent buying power off the grid.
+  double gridImportSpent = 0;
+
+  /// Whether the site tops its battery up from the public grid when it runs
+  /// low. Off by default: buying power is a choice with a bill attached.
+  bool gridImportEnabled = false;
+
+  /// Buy below this fraction of capacity — enough headroom that the towers
+  /// never go quiet, without paying to fill a battery the sun would fill free.
+  static const double importThreshold = 0.35;
+
+  /// Live import price per unit of energy.
+  double get gridPrice => GridMarket.priceAt(
+        timeOfDay: timeOfDay,
+        sunFactor: sunFactor,
+        weather: weather,
+        day: dayNumber,
+      );
+
+  /// Live export price per unit of energy.
+  double get gridSellPrice => gridPrice * GridMarket.sellFraction;
 
   /// What one WATT fetches when sold for cash. WATT is deliberately scarce —
   /// only mining hardware mints it — so cashing out is a real decision: spend
@@ -1483,11 +1525,14 @@ class GridGuardGame extends FlameGame {
     _nightClock = 0;
     _nightWaveTimes.clear();
 
-    final waves = (1 + (threatMultiplier / 1.1).floor()).clamp(1, 4);
+    // A full night is now twelve real minutes, so a single wave would leave it
+    // mostly empty. Heat still decides how heavy the night is; the night's
+    // length decides how many pieces that comes in.
+    final waves = (2 + threatMultiplier * 1.8).round().clamp(2, 9);
     // Night is half the cycle; leave the last stretch clear so a night always
     // ends with a breather rather than a spawn.
     final nightSeconds = config.dayLength * 0.5;
-    final window = nightSeconds * 0.62;
+    final window = nightSeconds * 0.78;
     for (var i = 0; i < waves; i++) {
       _nightWaveTimes.add(waves == 1 ? 2.0 : 2.0 + window * (i / (waves - 1)));
     }
@@ -1647,6 +1692,8 @@ class GridGuardGame extends FlameGame {
       maxCoreIntegrity: integrityMax,
       waveNumber: waveNumber,
       dayNumber: dayNumber,
+      gridPrice: gridPrice,
+      gridImporting: gridImportEnabled,
       weatherEmoji: weather.emoji,
       weatherName: weather.name,
       nightWavesTotal: nightWavesTotal,
