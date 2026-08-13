@@ -70,6 +70,22 @@ class OfflinePanel extends StatelessWidget {
                         value: report.coins.toStringAsFixed(2),
                       ),
                     ],
+                    if (report.wasted > 0) ...[
+                      const SizedBox(height: 8),
+                      _Row(
+                        icon: Icons.water_drop_outlined,
+                        color: GGColors.danger,
+                        label: 'Spilled (storage full)',
+                        value: '${report.wasted}M',
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                          'Your site fills up after about '
+                          '${report.hoursToFill.toStringAsFixed(1)} hours. '
+                          'More BESS storage means more banked while you are '
+                          'away.',
+                          style: GGText.soft.copyWith(color: GGColors.danger)),
+                    ],
                     const SizedBox(height: 18),
                     SizedBox(
                       width: double.infinity,

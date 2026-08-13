@@ -140,11 +140,22 @@ class OfflineReport {
     required this.seconds,
     required this.money,
     required this.coins,
+    this.wasted = 0,
+    this.vaultCapacity = 0,
+    this.hoursToFill = 0,
   });
 
   final double seconds;
   final int money;
   final double coins;
+
+  /// Production the site made but could not hold. Seeing this is the point:
+  /// it is what turns "I'll check in later" into "I'll check in tonight".
+  final int wasted;
+  final int vaultCapacity;
+
+  /// How long the site can run unattended before it starts spilling.
+  final double hoursToFill;
 
   bool get isWorthShowing => seconds > 60 && (money > 0 || coins > 0);
 }

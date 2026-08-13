@@ -46,8 +46,9 @@ class GridMarket {
     // A slow, deterministic drift so no two days price the same.
     final drift = 1.0 + 0.12 * math.sin(day * 1.7);
 
-    return (basePrice * demand / math.max(0.35, supply) * drift)
-        .clamp(0.12, 3.2);
+    final peak = isPeakNow() ? peakMultiplier : 1.0;
+    return (basePrice * demand / math.max(0.35, supply) * drift * peak)
+        .clamp(0.12, 9.0);
   }
 
   /// What the grid pays for a unit you export.
@@ -64,6 +65,32 @@ class GridMarket {
         day: day,
       ) *
       sellFraction;
+
+  /// The evening demand peak, in local wall-clock hours.
+  ///
+  /// The game clock runs at one in-game hour per real minute, which makes the
+  /// in-game price cycle far too fast to build a habit around. This window is
+  /// pinned to the player's actual evening instead: for two real hours, power
+  /// trades at a large premium. It is the one thing in the game you can only
+  /// have by being here at a particular time, and missing it costs nothing but
+  /// the opportunity — which is exactly the shape that brings people back.
+  static const int peakStartHour = 19;
+  static const int peakEndHour = 21;
+  static const double peakMultiplier = 2.6;
+
+  static bool isPeakNow([DateTime? now]) {
+    final h = (now ?? DateTime.now()).hour;
+    return h >= peakStartHour && h < peakEndHour;
+  }
+
+  /// Minutes until the peak opens, or until it closes if it is running.
+  static int minutesToPeakEdge([DateTime? now]) {
+    final t = now ?? DateTime.now();
+    final target = isPeakNow(t) ? peakEndHour : peakStartHour;
+    var diff = (target - t.hour) * 60 - t.minute;
+    if (diff <= 0) diff += 24 * 60;
+    return diff;
+  }
 
   /// A short label for the HUD: cheap / fair / dear, so the player can read the
   /// market at a glance without doing arithmetic.

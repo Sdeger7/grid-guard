@@ -158,9 +158,15 @@ class _TopBar extends StatelessWidget {
       // grid buying on and off.
       _Stat(
         icon: Icons.electric_meter_rounded,
-        color: state.gridImporting ? GGColors.accent : GGColors.inkSoft,
+        color: GridMarket.isPeakNow()
+            ? GGColors.accentWarm
+            : state.gridImporting
+                ? GGColors.accent
+                : GGColors.inkSoft,
         label: '${state.gridPrice.toStringAsFixed(2)}M',
-        caption: state.gridContracts > 0
+        caption: GridMarket.isPeakNow()
+            ? 'PEAK ${GridMarket.minutesToPeakEdge()}m'
+            : state.gridContracts > 0
             ? '${state.gridContracts} DEAL'
             : state.gridImporting
                 ? 'BUYING'

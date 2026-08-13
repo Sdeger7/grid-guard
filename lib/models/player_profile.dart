@@ -32,6 +32,9 @@ class PlayerProfile {
     this.bestScore = 0,
     this.ownedPackages = const {},
     this.equippedSkins = const {},
+    this.streakDays = 0,
+    this.lastPlayedEpochDay = 0,
+    this.streakClaimedEpochDay = 0,
   });
 
   /// WATT mined by crypto workloads — the permanent currency for premium packs.
@@ -43,6 +46,13 @@ class PlayerProfile {
 
   /// Premium packages bought with WATT.
   final Set<String> ownedPackages;
+
+  /// Consecutive days the player has opened the game, the last day they did,
+  /// and the last day they took the streak reward. Days are counted as whole
+  /// local days since the epoch.
+  final int streakDays;
+  final int lastPlayedEpochDay;
+  final int streakClaimedEpochDay;
 
   /// Which cosmetic set is worn in each slot, keyed by SkinSlot.name. What is
   /// owned lives in [ownedSkins].
@@ -99,6 +109,9 @@ class PlayerProfile {
     int? bestScore,
     Set<String>? ownedPackages,
     Map<String, String>? equippedSkins,
+    int? streakDays,
+    int? lastPlayedEpochDay,
+    int? streakClaimedEpochDay,
   }) {
     return PlayerProfile(
       gridCredits: gridCredits ?? this.gridCredits,
@@ -118,6 +131,10 @@ class PlayerProfile {
       bestScore: bestScore ?? this.bestScore,
       ownedPackages: ownedPackages ?? this.ownedPackages,
       equippedSkins: equippedSkins ?? this.equippedSkins,
+      streakDays: streakDays ?? this.streakDays,
+      lastPlayedEpochDay: lastPlayedEpochDay ?? this.lastPlayedEpochDay,
+      streakClaimedEpochDay:
+          streakClaimedEpochDay ?? this.streakClaimedEpochDay,
     );
   }
 
@@ -139,6 +156,9 @@ class PlayerProfile {
         'bestScore': bestScore,
         'ownedPackages': ownedPackages.toList(),
         'equippedSkins': equippedSkins,
+        'streakDays': streakDays,
+        'lastPlayedEpochDay': lastPlayedEpochDay,
+        'streakClaimedEpochDay': streakClaimedEpochDay,
       };
 
   factory PlayerProfile.fromJson(Map<String, dynamic> json) {
@@ -158,6 +178,9 @@ class PlayerProfile {
             TowerType.scissorBarrier,
             TowerType.shockTransformer,
           },
+      streakDays: json['streakDays'] as int? ?? 0,
+      lastPlayedEpochDay: json['lastPlayedEpochDay'] as int? ?? 0,
+      streakClaimedEpochDay: json['streakClaimedEpochDay'] as int? ?? 0,
       equippedSkins: ((json['equippedSkins'] as Map<String, dynamic>?) ??
               const <String, dynamic>{})
           .map((k, v) => MapEntry(k, v as String)),

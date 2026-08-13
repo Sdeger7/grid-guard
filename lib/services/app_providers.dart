@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/level_state.dart';
+import '../data/streak.dart';
 import '../models/player_profile.dart';
 import '../models/star_rating.dart';
 import '../models/tower_type.dart';
@@ -78,6 +79,46 @@ class ProfileNotifier extends Notifier<PlayerProfile> {
       bestScore: score > state.bestScore ? score : state.bestScore,
     );
     await _save.saveProfile(state);
+  }
+
+  /// Advances the login streak for today, if it has not run yet.
+  ///
+  /// Returns the streak day the player is now on, or null when today has
+  /// already been counted. Missing a day resets the streak to one — that reset
+  /// is the whole reason the mechanic works.
+  Future<int?> touchStreak() async {
+    final today = StreakCalendar.today();
+    final p = state;
+    if (p.lastPlayedEpochDay == today) return null;
+
+    final consecutive = p.lastPlayedEpochDay == today - 1;
+    final next = consecutive ? p.streakDays + 1 : 1;
+    final wrapped = next > StreakCalendar.cycle ? 1 : next;
+
+    final updated = p.copyWith(
+      streakDays: wrapped,
+      lastPlayedEpochDay: today,
+    );
+    state = updated;
+    await ref.read(saveServiceProvider).saveProfile(updated);
+    return wrapped;
+  }
+
+  /// Pays today's streak reward once.
+  Future<void> claimStreak() async {
+    final today = StreakCalendar.today();
+    final p = state;
+    if (p.streakClaimedEpochDay == today) return;
+    final reward = StreakCalendar.rewardFor(p.streakDays);
+    final updated = p.copyWith(
+      streakClaimedEpochDay: today,
+      coins: p.coins + reward.watt.round(),
+      ownedSkins: reward.skinId == null
+          ? p.ownedSkins
+          : {...p.ownedSkins, reward.skinId!},
+    );
+    state = updated;
+    await ref.read(saveServiceProvider).saveProfile(updated);
   }
 
   /// Buys a cosmetic set with WATT. Returns false when the balance is short.

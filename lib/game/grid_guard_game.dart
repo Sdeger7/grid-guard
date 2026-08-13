@@ -1796,10 +1796,24 @@ class GridGuardGame extends FlameGame {
       return OfflineReport(seconds: seconds, money: 0, coins: 0);
     }
 
+    // An unattended site fills its holding tanks and then spills. Storage is
+    // the cap, so the player who wants longer unattended runs has to build
+    // batteries for it — and there is always a point past which staying away
+    // is pure waste.
+    final produced = dcIncome * seconds * offlineRate;
+    final vault = offlineVaultCapacity;
+    final banked = math.min(produced, vault);
+    final wasted = produced - banked;
+
     return OfflineReport(
       seconds: seconds,
-      money: (dcIncome * seconds * offlineRate).round(),
+      money: banked.round(),
       coins: coinRate * seconds * offlineRate,
+      wasted: wasted.round(),
+      vaultCapacity: vault.round(),
+      hoursToFill: dcIncome * offlineRate <= 0
+          ? 0
+          : vault / (dcIncome * offlineRate) / 3600.0,
     );
   }
 
@@ -1827,6 +1841,16 @@ class GridGuardGame extends FlameGame {
         }
         break;
     }
+    _publishSnapshot(force: true);
+  }
+
+  /// How much unattended production the site can hold before it spills.
+  /// Scales with storage, so batteries buy time away as well as security.
+  double get offlineVaultCapacity => 900 + energyCapacity * 22;
+
+  /// Credits cash from outside the simulation (streak rewards and the like).
+  void grantCash(double amount) {
+    money += amount;
     _publishSnapshot(force: true);
   }
 

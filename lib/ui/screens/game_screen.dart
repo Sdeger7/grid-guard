@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/levels.dart';
 import '../../data/premium_packages.dart';
 import '../../data/skins.dart';
+import '../../data/streak.dart';
 import '../../game/grid_guard_game.dart' as gg;
 import '../../models/base_save.dart';
 import '../../models/level_config.dart';
@@ -23,6 +24,7 @@ import '../widgets/offline_panel.dart';
 import '../widgets/relocate_sheet.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/site_menu.dart';
+import '../widgets/streak_panel.dart';
 import '../widgets/speedup_sheet.dart';
 import '../widgets/tutorial_overlay.dart';
 import 'guide_screen.dart';
@@ -50,6 +52,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
   Timer? _autosaveTimer;
   OfflineReport? _offline;
   gg.DawnReport? _dawn;
+
+  /// Today's streak day, set on the first launch of each day.
+  int? _streakDay;
 
   LevelState? _snapshot;
   gg.SelectedStructure? _selected;
@@ -100,6 +105,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
     if (widget.config.endless) {
       WidgetsBinding.instance.addObserver(this);
+      // The check-in runs once per real day, before anything else claims the
+      // screen.
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final day = await ref.read(profileProvider.notifier).touchStreak();
+        if (!mounted || day == null) return;
+        setState(() => _streakDay = day);
+      });
       _autosaveTimer = Timer.periodic(_autosaveInterval, (_) => _saveBase());
       if (save != null && !save.isEmpty) {
         // Report what the site produced while the app was closed, once the
@@ -397,7 +409,17 @@ class _GameScreenState extends ConsumerState<GameScreen>
               ),
             ),
           ),
-          if (_dawn != null && _offline == null)
+          if (_streakDay != null)
+            StreakPanel(
+              day: _streakDay!,
+              onClaim: () async {
+                final reward = StreakCalendar.rewardFor(_streakDay!);
+                await ref.read(profileProvider.notifier).claimStreak();
+                _game.grantCash(reward.cash.toDouble());
+                if (mounted) setState(() => _streakDay = null);
+              },
+            ),
+          if (_dawn != null && _offline == null && _streakDay == null)
             DawnPanel(
               report: _dawn!,
               canRelocate: _game.canRelocate,
@@ -407,7 +429,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
               },
               onClose: () => setState(() => _dawn = null),
             ),
-          if (_offline != null)
+          if (_offline != null && _streakDay == null)
             OfflinePanel(
               report: _offline!,
               onClose: () => setState(() => _offline = null),

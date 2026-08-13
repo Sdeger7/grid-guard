@@ -67,6 +67,32 @@ class _GridSheetState extends State<_GridSheet> {
                   'at midday and dear after dark — a contract locks today\'s '
                   'price for its whole term.',
                   style: GGText.soft),
+              if (GridMarket.isPeakNow())
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: GGPanel(
+                    borderColor: GGColors.accentWarm,
+                    padding: const EdgeInsets.all(10),
+                    child: Text(
+                        '🔥 EVENING PEAK — power is trading at '
+                        '${GridMarket.peakMultiplier}x for the next '
+                        '${GridMarket.minutesToPeakEdge()} minutes. The best '
+                        'sell contracts of the day are right now.',
+                        style: GGText.soft.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: GGColors.accentWarm)),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                      'The evening peak runs ${GridMarket.peakStartHour}:00 to '
+                      '${GridMarket.peakEndHour}:00 your time, when power '
+                      'trades at ${GridMarket.peakMultiplier}x. '
+                      '${GridMarket.minutesToPeakEdge()} minutes away.',
+                      style: GGText.soft),
+                ),
               const SizedBox(height: 12),
 
               // Term and volume.
