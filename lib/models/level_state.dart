@@ -64,6 +64,8 @@ class LevelState {
     required this.netMoneyRate,
     required this.zoneName,
     required this.zoneEmoji,
+    required this.sunriseLabel,
+    required this.sunsetLabel,
     required this.eventName,
     required this.eventEmoji,
     required this.canRelocate,
@@ -160,6 +162,10 @@ class LevelState {
   /// Where the site stands, and whether it has held long enough to move on.
   final String zoneName;
   final String zoneEmoji;
+
+  /// Real sunrise and sunset for the site's province, today.
+  final String sunriseLabel;
+  final String sunsetLabel;
 
   /// This week's world event, or the quiet-week placeholder.
   final String eventName;

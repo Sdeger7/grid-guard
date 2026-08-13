@@ -60,6 +60,7 @@ class BaseSave {
     this.timeOfDay = 0.28,
     this.workloadIndex = 0,
     this.zoneIndex = 0,
+    this.cityId = 'konya',
     this.coreIntegrity = 1,
     this.raidCount = 0,
     this.score = 0,
@@ -77,6 +78,9 @@ class BaseSave {
 
   /// Which zone the site stands in.
   final int zoneIndex;
+
+  /// Which province the site stands in.
+  final String cityId;
 
   /// Core health as a fraction, so a battered core stays battered.
   final double coreIntegrity;
@@ -102,6 +106,7 @@ class BaseSave {
         'tod': timeOfDay,
         'w': workloadIndex,
         'z': zoneIndex,
+        'city': cityId,
         'ci': coreIntegrity,
         'rc': raidCount,
         'sc': score,
@@ -124,6 +129,7 @@ class BaseSave {
       timeOfDay: (j['tod'] as num?)?.toDouble() ?? 0.28,
       workloadIndex: (j['w'] as num?)?.toInt() ?? 0,
       zoneIndex: (j['z'] as num?)?.toInt() ?? 0,
+      cityId: j['city'] as String? ?? 'konya',
       coreIntegrity: (j['ci'] as num?)?.toDouble() ?? 1,
       raidCount: (j['rc'] as num?)?.toInt() ?? 0,
       score: (j['sc'] as num?)?.toInt() ?? 0,

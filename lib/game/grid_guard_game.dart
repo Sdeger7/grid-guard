@@ -5,12 +5,14 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 
 import '../data/abilities.dart';
+import '../data/cities.dart';
 import '../data/dc_workload.dart';
 import '../data/enemy_catalog.dart';
 import '../data/events.dart';
 import '../data/grid_market.dart';
 import '../data/premium_packages.dart';
 import '../data/skins.dart';
+import '../data/solar.dart';
 import '../data/missions.dart';
 import '../data/speedups.dart';
 import '../data/story.dart';
@@ -192,6 +194,36 @@ class GridGuardGame extends FlameGame {
   SiteZone get zone => ZoneCatalog.at(zoneIndex);
 
   /// Days you must hold a site before the next zone will have you.
+  /// Moving is a purchase, not a milestone: any province is open at any time
+  /// if you can pay for the plot and the haulage.
+  int relocationCostTo(City target) =>
+      CityCatalog.relocationCost(city, target);
+
+  bool canRelocateTo(City target) =>
+      target.id != cityId && money >= relocationCostTo(target);
+
+  /// Moves the operation to another province. The buildings do not come — the
+  /// cost is the new plot plus hauling what can be salvaged, and the salvage is
+  /// what pays for the first structures on the new ground.
+  bool relocateTo(City target) {
+    if (!canRelocateTo(target)) return false;
+    final bill = relocationCostTo(target);
+    // Half the value of what you leave behind is recovered as salvage.
+    final salvage = baseValue * 0.5;
+    _clearSite();
+    money = math.max(0, money - bill) + salvage;
+    cityId = target.id;
+    dayNumber = 1;
+    raidCount = 0;
+    energy = 0;
+    coreIntegrity = integrityMax;
+    workloadIndex = 0;
+    _threatRamp = DcWorkloadCatalog.workloads.first.threat;
+    _rollMissions();
+    _publishSnapshot(force: true);
+    return true;
+  }
+
   bool get canRelocate =>
       ZoneCatalog.hasNextAfter(zoneIndex) &&
       dayNumber >= (ZoneCatalog.nextAfter(zoneIndex)?.unlockDay ?? 9999);
@@ -390,14 +422,24 @@ class GridGuardGame extends FlameGame {
   /// not a raid.
   double timeOfDay = 0.28;
 
-  /// Solar irradiance factor in [0,1]: 0 at night, peaking at noon. PV only
-  /// produces in daylight, so the BESS must carry the grid through the night.
-  double get sunFactor {
-    final s = math.sin(2 * math.pi * (timeOfDay - 0.25));
-    return s < 0 ? 0.0 : s;
-  }
+  /// Where the site is. Everything solar comes from here.
+  String cityId = 'konya';
+  City get city => CityCatalog.byId(cityId);
 
-  bool get isNight => sunFactor <= 0.02;
+  /// The sun over the site right now, at its real latitude, on today's date.
+  SolarPosition get sun => SolarMath.at(
+        latitude: city.latitude,
+        longitude: city.longitude,
+      );
+
+  /// Solar irradiance factor in [0,1]. This is the real thing: zero before
+  /// sunrise, peaking at the site's actual solar noon, scaled by how much
+  /// annual sun that province gets. A December afternoon in Erzurum and a June
+  /// afternoon in Şanlıurfa are genuinely different numbers.
+  double get sunFactor =>
+      (sun.clearSkyFactor * city.solarIndex).clamp(0.0, 1.4);
+
+  bool get isNight => !sun.isDay;
 
   /// Today's weather, rolled at each dawn. Swings solar, wind and raider speed.
   Weather weather = WeatherCatalog.clear;
@@ -407,7 +449,6 @@ class GridGuardGame extends FlameGame {
       pvOutput *
       sunFactor *
       weather.sunScale *
-      zone.sunScale *
       worldEvent.sunScale;
 
   /// Combined nameplate output of all wind turbines (before wind).
@@ -423,7 +464,7 @@ class GridGuardGame extends FlameGame {
       windOutput *
       windFactor *
       weather.windScale *
-      zone.windScale *
+      city.windIndex *
       worldEvent.windScale;
 
   /// Total energy generated right now: solar + wind, plus any always-on
@@ -510,7 +551,7 @@ class GridGuardGame extends FlameGame {
                 workloadOf(dc).income *
                     _dcShare(dc) *
                     perks.incomeMultiplier *
-                    zone.incomeScale *
+                    city.priceIndex *
                     worldEvent.incomeScale,
       );
 
@@ -539,7 +580,7 @@ class GridGuardGame extends FlameGame {
 
   /// Where heat is heading, so the HUD can warn before it lands.
   double get targetThreatMultiplier =>
-      siteThreat * growthThreat * zone.threatScale * worldEvent.threatScale;
+      siteThreat * growthThreat * city.threatIndex * worldEvent.threatScale;
 
   /// Set from the HUD build tray; null == inspect/select mode.
   TowerType? selectedBuild;
@@ -943,7 +984,11 @@ class GridGuardGame extends FlameGame {
   /// separately, per shot, via [tryDrawEnergy].
   void _tickEconomy(double dt) {
     // 0) Advance the day/night clock and the wind.
-    timeOfDay = (timeOfDay + dt / config.dayLength) % 1.0;
+    // The clock is the player's own: a real day is a game day, so the market's
+    // shape, the sun and the raid calendar all agree with the world outside.
+    final now = DateTime.now();
+    timeOfDay =
+        (now.hour * 3600 + now.minute * 60 + now.second) / 86400.0;
     _windPhase += dt;
     windFactor = (0.55 +
             0.35 * math.sin(_windPhase * 0.35) +
@@ -1276,7 +1321,7 @@ class GridGuardGame extends FlameGame {
         weather: weather,
         day: dayNumber,
       ) *
-      zone.priceScale *
+      city.priceIndex *
       worldEvent.priceScale;
 
   /// Live export price per unit of energy.
@@ -1718,6 +1763,7 @@ class GridGuardGame extends FlameGame {
       timeOfDay: timeOfDay,
       workloadIndex: workloadIndex,
       zoneIndex: zoneIndex,
+      cityId: cityId,
       coreIntegrity: integrityMax <= 0 ? 1 : coreIntegrity / integrityMax,
       raidCount: raidCount,
       score: score,
@@ -1747,6 +1793,7 @@ class GridGuardGame extends FlameGame {
     }
 
     zoneIndex = save.zoneIndex;
+    cityId = save.cityId;
     money = save.money.toDouble();
     coinsEarned = save.coins;
     dayNumber = save.dayNumber;
@@ -1847,6 +1894,11 @@ class GridGuardGame extends FlameGame {
   /// How much unattended production the site can hold before it spills.
   /// Scales with storage, so batteries buy time away as well as security.
   double get offlineVaultCapacity => 900 + energyCapacity * 22;
+
+  /// Two-digit clock text for a time, for the HUD.
+  static String _clock(DateTime t) =>
+      '${t.hour.toString().padLeft(2, '0')}:'
+      '${t.minute.toString().padLeft(2, '0')}';
 
   /// Credits cash from outside the simulation (streak rewards and the like).
   void grantCash(double amount) {
@@ -2333,8 +2385,10 @@ class GridGuardGame extends FlameGame {
       gridContracts: gridContracts.length,
       operatingCost: operatingCost,
       netMoneyRate: netMoneyRate,
-      zoneName: zone.name,
-      zoneEmoji: zone.emoji,
+      zoneName: city.name,
+      zoneEmoji: '📍',
+      sunriseLabel: _clock(sun.sunrise),
+      sunsetLabel: _clock(sun.sunset),
       eventName: worldEvent.name,
       eventEmoji: worldEvent.emoji,
       canRelocate: canRelocate,

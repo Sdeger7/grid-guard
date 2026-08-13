@@ -135,7 +135,11 @@ class _TopBar extends StatelessWidget {
         icon: state.isNight ? Icons.nightlight_round : Icons.wb_sunny_rounded,
         color: state.isNight ? GGColors.accent : GGColors.star,
         label: state.isNight ? '—' : '${(state.sunFactor * 100).round()}%',
-        caption: 'SUN',
+        // Real sunrise and sunset for the site's province today, so the player
+        // can see the season closing in on them.
+        caption: state.isNight
+            ? '↑${state.sunriseLabel}'
+            : '↓${state.sunsetLabel}',
       ),
       _Stat(
         icon: Icons.wind_power_rounded,
