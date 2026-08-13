@@ -34,7 +34,7 @@ class LevelCatalog {
     coreIntegrity: 160,
     lowDamageStarThreshold: 1,
     timeStarThreshold: 999999,
-    startMoney: 170,
+    startMoney: 420,
     startEnergy: 60,
     bessCapacity: 90,
     dayLength: 240,

@@ -14,9 +14,9 @@ class TowerCatalog {
       tint: Color(0xFF2E7DF6),
       placeableOn: TilePlacement.safeZone,
       tiers: [
-        TowerTier(cost: 40, mwPerSecond: 4),
-        TowerTier(cost: 60, mwPerSecond: 8),
-        TowerTier(cost: 90, mwPerSecond: 14),
+        TowerTier(cost: 120, mwPerSecond: 4),
+        TowerTier(cost: 360, mwPerSecond: 8),
+        TowerTier(cost: 1080, mwPerSecond: 14),
       ],
     ),
     TowerType.windTurbine: TowerSpec(
@@ -26,9 +26,9 @@ class TowerCatalog {
       tint: Color(0xFF7FB2C9),
       placeableOn: TilePlacement.safeZone,
       tiers: [
-        TowerTier(cost: 55, mwPerSecond: 5),
-        TowerTier(cost: 85, mwPerSecond: 10),
-        TowerTier(cost: 125, mwPerSecond: 17),
+        TowerTier(cost: 160, mwPerSecond: 5),
+        TowerTier(cost: 510, mwPerSecond: 10),
+        TowerTier(cost: 1500, mwPerSecond: 17),
       ],
     ),
     TowerType.bess: TowerSpec(
@@ -38,9 +38,9 @@ class TowerCatalog {
       tint: Color(0xFF3A4E6B),
       placeableOn: TilePlacement.safeZone,
       tiers: [
-        TowerTier(cost: 60, capacity: 50),
-        TowerTier(cost: 90, capacity: 100),
-        TowerTier(cost: 130, capacity: 170),
+        TowerTier(cost: 180, capacity: 50),
+        TowerTier(cost: 540, capacity: 100),
+        TowerTier(cost: 1560, capacity: 170),
       ],
     ),
     TowerType.dataCenter: TowerSpec(
@@ -50,9 +50,9 @@ class TowerCatalog {
       tint: Color(0xFF5B6B85),
       placeableOn: TilePlacement.safeZone,
       tiers: [
-        TowerTier(cost: 90, dcPower: 1.0),
-        TowerTier(cost: 140, dcPower: 2.0),
-        TowerTier(cost: 200, dcPower: 3.5),
+        TowerTier(cost: 270, dcPower: 1.0),
+        TowerTier(cost: 840, dcPower: 2.0),
+        TowerTier(cost: 2400, dcPower: 3.5),
       ],
     ),
     TowerType.droneBay: TowerSpec(
@@ -63,13 +63,13 @@ class TowerCatalog {
       placeableOn: TilePlacement.any,
       tiers: [
         TowerTier(
-            cost: 80, damage: 9, range: 4.5, fireInterval: 0.55,
+            cost: 240, damage: 9, range: 4.5, fireInterval: 0.55,
             energyCost: 1.2, droneCount: 1),
         TowerTier(
-            cost: 130, damage: 14, range: 5.5, fireInterval: 0.45,
+            cost: 780, damage: 14, range: 5.5, fireInterval: 0.45,
             energyCost: 1.6, droneCount: 2),
         TowerTier(
-            cost: 190, damage: 20, range: 6.5, fireInterval: 0.38,
+            cost: 2280, damage: 20, range: 6.5, fireInterval: 0.38,
             energyCost: 2.0, droneCount: 3),
       ],
     ),
@@ -80,9 +80,9 @@ class TowerCatalog {
       tint: Color(0xFF00C2A8),
       placeableOn: TilePlacement.path,
       tiers: [
-        TowerTier(cost: 30, slowMultiplier: 0.5),
-        TowerTier(cost: 45, slowMultiplier: 0.36),
-        TowerTier(cost: 70, slowMultiplier: 0.24),
+        TowerTier(cost: 90, slowMultiplier: 0.5),
+        TowerTier(cost: 270, slowMultiplier: 0.36),
+        TowerTier(cost: 840, slowMultiplier: 0.24),
       ],
     ),
     TowerType.shockTransformer: TowerSpec(
@@ -94,7 +94,7 @@ class TowerCatalog {
       chainThreshold: 3,
       tiers: [
         TowerTier(
-            cost: 70,
+            cost: 210,
             damage: 20,
             range: 3.4,
             fireInterval: 0.7,
@@ -102,7 +102,7 @@ class TowerCatalog {
             chainBonus: 1.5,
             energyCost: 2.5),
         TowerTier(
-            cost: 110,
+            cost: 660,
             damage: 34,
             range: 4.0,
             fireInterval: 0.6,
@@ -110,7 +110,7 @@ class TowerCatalog {
             chainBonus: 1.75,
             energyCost: 3.5),
         TowerTier(
-            cost: 170,
+            cost: 2040,
             damage: 55,
             range: 4.6,
             fireInterval: 0.5,

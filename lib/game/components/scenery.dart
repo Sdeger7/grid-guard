@@ -196,6 +196,9 @@ class PondTile extends IsoComponent {
 
   @override
   void render(Canvas canvas) {
+    // Built on means drained and backfilled — the grass below shows through.
+    if (game.isOccupiedTile(tile.x.round(), tile.y.round())) return;
+
     final w = game.iso.halfW * 1.06;
     final h = game.iso.halfH * 1.06;
     final diamond = Path()

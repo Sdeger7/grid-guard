@@ -8,6 +8,7 @@ import '../data/dc_workload.dart';
 import '../data/enemy_catalog.dart';
 import '../data/premium_packages.dart';
 import '../data/missions.dart';
+import '../data/speedups.dart';
 import '../data/story.dart';
 import '../data/tower_catalog.dart';
 import '../data/weather.dart';
@@ -452,7 +453,7 @@ class GridGuardGame extends FlameGame {
   /// from a fixed seed, so a site looks the same every time it is loaded.
   void _scatterScenery() {
     final rng = math.Random(config.id * 7919 + 13);
-    final pond = <TileCoord>{};
+    final pond = _pondTiles;
 
     // One or two ponds, grown as blobs from a seed tile well clear of the base.
     final pondCount = 1 + rng.nextInt(2);
@@ -535,12 +536,36 @@ class GridGuardGame extends FlameGame {
         }
         if (kind == null) continue;
 
+        _sceneryTiles[coord] = kind;
         worldRoot.add(SceneryComponent(
           tile: here,
           kind: kind,
           seed: rng.nextDouble(),
         ));
       }
+    }
+  }
+
+  /// Where the props and water are, so building on them can be charged for.
+  final Map<TileCoord, SceneryKind> _sceneryTiles = {};
+  final Set<TileCoord> _pondTiles = {};
+
+  /// What it costs to make a tile buildable. Ground you have to clear or fill
+  /// is worth less than open ground, so the free middle of the yard is real
+  /// estate worth planning around rather than scenery being a free bonus.
+  int clearingCostAt(TileCoord coord) {
+    if (_pondTiles.contains(coord)) return 260; // drain and backfill
+    switch (_sceneryTiles[coord]) {
+      case SceneryKind.tree:
+      case SceneryKind.pine:
+        return 90; // fell it and pull the stump
+      case SceneryKind.rock:
+        return 140; // break it out
+      case SceneryKind.bush:
+      case SceneryKind.reeds:
+        return 40;
+      case null:
+        return 0;
     }
   }
 
@@ -926,7 +951,19 @@ class GridGuardGame extends FlameGame {
     // Free placement: any empty tile works. The only reserved tile is the base
     // itself at the centre.
     if (coord == baseCoord) return;
-    if (!_spendMoney(spec.tier(0).cost)) return;
+
+    // Clearing the ground is part of the build cost, charged in one go.
+    final clearing = clearingCostAt(coord);
+    if (!_spendMoney(spec.tier(0).cost + clearing)) return;
+    if (clearing > 0) {
+      _sceneryTiles.remove(coord);
+      _pondTiles.remove(coord);
+      spawnFloatingText(
+        '-\$$clearing clearing',
+        Vector2(coord.col.toDouble(), coord.row.toDouble()),
+        const Color(0xFFE0A050),
+      );
+    }
 
     final comp = _createStructure(spec, coord, 0);
     worldRoot.add(comp);
@@ -1272,6 +1309,31 @@ class GridGuardGame extends FlameGame {
       money: (dcIncome * seconds * offlineRate).round(),
       coins: workload.minesCoins ? coinRate * seconds * offlineRate : 0.0,
     );
+  }
+
+  /// Applies a purchased speed-up. Everything it grants is something the site
+  /// would have produced on its own given time — the purchase buys the time,
+  /// not an advantage that is otherwise unreachable.
+  void applySpeedup(Speedup item) {
+    switch (item.effect) {
+      case SpeedupEffect.bankedHours:
+        final seconds = item.amount * 3600;
+        money += dcIncome * seconds * 0.35;
+        if (workload.minesCoins) coinsEarned += coinRate * seconds * 0.35;
+        break;
+      case SpeedupEffect.cash:
+        money += item.amount;
+        break;
+      case SpeedupEffect.watt:
+        coinsEarned += item.amount;
+        break;
+      case SpeedupEffect.fullRepair:
+        for (final s in structures) {
+          s.repairFully();
+        }
+        break;
+    }
+    _publishSnapshot(force: true);
   }
 
   /// Banks an offline report the player has seen.

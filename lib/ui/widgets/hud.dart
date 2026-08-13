@@ -23,6 +23,7 @@ class Hud extends StatelessWidget {
     required this.onUpgrade,
     required this.onRepair,
     required this.onRepairAll,
+    required this.onOpenStore,
   });
 
   final GridGuardGame game;
@@ -35,13 +36,16 @@ class Hud extends StatelessWidget {
   final VoidCallback onRepair;
   final VoidCallback onRepairAll;
 
+  /// Opens the real-money services sheet.
+  final VoidCallback onOpenStore;
+
   @override
   Widget build(BuildContext context) {
     final s = state;
     return SafeArea(
       child: Column(
         children: [
-          if (s != null) _TopBar(state: s, game: game),
+          if (s != null) _TopBar(state: s, game: game, onOpenStore: onOpenStore),
           if (s != null) _FacilitiesRow(state: s, game: game),
           const Spacer(),
           if (s != null && s.bossWaveActive && s.phase == RunPhase.inProgress)
@@ -80,9 +84,11 @@ class Hud extends StatelessWidget {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.state, required this.game});
+  const _TopBar(
+      {required this.state, required this.game, required this.onOpenStore});
   final LevelState state;
   final GridGuardGame game;
+  final VoidCallback onOpenStore;
 
   @override
   Widget build(BuildContext context) {
@@ -145,6 +151,13 @@ class _TopBar extends StatelessWidget {
         color: GGColors.ink,
         label: '${state.score}',
         caption: 'SCORE',
+      ),
+      _Stat(
+        icon: Icons.storefront_rounded,
+        color: GGColors.accent,
+        label: '⏩',
+        caption: 'SPEED UP',
+        onTap: onOpenStore,
       ),
       _Stat(
         icon: Icons.waves_rounded,

@@ -19,6 +19,7 @@ import '../widgets/hud.dart';
 import '../widgets/dawn_panel.dart';
 import '../widgets/level_end.dart';
 import '../widgets/offline_panel.dart';
+import '../widgets/speedup_sheet.dart';
 import '../widgets/tutorial_overlay.dart';
 import 'premium_screen.dart';
 
@@ -296,6 +297,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
               onUpgrade: _game.upgradeSelected,
               onRepair: _game.repairSelected,
               onRepairAll: _game.repairAll,
+              onOpenStore: () => showSpeedupSheet(
+                  context, _game, ref.read(monetizationServiceProvider)),
             ),
           ),
           // Coaching sits above the HUD but never over an end-of-run panel.
