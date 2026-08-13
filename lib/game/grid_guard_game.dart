@@ -1333,7 +1333,7 @@ class GridGuardGame extends FlameGame {
         continue;
       }
       final spec = TowerCatalog.of(st.type);
-      final comp = _createStructure(spec, coord, st.tier.clamp(0, 2));
+      final comp = _createStructure(spec, coord, st.tier.clamp(0, spec.maxTier));
       worldRoot.add(comp);
       _occupied[coord] = comp;
       if (comp is StructureComponent) {

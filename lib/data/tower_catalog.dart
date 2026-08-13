@@ -125,25 +125,51 @@ class TowerCatalog {
       category: TowerCategory.intel,
       tint: Color(0xFF7A5CF0),
       placeableOn: TilePlacement.safeZone,
+      // Seven tiers, because reliable intelligence should be a long campaign
+      // of reinvestment rather than a single purchase. Accuracy climbs from a
+      // barely-useful 30% to 90% and stops there: the last stretch is the most
+      // expensive, and certainty is never for sale.
       tiers: [
         TowerTier(
             cost: 1800,
-            energyCost: 0,
-            mwPerSecond: 0,
-            upkeep: 2.5,
+            upkeep: 2.0,
+            dcLoad: 0.6,
+            forecastNights: 1,
+            forecastAccuracy: 0.30),
+        TowerTier(
+            cost: 3200,
+            upkeep: 2.8,
             dcLoad: 0.8,
             forecastNights: 1,
             forecastAccuracy: 0.40),
         TowerTier(
-            cost: 4200,
-            upkeep: 4.0,
-            dcLoad: 1.2,
+            cost: 5600,
+            upkeep: 3.6,
+            dcLoad: 1.0,
             forecastNights: 2,
-            forecastAccuracy: 0.65),
+            forecastAccuracy: 0.50),
         TowerTier(
-            cost: 9000,
-            upkeep: 6.5,
-            dcLoad: 1.8,
+            cost: 9500,
+            upkeep: 4.6,
+            dcLoad: 1.3,
+            forecastNights: 2,
+            forecastAccuracy: 0.62),
+        TowerTier(
+            cost: 16000,
+            upkeep: 5.8,
+            dcLoad: 1.6,
+            forecastNights: 3,
+            forecastAccuracy: 0.72),
+        TowerTier(
+            cost: 27000,
+            upkeep: 7.2,
+            dcLoad: 2.0,
+            forecastNights: 3,
+            forecastAccuracy: 0.82),
+        TowerTier(
+            cost: 45000,
+            upkeep: 9.0,
+            dcLoad: 2.5,
             forecastNights: 4,
             forecastAccuracy: 0.90),
       ],
