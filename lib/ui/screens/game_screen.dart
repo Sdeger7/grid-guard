@@ -21,8 +21,8 @@ import '../widgets/hud.dart';
 import '../widgets/dawn_panel.dart';
 import '../widgets/level_end.dart';
 import '../widgets/offline_panel.dart';
-import '../widgets/relocate_sheet.dart';
 import '../widgets/challenge_sheet.dart';
+import '../widgets/city_sheet.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/site_menu.dart';
 import '../widgets/streak_panel.dart';
@@ -371,6 +371,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       onOpenReport: () => showReportSheet(context, _game),
                       onOpenChallenge: () =>
                           showChallengeSheet(context, ref, _game),
+                      onOpenCities: () => showCitySheet(context, _game,
+                          onMoved: () => setState(() {})),
                       onAbandon: () {
                         _game.abandonSite();
                         _selectBuild(null);
@@ -425,11 +427,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
           if (_dawn != null && _offline == null && _streakDay == null)
             DawnPanel(
               report: _dawn!,
-              canRelocate: _game.canRelocate,
-              onRelocate: () {
-                setState(() => _dawn = null);
-                showRelocateSheet(context, _game);
-              },
               onClose: () => setState(() => _dawn = null),
             ),
           if (_offline != null && _streakDay == null)

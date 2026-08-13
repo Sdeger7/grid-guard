@@ -68,7 +68,6 @@ class LevelState {
     required this.sunsetLabel,
     required this.eventName,
     required this.eventEmoji,
-    required this.canRelocate,
     required this.weatherEmoji,
     required this.weatherName,
     required this.nightWavesTotal,
@@ -159,7 +158,7 @@ class LevelState {
   /// Net MONEY per second — the direction the balance is actually moving.
   final double netMoneyRate;
 
-  /// Where the site stands, and whether it has held long enough to move on.
+  /// Where the site stands.
   final String zoneName;
   final String zoneEmoji;
 
@@ -170,7 +169,6 @@ class LevelState {
   /// This week's world event, or the quiet-week placeholder.
   final String eventName;
   final String eventEmoji;
-  final bool canRelocate;
 
   /// Today's forecast, for the status strip.
   final String weatherEmoji;

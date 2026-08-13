@@ -70,7 +70,7 @@ class _ReportSheet extends StatelessWidget {
                 const SizedBox(width: 8),
                 const Text('SITE REPORT', style: GGText.heading),
                 const Spacer(),
-                Text('day ${game.dayNumber} · ${game.zone.name}',
+                Text('day ${game.dayNumber} · ${game.city.name}',
                     style: GGText.soft),
               ],
             ),

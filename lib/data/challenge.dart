@@ -13,7 +13,7 @@ class WeeklyChallenge {
   const WeeklyChallenge({
     required this.week,
     required this.seed,
-    required this.zoneIndex,
+    required this.cityIndex,
     required this.startMoney,
     required this.days,
     required this.name,
@@ -26,7 +26,8 @@ class WeeklyChallenge {
   /// Drives weather, raids and prices identically for every player.
   final int seed;
 
-  final int zoneIndex;
+  /// Which province everyone runs the week in.
+  final int cityIndex;
   final int startMoney;
   final int days;
   final String name;
@@ -55,7 +56,7 @@ class ChallengeCatalog {
       week: week,
       seed: week * 7919 + 13,
       // The zone rotates so a run is never the same shape twice.
-      zoneIndex: week % 4,
+      cityIndex: week % 6,
       startMoney: week % _briefs.length == 4 ? 210 : 420,
       days: 7,
       name: brief.$1,

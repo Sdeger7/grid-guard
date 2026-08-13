@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/challenge.dart';
-import '../../data/zones.dart';
+import '../../data/cities.dart';
 import '../../game/grid_guard_game.dart';
 import '../../services/app_providers.dart';
 import '../theme.dart';
@@ -36,7 +36,8 @@ class _ChallengeSheet extends StatelessWidget {
     final challenge = ChallengeCatalog.current();
     final profile = ref.read(profileProvider);
     final best = profile.challengeScores[challenge.week] ?? 0;
-    final zone = ZoneCatalog.at(challenge.zoneIndex);
+    final city = CityCatalog.cities[
+        challenge.cityIndex.clamp(0, CityCatalog.cities.length - 1)];
     final closes = ChallengeCatalog.endOfWeek();
     final left = closes.difference(DateTime.now().toUtc());
 
@@ -81,7 +82,7 @@ class _ChallengeSheet extends StatelessWidget {
                     Text(challenge.blurb, style: GGText.soft),
                     const SizedBox(height: 8),
                     Text(
-                        '${zone.emoji} ${zone.name} · '
+                        '📍 ${city.name} · '
                         '${challenge.startMoney}M seed · '
                         '${challenge.days} days · identical weather and raids '
                         'for every player',
@@ -106,7 +107,7 @@ class _ChallengeSheet extends StatelessWidget {
                   icon: const Icon(Icons.copy_rounded, size: 18),
                   label: const Text('COPY RESULT CARD'),
                   onPressed: () async {
-                    final card = _resultCard(challenge, zone.name, live);
+                    final card = _resultCard(challenge, city.name, live);
                     await Clipboard.setData(ClipboardData(text: card));
                     ref
                         .read(profileProvider.notifier)

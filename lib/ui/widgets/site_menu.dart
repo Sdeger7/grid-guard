@@ -19,6 +19,7 @@ Future<void> showSiteMenu(
   required VoidCallback onOpenReport,
   required VoidCallback onAbandon,
   required VoidCallback onOpenChallenge,
+  required VoidCallback onOpenCities,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -64,6 +65,13 @@ Future<void> showSiteMenu(
                           color: GGColors.amber)),
                 ],
               ),
+            ),
+            entry(
+              icon: Icons.map_rounded,
+              colour: GGColors.accent,
+              title: 'Site location',
+              subtitle: 'Real provinces, real sun — and what moving costs',
+              onTap: onOpenCities,
             ),
             entry(
               icon: Icons.emoji_events_rounded,
