@@ -51,6 +51,9 @@ class LevelState {
     required this.coreIntegrity,
     required this.maxCoreIntegrity,
     required this.waveNumber,
+    required this.dayNumber,
+    required this.nightWavesTotal,
+    required this.nightWavesDone,
     required this.totalWaves,
     required this.phase,
     required this.elapsedSeconds,
@@ -107,6 +110,14 @@ class LevelState {
   final double coreIntegrity;
   final double maxCoreIntegrity;
   final int waveNumber;
+
+  /// Which day of the run this is. Raids only happen at night, so the day
+  /// number is the real progress marker the player counts.
+  final int dayNumber;
+
+  /// Tonight's wave plan and how much of it has already landed.
+  final int nightWavesTotal;
+  final int nightWavesDone;
   final int totalWaves;
   final RunPhase phase;
   final double elapsedSeconds;

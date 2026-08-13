@@ -178,8 +178,10 @@ class GridGuardGame extends FlameGame {
       pvPanels.fold(0.0, (s, p) => s + p.currentTier.mwPerSecond);
 
   /// Time of day in [0,1): 0 = midnight, 0.25 = sunrise, 0.5 = noon,
-  /// 0.75 = sunset. Advances continuously through the run.
-  double timeOfDay = 0;
+  /// 0.75 = sunset. Advances continuously through the run. A run opens just
+  /// after sunrise so the first thing the player gets is a full day to build,
+  /// not a raid.
+  double timeOfDay = 0.28;
 
   /// Solar irradiance factor in [0,1]: 0 at night, peaking at noon. PV only
   /// produces in daylight, so the BESS must carry the grid through the night.
@@ -910,8 +912,25 @@ class GridGuardGame extends FlameGame {
 
   // ---- Endless raid director ----
 
-  double _raidTimer = 12; // first raid delay after START
+  /// Raiders come at night, never in daylight. A run therefore reads as a
+  /// rhythm the player can plan around — build and repair through the day,
+  /// hold the line through the night — instead of a stopwatch that fires
+  /// whenever. Heat buys extra waves *within* a night, not a faster clock.
+  int dayNumber = 1;
   int raidCount = 0;
+  bool _wasNight = false;
+
+  /// Tonight's wave plan, for the HUD ("wave 2 of 3").
+  int nightWavesTotal = 0;
+  int nightWavesDone = 0;
+
+  /// Waves still to launch tonight, as delays measured from nightfall.
+  final List<double> _nightWaveTimes = [];
+  double _nightClock = 0;
+
+  /// Money banked at the last dawn payout, for the HUD to celebrate.
+  int lastDawnBonus = 0;
+
   final List<_PendingSpawn> _pendingSpawns = [];
 
   /// Eases applied heat toward the current contract's. Cooling off after
@@ -937,35 +956,79 @@ class GridGuardGame extends FlameGame {
       _spawnEnemy(p.type, p.healthScale, p.speedScale);
     }
 
-    _raidTimer -= dt;
-    if (_raidTimer <= 0) {
-      // Never stack a fresh raid on top of one the player is still losing to;
-      // that death spiral is what wiped whole bases at once.
-      if (enemies.length > 30) {
-        _raidTimer = 4;
-        return;
-      }
-      _launchRaid();
-      // Higher-value workloads run hotter: raids come faster (down to ~8s).
-      _raidTimer =
-          math.max(8.0, (26.0 - raidCount * 0.5) / threatMultiplier);
+    // Day/night edges drive everything.
+    if (isNight && !_wasNight) {
+      _onNightfall();
+    } else if (!isNight && _wasNight) {
+      _onDawn();
     }
+    _wasNight = isNight;
+
+    if (!isNight) return;
+
+    _nightClock += dt;
+    while (_nightWaveTimes.isNotEmpty && _nightWaveTimes.first <= _nightClock) {
+      // Never stack a fresh wave onto one the player is still losing to; that
+      // death spiral is what wiped whole bases at once. Push it later instead.
+      if (enemies.length > 30) {
+        _nightWaveTimes[0] = _nightClock + 5;
+        break;
+      }
+      _nightWaveTimes.removeAt(0);
+      _launchRaid();
+    }
+  }
+
+  /// Dusk: schedule tonight's waves. Heat decides how many come, spread across
+  /// the dark hours so there's always a lull to repair in.
+  void _onNightfall() {
+    _nightClock = 0;
+    _nightWaveTimes.clear();
+
+    final waves = (1 + (threatMultiplier / 1.1).floor()).clamp(1, 4);
+    // Night is half the cycle; leave the last stretch clear so a night always
+    // ends with a breather rather than a spawn.
+    final nightSeconds = config.dayLength * 0.5;
+    final window = nightSeconds * 0.62;
+    for (var i = 0; i < waves; i++) {
+      _nightWaveTimes.add(waves == 1 ? 2.0 : 2.0 + window * (i / (waves - 1)));
+    }
+    nightWavesTotal = waves;
+    nightWavesDone = 0;
+    _publishSnapshot(force: true);
+  }
+
+  /// Dawn: the night is survived. Pay for it, and roll the day over.
+  void _onDawn() {
+    _nightWaveTimes.clear();
+    dayNumber++;
+    // A survival payout that grows with the day and the contract, so pushing
+    // into hotter work is worth the risk beyond the per-second income.
+    lastDawnBonus =
+        (25 + dayNumber * 12 * workload.threat).round();
+    money += lastDawnBonus;
+    if (workload.minesCoins) coinsEarned += 1.0 + dayNumber * 0.15;
+    _publishSnapshot(force: true);
   }
 
   void _launchRaid() {
     raidCount++;
-    final n = raidCount;
+    nightWavesDone++;
+    // Difficulty tracks the day, not the raid counter — otherwise a hot
+    // contract that fields four waves a night would also make each of those
+    // waves hit like a much later one.
+    final n = dayNumber;
     final threat = threatMultiplier;
-    final hs = 1.0 + n * 0.10;
-    final ss = 1.0 + n * 0.02;
+    final hs = 1.0 + n * 0.14;
+    final ss = 1.0 + n * 0.03;
 
-    // Heat mostly buys *frequency* (see _tickRaids); it only partly scales the
-    // size of a single raid, and the total is capped. Multiplying the count by
-    // the raw threat meant a high-value contract could field 90 drones at once
-    // and flatten a whole base in one go with no counterplay.
+    // Heat buys *more waves per night* (see _onNightfall); it only partly
+    // scales any single wave, and the total is capped. Multiplying the count by
+    // raw threat meant a high-value contract could field ~90 drones at once and
+    // flatten a whole base with no counterplay.
     final sizeFactor = 0.6 + 0.4 * threat;
-    final drones = math.min(22, ((3 + n * 1.5) * sizeFactor).round());
-    final malware = math.min(6, ((n / 4) * sizeFactor).floor());
+    final drones = math.min(20, ((3 + n * 1.6) * sizeFactor).round());
+    final malware = math.min(6, ((n / 3) * sizeFactor).floor());
     var t = 0.0;
     for (var i = 0; i < drones; i++) {
       _pendingSpawns.add(
@@ -977,8 +1040,9 @@ class GridGuardGame extends FlameGame {
           _PendingSpawn(t, EnemyType.malwareCrawler, hs, ss));
       t += 0.9;
     }
-    waveNumber = n;
-    bossActive = n % 5 == 0;
+    waveNumber = raidCount;
+    // Every fifth day is a named assault — a beat the player counts toward.
+    bossActive = dayNumber % 5 == 0;
     if (bossActive) addShake(shakeMagnitudeHeavy);
     _emitSfx(Sfx.waveStart);
     _publishSnapshot(force: true);
@@ -1054,6 +1118,9 @@ class GridGuardGame extends FlameGame {
       coreIntegrity: coreIntegrity,
       maxCoreIntegrity: integrityMax,
       waveNumber: waveNumber,
+      dayNumber: dayNumber,
+      nightWavesTotal: nightWavesTotal,
+      nightWavesDone: nightWavesDone,
       totalWaves: spawner.totalWaves,
       phase: phase,
       elapsedSeconds: elapsed,
