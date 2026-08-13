@@ -39,7 +39,7 @@ import 'components/enemy_component.dart';
 import 'components/facility_component.dart';
 import 'components/floating_text.dart';
 import 'components/ground_tile.dart';
-import 'components/night_overlay.dart';
+import 'components/sky_overlay.dart';
 import 'components/scenery.dart';
 import 'components/wind_turbine_component.dart';
 import 'components/pv_panel_component.dart';
@@ -771,7 +771,7 @@ class GridGuardGame extends FlameGame {
 
     worldRoot = PositionComponent();
     add(worldRoot);
-    add(NightOverlay());
+    add(SkyOverlay());
 
     _buildBoard();
 

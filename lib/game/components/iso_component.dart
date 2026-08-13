@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 
 import '../grid_guard_game.dart';
+import 'sky_overlay.dart';
 
 /// Base for anything that lives on the isometric board.
 ///
@@ -59,11 +60,53 @@ abstract class IsoComponent extends PositionComponent
   }) {
     final w = game.iso.tileWidth * widthTiles;
     final h = w * sprite.srcSize.y / sprite.srcSize.x;
+
+    // A shadow thrown by the real sun: it swings from west to east through the
+    // day and stretches as the sun drops, so the time of day is readable off
+    // the ground itself.
+    final elevation = game.sun.elevationDegrees;
+    final offset = SunShadow.offsetFor(
+      elevationDegrees: elevation,
+      timeOfDay: game.timeOfDay,
+      height: h * 0.55,
+    );
+    if (offset != null) {
+      final alpha = SunShadow.opacityFor(elevation);
+      canvas.save();
+      canvas.translate(offset.dx, offset.dy);
+      // Squashed and skewed, the way a shadow falls across flat ground.
+      canvas.scale(1.0, 0.42);
+      canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(0, h * sinkFrac), width: w * 0.72, height: h * 0.5),
+        Paint()
+          ..color = const Color(0xFF0B1220).withValues(alpha: alpha)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+      );
+      canvas.restore();
+    }
+
     sprite.render(
       canvas,
       position: Vector2(0, h * sinkFrac),
       size: Vector2(w, h),
       anchor: Anchor.bottomCenter,
     );
+
+    // After dark a working structure lights itself, which is what stops a night
+    // board from being a grey board.
+    if (elevation < 2) {
+      final night = ((2 - elevation) / 14).clamp(0.0, 1.0);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(0, -h * 0.35),
+          width: w * 0.95,
+          height: h * 0.7,
+        ),
+        Paint()
+          ..color = const Color(0xFFFFD79A).withValues(alpha: 0.12 * night)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+      );
+    }
   }
 }

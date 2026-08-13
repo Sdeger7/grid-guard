@@ -71,6 +71,19 @@ class GroundTile extends IsoComponent {
     if (isEdge) {
       grass = Color.lerp(grass, skin.secondary, 0.55)!;
     }
+    // Ground takes the light: warm and washed out under a high sun, deep and
+    // desaturated after dark. Without this the board reads as the same picture
+    // at noon and midnight, which is the single biggest thing that made it look
+    // flat.
+    final elevation = game.sun.elevationDegrees;
+    if (elevation > 2) {
+      grass = Color.lerp(grass, const Color(0xFFFFF6D8),
+          (elevation / 90 * 0.22).clamp(0.0, 0.22))!;
+    } else {
+      final night = ((2 - elevation) / 14).clamp(0.0, 1.0);
+      grass = Color.lerp(grass, const Color(0xFF14203A), 0.45 * night)!;
+    }
+
     canvas.drawPath(diamond, Paint()..color = grass);
 
     // A few blades of grass for texture (skipped on the base's own tile).
@@ -89,6 +102,17 @@ class GroundTile extends IsoComponent {
         canvas.drawLine(
             Offset(bx, by), Offset(bx + lean, by - 4 - _n * 3), tuft);
       }
+    }
+
+    // A soft vignette toward the map edge, so the yard reads as a place with a
+    // horizon rather than a diamond floating in green.
+    if (isEdge) {
+      canvas.drawPath(
+        diamond,
+        Paint()
+          ..color = const Color(0xFF0B1220).withValues(alpha: 0.18)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+      );
     }
 
     // The base's tile keeps a faint pad so the centre reads as prepared ground.
