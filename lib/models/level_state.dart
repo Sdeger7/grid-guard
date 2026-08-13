@@ -52,6 +52,8 @@ class LevelState {
     required this.maxCoreIntegrity,
     required this.waveNumber,
     required this.dayNumber,
+    required this.weatherEmoji,
+    required this.weatherName,
     required this.nightWavesTotal,
     required this.nightWavesDone,
     required this.totalWaves,
@@ -114,6 +116,10 @@ class LevelState {
   /// Which day of the run this is. Raids only happen at night, so the day
   /// number is the real progress marker the player counts.
   final int dayNumber;
+
+  /// Today's forecast, for the status strip.
+  final String weatherEmoji;
+  final String weatherName;
 
   /// Tonight's wave plan and how much of it has already landed.
   final int nightWavesTotal;

@@ -16,6 +16,7 @@ import '../../services/audio_service.dart' as audio;
 import '../../services/monetization_service.dart';
 import '../theme.dart';
 import '../widgets/hud.dart';
+import '../widgets/dawn_panel.dart';
 import '../widgets/level_end.dart';
 import '../widgets/offline_panel.dart';
 import '../widgets/tutorial_overlay.dart';
@@ -42,6 +43,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
   static const _autosaveInterval = Duration(seconds: 5);
   Timer? _autosaveTimer;
   OfflineReport? _offline;
+  gg.DawnReport? _dawn;
 
   LevelState? _snapshot;
   gg.SelectedStructure? _selected;
@@ -117,6 +119,12 @@ class _GameScreenState extends ConsumerState<GameScreen>
   void _onSnapshot(LevelState state) {
     _snapshot = state;
     if (!mounted) return;
+    // The game raises a dawn report once per morning; claim it for the UI.
+    final dawn = _game.pendingDawn;
+    if (dawn != null) {
+      _game.pendingDawn = null;
+      _dawn = dawn;
+    }
     // The first snapshot fires during the game's onLoad (widget-build phase),
     // and later ones arrive from the game loop. Defer the rebuild to the next
     // frame so we never call setState (or touch a provider) mid-build.
@@ -337,6 +345,11 @@ class _GameScreenState extends ConsumerState<GameScreen>
               ),
             ),
           ),
+          if (_dawn != null && _offline == null)
+            DawnPanel(
+              report: _dawn!,
+              onClose: () => setState(() => _dawn = null),
+            ),
           if (_offline != null)
             OfflinePanel(
               report: _offline!,

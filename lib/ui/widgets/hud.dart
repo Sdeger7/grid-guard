@@ -89,6 +89,20 @@ class _TopBar extends StatelessWidget {
     final netLabel = '${net >= 0 ? '+' : ''}${net.toStringAsFixed(0)}/s';
     // Bars stay pinned; the stat strip scrolls so a narrow phone never clips it.
     final stats = <Widget>[
+      // Day number first: it is the run's real progress marker, and the
+      // forecast beside it tells the player what today's grid will be like.
+      _Stat(
+        icon: Icons.calendar_today_rounded,
+        color: GGColors.ink,
+        label: '${state.dayNumber}',
+        caption: state.isNight ? 'NIGHT' : 'DAY',
+      ),
+      _Stat(
+        icon: Icons.cloud_queue_rounded,
+        color: GGColors.teal,
+        label: state.weatherEmoji,
+        caption: state.weatherName.toUpperCase(),
+      ),
       _Stat(
         icon: state.isNight ? Icons.nightlight_round : Icons.wb_sunny_rounded,
         color: state.isNight ? GGColors.accent : GGColors.star,

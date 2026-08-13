@@ -7,7 +7,9 @@ import 'package:flame/game.dart';
 import '../data/dc_workload.dart';
 import '../data/enemy_catalog.dart';
 import '../data/premium_packages.dart';
+import '../data/story.dart';
 import '../data/tower_catalog.dart';
+import '../data/weather.dart';
 import '../data/zone_theme.dart';
 import '../models/enemy_type.dart';
 import '../models/base_save.dart';
@@ -89,6 +91,30 @@ enum Sfx {
   waveStart,
   levelWin,
   levelLose,
+}
+
+/// What the player is told when a night ends: the payout, the forecast, and
+/// any story traffic that came in overnight.
+class DawnReport {
+  const DawnReport({
+    required this.day,
+    required this.bonus,
+    required this.coins,
+    required this.weather,
+    required this.damaged,
+    this.beat,
+  });
+
+  final int day;
+  final int bonus;
+  final double coins;
+  final Weather weather;
+
+  /// How many structures came out of the night needing repair.
+  final int damaged;
+
+  /// Story traffic that arrived this morning, if any.
+  final StoryBeat? beat;
 }
 
 /// One staggered enemy emission queued by the endless raid director.
@@ -199,8 +225,11 @@ class GridGuardGame extends FlameGame {
 
   bool get isNight => sunFactor <= 0.02;
 
-  /// Actual PV output right now (nameplate scaled by sunlight).
-  double get effectivePvOutput => pvOutput * sunFactor;
+  /// Today's weather, rolled at each dawn. Swings solar, wind and raider speed.
+  Weather weather = WeatherCatalog.clear;
+
+  /// Actual PV output right now (nameplate scaled by sunlight and weather).
+  double get effectivePvOutput => pvOutput * sunFactor * weather.sunScale;
 
   /// Combined nameplate output of all wind turbines (before wind).
   double get windOutput =>
@@ -211,7 +240,8 @@ class GridGuardGame extends FlameGame {
   double windFactor = 0.6;
   double _windPhase = 0;
 
-  double get effectiveWindOutput => windOutput * windFactor;
+  double get effectiveWindOutput =>
+      windOutput * windFactor * weather.windScale;
 
   /// Total energy generated right now (solar + wind).
   double get generation => effectivePvOutput + effectiveWindOutput;
@@ -1058,7 +1088,8 @@ class GridGuardGame extends FlameGame {
     final e = EnemyComponent(
       spec: spec,
       maxHealth: spec.baseHealth * healthScale,
-      speed: spec.baseSpeed * speedScale,
+      // Bad weather grounds raiders as surely as it dims the panels.
+      speed: spec.baseSpeed * speedScale * weather.raiderSpeedScale,
       spawn: _randomEdgeSpawn(),
       target: baseTile,
     );
@@ -1146,6 +1177,7 @@ class GridGuardGame extends FlameGame {
           save.workloadIndex.clamp(0, DcWorkloadCatalog.workloads.length - 1);
     }
     _threatRamp = workload.threat;
+    weather = WeatherCatalog.forDay(dayNumber);
     energy = save.energy.clamp(0, energyCapacity);
     coreIntegrity = (save.coreIntegrity.clamp(0.05, 1.0)) * integrityMax;
     // A restored site is already running; there is no "press start" any more.
@@ -1280,16 +1312,33 @@ class GridGuardGame extends FlameGame {
     _publishSnapshot(force: true);
   }
 
+  /// The morning's news, handed to the UI once per dawn.
+  DawnReport? pendingDawn;
+
   /// Dawn: the night is survived. Pay for it, and roll the day over.
   void _onDawn() {
     _nightWaveTimes.clear();
     dayNumber++;
+    weather = WeatherCatalog.forDay(dayNumber);
     // A survival payout that grows with the day and the contract, so pushing
     // into hotter work is worth the risk beyond the per-second income.
     lastDawnBonus =
         (25 + dayNumber * 12 * workload.threat).round();
     money += lastDawnBonus;
-    if (workload.minesCoins) coinsEarned += 1.0 + dayNumber * 0.15;
+    final coinBonus = workload.minesCoins ? 1.0 + dayNumber * 0.15 : 0.0;
+    coinsEarned += coinBonus;
+
+    final beat = dayNumber > storyDayShown ? StoryCatalog.forDay(dayNumber) : null;
+    if (beat != null) storyDayShown = dayNumber;
+
+    pendingDawn = DawnReport(
+      day: dayNumber,
+      bonus: lastDawnBonus,
+      coins: coinBonus,
+      weather: weather,
+      damaged: damagedCount,
+      beat: beat,
+    );
     _publishSnapshot(force: true);
   }
 
@@ -1401,6 +1450,8 @@ class GridGuardGame extends FlameGame {
       maxCoreIntegrity: integrityMax,
       waveNumber: waveNumber,
       dayNumber: dayNumber,
+      weatherEmoji: weather.emoji,
+      weatherName: weather.name,
       nightWavesTotal: nightWavesTotal,
       nightWavesDone: nightWavesDone,
       totalWaves: spawner.totalWaves,
