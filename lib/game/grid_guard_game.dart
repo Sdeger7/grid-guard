@@ -2255,6 +2255,15 @@ class GridGuardGame extends FlameGame {
 
     if (!isNight) return;
 
+    // A window that comes due while the player is here becomes a live raid.
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    for (final t in scheduledRaids) {
+      if (t <= nowMs && !_firedRaids.contains(t)) {
+        _firedRaids.add(t);
+        if (enemies.length <= 30) _launchRaid();
+      }
+    }
+
     _nightClock += dt;
     while (_nightWaveTimes.isNotEmpty && _nightWaveTimes.first <= _nightClock) {
       // Never stack a fresh wave onto one the player is still losing to; that
@@ -2338,11 +2347,153 @@ class GridGuardGame extends FlameGame {
     return out;
   }
 
+  // ---- Raid windows on the real clock ----
+  //
+  // A night is now ten real hours, so raids cannot simply run through it: most
+  // of a night happens while the player is asleep. Instead each night gets one
+  // to three announced windows at fixed wall-clock times. Be there and you
+  // fight it with your abilities, and hold far more of the site. Miss it and
+  // your automated defences handle it alone, which costs you — but never the
+  // whole operation.
+
+  /// Epoch-millisecond times of tonight's raids, earliest first.
+  final List<int> scheduledRaids = [];
+
+  /// Windows already resolved, so a raid never fires twice.
+  final Set<int> _firedRaids = {};
+
+  /// Builds the schedule for the coming night, deterministic per date and site
+  /// so an Intel Center can honestly report it in advance.
+  void scheduleRaidWindows() {
+    final now = DateTime.now();
+    final dayKey = DateTime(now.year, now.month, now.day)
+            .millisecondsSinceEpoch ~/
+        Duration.millisecondsPerDay;
+    final r = math.Random(dayKey * 7919 + cityId.hashCode);
+
+    scheduledRaids.clear();
+    final forecast = raidForecastFor(dayNumber);
+    if (!forecast.raided) return;
+
+    final count = (1 + threatMultiplier * forecast.weight).round().clamp(1, 3);
+    final sunset = sun.sunset;
+    final sunrise = sun.sunrise.add(const Duration(days: 1));
+    final darkMinutes = sunrise.difference(sunset).inMinutes;
+    if (darkMinutes <= 0) return;
+
+    for (var i = 0; i < count; i++) {
+      // Spread through the dark, avoiding the last hour so a night always ends
+      // with a breather.
+      final offset = (darkMinutes * 0.08 +
+              r.nextDouble() * darkMinutes * 0.8 * ((i + 1) / count))
+          .round();
+      scheduledRaids
+          .add(sunset.add(Duration(minutes: offset)).millisecondsSinceEpoch);
+    }
+    scheduledRaids.sort();
+  }
+
+  /// The next raid the player can still be present for, or null.
+  DateTime? get nextRaidAt {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    for (final t in scheduledRaids) {
+      if (t > now && !_firedRaids.contains(t)) {
+        return DateTime.fromMillisecondsSinceEpoch(t);
+      }
+    }
+    return null;
+  }
+
+  /// How well the site defends itself with nobody at the controls. Towers keep
+  /// firing and drones keep flying; what is missing is the player's judgement,
+  /// which is worth a great deal.
+  double get automatedDefenceRating {
+    var rating = 0.0;
+    for (final s in structures) {
+      if (s.isOffline) continue;
+      switch (s.spec.category) {
+        case TowerCategory.damage:
+          rating += s.currentTier.damage / math.max(0.15, s.currentTier.fireInterval);
+          break;
+        case TowerCategory.droneBay:
+          rating += s.currentTier.droneCount * 22;
+          break;
+        case TowerCategory.slow:
+          rating += 8;
+          break;
+        default:
+          break;
+      }
+    }
+    return rating;
+  }
+
+  /// Resolves the raids that happened while the app was closed.
+  ///
+  /// Automated defences do the work, and how well they do it decides how much
+  /// of the site is standing in the morning. This is the price of not being
+  /// there — real, and survivable.
+  ({int raids, int damaged, int destroyed, bool blackout}) resolveMissedRaids(
+      int sinceMs) {
+    if (sinceMs <= 0) {
+      return (raids: 0, damaged: 0, destroyed: 0, blackout: false);
+    }
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final hoursAway = (now - sinceMs) / 3600000.0;
+    if (hoursAway < 0.5) {
+      return (raids: 0, damaged: 0, destroyed: 0, blackout: false);
+    }
+
+    // Roughly one window per night away, capped so a fortnight's absence is
+    // not an extinction event.
+    final raids = math.min(6, (hoursAway / 10).floor() + (hoursAway > 4 ? 1 : 0));
+    if (raids <= 0) {
+      return (raids: 0, damaged: 0, destroyed: 0, blackout: false);
+    }
+
+    final strength = (12 + dayNumber * 6) * threatMultiplier * raids;
+    final held = automatedDefenceRating * 1.6;
+    // Everything the defences could not stop lands on the buildings.
+    final leak = ((strength - held) / math.max(60.0, strength)).clamp(0.0, 0.8);
+
+    var damaged = 0;
+    var destroyed = 0;
+    final list = structures.toList()..shuffle(_rng);
+    for (final s in list) {
+      if (_rng.nextDouble() > leak) continue;
+      final hurt = s.currentTier.cost * 0.0 + 0.35 + _rng.nextDouble() * 0.4;
+      final survived = !s.takeStructureDamage(s.health * hurt);
+      if (survived) {
+        damaged++;
+      } else {
+        destroyed++;
+        destroyStructure(s);
+      }
+    }
+
+    final blackout = leak > 0.6;
+    if (blackout) {
+      coreIntegrity = integrityMax * 0.5;
+      money = (money * 0.85).floorToDouble();
+      blackoutCount++;
+    }
+
+    raidCount += raids;
+    _publishSnapshot(force: true);
+    return (
+      raids: raids,
+      damaged: damaged,
+      destroyed: destroyed,
+      blackout: blackout
+    );
+  }
+
   /// Dusk: schedule tonight's waves. Heat decides how many come, spread across
   /// the dark hours so there's always a lull to repair in.
   void _onNightfall() {
     _nightClock = 0;
     _nightWaveTimes.clear();
+    scheduleRaidWindows();
 
     // A full night is now twelve real minutes, so a single wave would leave it
     // mostly empty. Heat still decides how heavy the night is; the night's
@@ -2526,6 +2677,9 @@ class GridGuardGame extends FlameGame {
       maxCoreIntegrity: integrityMax,
       waveNumber: waveNumber,
       dayNumber: dayNumber,
+      minutesToRaid: nextRaidAt == null
+          ? -1
+          : nextRaidAt!.difference(DateTime.now()).inMinutes,
       forecastRange: forecastRange,
       tonightRaided:
           forecastRange > 0 && reportedForecastFor(dayNumber).raided,

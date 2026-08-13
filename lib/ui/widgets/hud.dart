@@ -148,6 +148,17 @@ class _TopBar extends StatelessWidget {
         caption: 'WIND',
       ),
       // With an Intel Center up, tonight stops being a coin flip.
+      if (state.minutesToRaid >= 0)
+        _Stat(
+          icon: Icons.notifications_active_rounded,
+          color: state.minutesToRaid < 15
+              ? GGColors.danger
+              : GGColors.accentWarm,
+          label: state.minutesToRaid < 60
+              ? '${state.minutesToRaid}m'
+              : '${(state.minutesToRaid / 60).toStringAsFixed(1)}h',
+          caption: 'RAID IN',
+        ),
       if (state.forecastRange > 0)
         _Stat(
           icon: Icons.radar_rounded,

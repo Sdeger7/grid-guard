@@ -53,6 +53,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
   Timer? _autosaveTimer;
   Timer? _weatherTimer;
   OfflineReport? _offline;
+  ({int raids, int damaged, int destroyed, bool blackout})? _missedRaids;
   gg.DawnReport? _dawn;
 
   /// Today's streak day, set on the first launch of each day.
@@ -123,10 +124,17 @@ class _GameScreenState extends ConsumerState<GameScreen>
         // Report what the site produced while the app was closed, once the
         // game has finished rebuilding the base.
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          // What the site earned, and what it had to defend on its own.
           final report = _game.computeOfflineEarnings(save);
-          if (!mounted || !report.isWorthShowing) return;
-          _game.applyOfflineEarnings(report);
-          setState(() => _offline = report);
+          final raids = _game.resolveMissedRaids(save.savedAtMs);
+          _game.scheduleRaidWindows();
+          if (!mounted) return;
+          if (report.isWorthShowing) _game.applyOfflineEarnings(report);
+          if (!report.isWorthShowing && raids.raids == 0) return;
+          setState(() {
+            _offline = report;
+            _missedRaids = raids;
+          });
         });
       }
     }
@@ -454,7 +462,11 @@ class _GameScreenState extends ConsumerState<GameScreen>
           if (_offline != null && _streakDay == null)
             OfflinePanel(
               report: _offline!,
-              onClose: () => setState(() => _offline = null),
+              raids: _missedRaids,
+              onClose: () => setState(() {
+                _offline = null;
+                _missedRaids = null;
+              }),
             ),
           if (showSurvivalEnd)
             SurvivalEndPanel(

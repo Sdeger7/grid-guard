@@ -11,10 +11,14 @@ class OfflinePanel extends StatelessWidget {
     super.key,
     required this.report,
     required this.onClose,
+    this.raids,
   });
 
   final OfflineReport report;
   final VoidCallback onClose;
+
+  /// What the automated defences had to deal with alone while you were gone.
+  final ({int raids, int damaged, int destroyed, bool blackout})? raids;
 
   String get _away {
     final mins = report.seconds ~/ 60;
@@ -69,6 +73,49 @@ class OfflinePanel extends StatelessWidget {
                         label: 'Mined',
                         value: report.coins.toStringAsFixed(2),
                       ),
+                    ],
+                    if (raids != null && raids!.raids > 0) ...[
+                      const SizedBox(height: 14),
+                      Text('WHILE YOU WERE GONE',
+                          style: GGText.soft.copyWith(
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 4),
+                      _Row(
+                        icon: Icons.radar_rounded,
+                        color: GGColors.danger,
+                        label: 'Raids your defences met alone',
+                        value: '${raids!.raids}',
+                      ),
+                      if (raids!.damaged > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: _Row(
+                            icon: Icons.build_rounded,
+                            color: GGColors.accentWarm,
+                            label: 'Damaged',
+                            value: '${raids!.damaged}',
+                          ),
+                        ),
+                      if (raids!.destroyed > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: _Row(
+                            icon: Icons.dangerous_rounded,
+                            color: GGColors.danger,
+                            label: 'Lost outright',
+                            value: '${raids!.destroyed}',
+                          ),
+                        ),
+                      const SizedBox(height: 6),
+                      Text(
+                          raids!.blackout
+                              ? 'The site went dark before dawn. Being here '
+                                  'when a window opens is worth more than any '
+                                  'upgrade.'
+                              : 'Your towers held it. Being present would have '
+                                  'held it cheaper.',
+                          style: GGText.soft),
                     ],
                     if (report.wasted > 0) ...[
                       const SizedBox(height: 8),

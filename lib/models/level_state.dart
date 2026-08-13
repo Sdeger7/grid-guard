@@ -53,6 +53,7 @@ class LevelState {
     required this.maxCoreIntegrity,
     required this.waveNumber,
     required this.dayNumber,
+    required this.minutesToRaid,
     required this.forecastRange,
     required this.tonightRaided,
     required this.tonightWeight,
@@ -135,6 +136,11 @@ class LevelState {
   /// Which day of the run this is. Raids only happen at night, so the day
   /// number is the real progress marker the player counts.
   final int dayNumber;
+
+  /// Minutes until the next scheduled raid window, or -1 when none is coming.
+  /// Being present for one is worth far more than any upgrade, so the player
+  /// is told when it is.
+  final int minutesToRaid;
 
   /// How many nights ahead the Intel Center can see (0 = no warning at all),
   /// and what it says about tonight.
