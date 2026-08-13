@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
+
 /// Draws a beveled isometric box centered on the local origin, sitting on the
 /// tile's base diamond and rising by [height] pixels. Three shaded faces (top /
 /// left / right) give the boxy, engineered look the design calls for.
@@ -64,3 +66,27 @@ void drawIsoBox(
       left: Color.lerp(base, const Color(0xFF000000), 0.28)!,
       right: Color.lerp(base, const Color(0xFF000000), 0.12)!,
     );
+
+
+/// Draws a structure's tier: pips for the first three, a numeral after that.
+///
+/// Upgrades are open-ended, so a row of pips would eventually run off the side
+/// of the tile — past three it becomes "T12" instead.
+void drawTierMark(Canvas canvas, int tier, double y,
+    {Color color = const Color(0xFFFFE08A)}) {
+  if (tier <= 2) {
+    final paint = Paint()..color = color;
+    for (var i = 0; i <= tier; i++) {
+      canvas.drawCircle(Offset(-6 + i * 6.0, y), 2.0, paint);
+    }
+    return;
+  }
+  final label = TextPainter(
+    text: TextSpan(
+      text: 'T${tier + 1}',
+      style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w800),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  label.paint(canvas, Offset(-label.width / 2, y - 5));
+}

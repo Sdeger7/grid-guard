@@ -238,10 +238,7 @@ class DroneBayComponent extends StructureComponent {
         Paint()..color = spec.tint.withValues(alpha: 0.4 + 0.4 * beat));
     canvas.restore();
 
-    for (var i = 0; i <= tier; i++) {
-      canvas.drawCircle(Offset(-6 + i * 6.0, -halfH * 1.6), 2.0,
-          Paint()..color = const Color(0xFFFFE08A));
-    }
+    drawTierMark(canvas, tier, -halfH * 1.6);
     renderDamageOverlay(canvas);
   }
 }

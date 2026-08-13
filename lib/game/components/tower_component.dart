@@ -230,9 +230,6 @@ class TowerComponent extends StructureComponent {
   }
 
   void _drawTierPips(Canvas canvas, double halfH) {
-    final paint = Paint()..color = const Color(0xFFFFE08A);
-    for (var i = 0; i <= tier; i++) {
-      canvas.drawCircle(Offset(-6 + i * 6.0, -halfH * 2.3), 2.0, paint);
-    }
+    drawTierMark(canvas, tier, -halfH * 2.3);
   }
 }

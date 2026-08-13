@@ -1,9 +1,5 @@
 import 'dart:ui';
 
-// TextPainter lives in the painting layer; TextDirection and friends come from
-// dart:ui, so only the painter types are pulled in here to avoid a clash.
-import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
-
 import '../../data/skins.dart';
 import 'iso_box.dart';
 import 'structure_component.dart';
@@ -67,30 +63,8 @@ class FacilityComponent extends StructureComponent {
     renderDamageOverlay(canvas);
   }
 
-  /// Tier markers. Buildings with many upgrade steps (the Intel Center has
-  /// seven) would run a pip row off the side of the tile, so past three the
-  /// count is drawn as a numeral instead.
   void _pips(Canvas canvas) {
-    final y = -game.iso.halfH * 2.4;
-    final pip = game.skinFor(SkinSlot.structure).accent;
-    if (tier <= 2) {
-      for (var i = 0; i <= tier; i++) {
-        canvas.drawCircle(
-            Offset(-6 + i * 6.0, y), 2.0, Paint()..color = pip);
-      }
-      return;
-    }
-    final label = TextPainter(
-      text: TextSpan(
-        text: 'T${tier + 1}',
-        style: TextStyle(
-          color: pip,
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    label.paint(canvas, Offset(-label.width / 2, y - 5));
+    drawTierMark(canvas, tier, -game.iso.halfH * 2.4,
+        color: game.skinFor(SkinSlot.structure).accent);
   }
 }
