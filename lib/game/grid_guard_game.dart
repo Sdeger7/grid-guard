@@ -247,8 +247,20 @@ class GridGuardGame extends FlameGame {
   double get dcIncome =>
       workload.income * dcTotalPower * perks.incomeMultiplier;
 
+  /// Heat actually being applied right now. Switching to a hotter contract
+  /// doesn't summon a maximum raid on the spot — word gets out over about a
+  /// minute, which is the window the player uses to build defences before the
+  /// new attention arrives.
+  double _threatRamp = DcWorkloadCatalog.workloads.first.threat;
+
+  /// How fast heat catches up with the current contract, per second.
+  static const double threatRampRate = 0.025;
+
   /// How hot the base runs — scales raid frequency and size.
-  double get threatMultiplier => workload.threat * growthThreat;
+  double get threatMultiplier => _threatRamp * growthThreat;
+
+  /// Where heat is heading, so the HUD can warn before it lands.
+  double get targetThreatMultiplier => workload.threat * growthThreat;
 
   /// Set from the HUD build tray; null == inspect/select mode.
   TowerType? selectedBuild;
@@ -489,6 +501,7 @@ class GridGuardGame extends FlameGame {
     if (phase == RunPhase.inProgress) {
       elapsed += dt;
       if (config.endless) {
+        _tickThreatRamp(dt);
         _tickRaids(dt);
       } else {
         spawner.tick(dt);
@@ -901,6 +914,19 @@ class GridGuardGame extends FlameGame {
   int raidCount = 0;
   final List<_PendingSpawn> _pendingSpawns = [];
 
+  /// Eases applied heat toward the current contract's. Cooling off after
+  /// downgrading is as gradual as heating up — dropping to Web Hosting the
+  /// instant a raid launches shouldn't cancel it.
+  void _tickThreatRamp(double dt) {
+    final target = workload.threat;
+    final step = threatRampRate * dt;
+    if ((_threatRamp - target).abs() <= step) {
+      _threatRamp = target;
+    } else {
+      _threatRamp += _threatRamp < target ? step : -step;
+    }
+  }
+
   void _tickRaids(double dt) {
     // Drain staggered spawns from the current raid.
     for (final p in _pendingSpawns) {
@@ -913,6 +939,12 @@ class GridGuardGame extends FlameGame {
 
     _raidTimer -= dt;
     if (_raidTimer <= 0) {
+      // Never stack a fresh raid on top of one the player is still losing to;
+      // that death spiral is what wiped whole bases at once.
+      if (enemies.length > 30) {
+        _raidTimer = 4;
+        return;
+      }
       _launchRaid();
       // Higher-value workloads run hotter: raids come faster (down to ~8s).
       _raidTimer =
@@ -926,8 +958,14 @@ class GridGuardGame extends FlameGame {
     final threat = threatMultiplier;
     final hs = 1.0 + n * 0.10;
     final ss = 1.0 + n * 0.02;
-    final drones = ((4 + n * 2) * threat).round();
-    final malware = ((n / 3) * threat).floor();
+
+    // Heat mostly buys *frequency* (see _tickRaids); it only partly scales the
+    // size of a single raid, and the total is capped. Multiplying the count by
+    // the raw threat meant a high-value contract could field 90 drones at once
+    // and flatten a whole base in one go with no counterplay.
+    final sizeFactor = 0.6 + 0.4 * threat;
+    final drones = math.min(22, ((3 + n * 1.5) * sizeFactor).round());
+    final malware = math.min(6, ((n / 4) * sizeFactor).floor());
     var t = 0.0;
     for (var i = 0; i < drones; i++) {
       _pendingSpawns.add(
@@ -1011,6 +1049,7 @@ class GridGuardGame extends FlameGame {
       damagedCount: damagedCount,
       totalRepairCost: totalRepairCost,
       threat: threatMultiplier,
+      threatTarget: targetThreatMultiplier,
       baseValue: baseValue,
       coreIntegrity: coreIntegrity,
       maxCoreIntegrity: integrityMax,

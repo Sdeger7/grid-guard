@@ -116,7 +116,12 @@ class _TopBar extends StatelessWidget {
       _Stat(
         icon: Icons.local_fire_department_rounded,
         color: GGColors.danger,
-        label: '${state.threat.toStringAsFixed(1)}x',
+        // Show the climb while heat catches up with a newly accepted contract,
+        // so the rise is something the player can see coming and prepare for.
+        label: state.threatTarget > state.threat + 0.05
+            ? '${state.threat.toStringAsFixed(1)}→'
+                '${state.threatTarget.toStringAsFixed(1)}x'
+            : '${state.threat.toStringAsFixed(1)}x',
         caption: 'THREAT',
       ),
       _Stat(

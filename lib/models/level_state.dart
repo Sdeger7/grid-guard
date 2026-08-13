@@ -46,6 +46,7 @@ class LevelState {
     required this.damagedCount,
     required this.totalRepairCost,
     required this.threat,
+    required this.threatTarget,
     required this.baseValue,
     required this.coreIntegrity,
     required this.maxCoreIntegrity,
@@ -96,6 +97,10 @@ class LevelState {
 
   /// Live raid pressure and how much the base is worth (drives that pressure).
   final double threat;
+
+  /// Where [threat] is heading under the current contract. Higher than [threat]
+  /// means heat is still climbing toward the job the player just accepted.
+  final double threatTarget;
   final int baseValue;
 
   // Core / waves.
