@@ -9,9 +9,6 @@ enum SpeedupEffect {
   /// Straight cash into the build fund.
   cash,
 
-  /// WATT credited directly, for players who would rather buy than mine.
-  watt,
-
   /// Repairs every damaged structure on the site at no cash cost.
   fullRepair,
 }
@@ -19,6 +16,12 @@ enum SpeedupEffect {
 /// A real-money purchase. These exist because the site is deliberately a long
 /// project — days of building, not minutes — so the thing worth selling is
 /// time, not power. Nothing here is unavailable to a patient player.
+///
+/// WATT is deliberately absent and must stay that way. It is a closed
+/// in-game currency: minted only by mining hardware, spent only on perks, and
+/// never bought or sold for real money. That keeps the economy honest and
+/// keeps the game clear of the gambling and securities rules that attach the
+/// moment a virtual currency has a real-money price.
 @immutable
 class Speedup {
   const Speedup({
@@ -84,15 +87,6 @@ class SpeedupCatalog {
       effect: SpeedupEffect.cash,
       amount: 5000,
       blurb: '+5,000 MONEY straight into the build fund.',
-    ),
-    Speedup(
-      sku: 'watt_250',
-      name: 'WATT Bundle',
-      emoji: '⚡',
-      priceLabel: '\$9.99',
-      effect: SpeedupEffect.watt,
-      amount: 5,
-      blurb: '5 WATT — weeks of mining, for perks you would rather not wait for.',
     ),
   ];
 }

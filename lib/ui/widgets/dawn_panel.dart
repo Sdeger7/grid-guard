@@ -7,10 +7,20 @@ import '../theme.dart';
 /// any story traffic. This is the beat that makes a night feel finished and
 /// gives the next one a reason.
 class DawnPanel extends StatelessWidget {
-  const DawnPanel({super.key, required this.report, required this.onClose});
+  const DawnPanel({
+    super.key,
+    required this.report,
+    required this.onClose,
+    this.canRelocate = false,
+    this.onRelocate,
+  });
 
   final DawnReport report;
   final VoidCallback onClose;
+
+  /// Set once the site has held long enough for the next zone to take you.
+  final bool canRelocate;
+  final VoidCallback? onRelocate;
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +176,17 @@ class DawnPanel extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(beat.body, style: GGText.soft),
                           ],
+                        ),
+                      ),
+                    ],
+                    if (canRelocate && onRelocate != null) ...[
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: onRelocate,
+                          icon: const Icon(Icons.moving_rounded, size: 18),
+                          label: const Text('A new site is available'),
                         ),
                       ),
                     ],

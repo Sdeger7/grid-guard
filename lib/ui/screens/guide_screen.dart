@@ -136,7 +136,9 @@ class GuideScreen extends StatelessWidget {
                 'from your perk budget.\n\n'
                 'Real money appears in one place only: the services sheet, '
                 'which sells time — banked production, an emergency repair '
-                'crew, capital. Nothing there is unreachable by playing.',
+                'crew, capital. Nothing there is unreachable by playing, and '
+                'WATT is never for sale at any price. It is a closed currency: '
+                'mined in-game, spent in-game.',
           ),
           const _Section(
             emoji: '🌳',

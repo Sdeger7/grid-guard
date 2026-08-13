@@ -6,7 +6,6 @@ import '../../services/app_providers.dart';
 import '../theme.dart';
 import 'game_screen.dart';
 import 'guide_screen.dart';
-import 'level_select_screen.dart';
 import 'premium_screen.dart';
 import 'store_screen.dart';
 
@@ -54,13 +53,6 @@ class MainMenuScreen extends ConsumerWidget {
                     builder: (_) => GameScreen(config: LevelCatalog.survival))),
               ),
               const SizedBox(height: 12),
-              _MenuButton(
-                icon: Icons.grid_view_rounded,
-                label: 'CAMPAIGN',
-                color: GGColors.accent,
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const LevelSelectScreen())),
-              ),
               const SizedBox(height: 12),
               _MenuButton(
                 icon: Icons.currency_bitcoin_rounded,

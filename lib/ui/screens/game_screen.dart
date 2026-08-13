@@ -19,6 +19,7 @@ import '../widgets/hud.dart';
 import '../widgets/dawn_panel.dart';
 import '../widgets/level_end.dart';
 import '../widgets/offline_panel.dart';
+import '../widgets/relocate_sheet.dart';
 import '../widgets/speedup_sheet.dart';
 import '../widgets/tutorial_overlay.dart';
 import 'guide_screen.dart';
@@ -364,6 +365,11 @@ class _GameScreenState extends ConsumerState<GameScreen>
           if (_dawn != null && _offline == null)
             DawnPanel(
               report: _dawn!,
+              canRelocate: _game.canRelocate,
+              onRelocate: () {
+                setState(() => _dawn = null);
+                showRelocateSheet(context, _game);
+              },
               onClose: () => setState(() => _dawn = null),
             ),
           if (_offline != null)

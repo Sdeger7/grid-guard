@@ -13,6 +13,7 @@ import '../data/speedups.dart';
 import '../data/story.dart';
 import '../data/tower_catalog.dart';
 import '../data/weather.dart';
+import '../data/zones.dart';
 import '../data/zone_theme.dart';
 import '../models/enemy_type.dart';
 import '../models/base_save.dart';
@@ -161,6 +162,57 @@ class GridGuardGame extends FlameGame {
   /// one continuous site, not a fresh run each time the app opens.
   final BaseSave? initialBase;
 
+  /// Which zone this site sits in. Relocating to a harsher zone is the long
+  /// game's reset: buildings are left behind, WATT and perks come with you.
+  int zoneIndex = 0;
+  SiteZone get zone => ZoneCatalog.at(zoneIndex);
+
+  /// Days you must hold a site before the next zone will have you.
+  bool get canRelocate =>
+      ZoneCatalog.hasNextAfter(zoneIndex) &&
+      dayNumber >= (ZoneCatalog.nextAfter(zoneIndex)?.unlockDay ?? 9999);
+
+  /// Sells up and starts again in the next zone. Structures are left behind;
+  /// WATT, premium perks and your record come with you, and the new site opens
+  /// with capital scaled to how far you have come.
+  void relocate() {
+    if (!canRelocate) return;
+    for (final s in List<StructureComponent>.from(structures)) {
+      _occupied.remove(s.coord);
+      s.removeFromParent();
+    }
+    pvPanels.clear();
+    windTurbines.clear();
+    bessUnits.clear();
+    dataCenters.clear();
+    droneBays.clear();
+    intelCenters.clear();
+    _slowTowers.clear();
+    for (final e in List<EnemyComponent>.from(enemies)) {
+      e.removeFromParent();
+    }
+    enemies.clear();
+    _pendingSpawns.clear();
+    _nightWaveTimes.clear();
+    gridContracts.clear();
+
+    zoneIndex++;
+    dayNumber = 1;
+    raidCount = 0;
+    timeOfDay = 0.28;
+    _wasNight = false;
+    weather = WeatherCatalog.forDay(1);
+    // Seed capital scales with how far in you are, so a new zone is a fresh
+    // start rather than starting over from nothing.
+    money = (config.startMoney + perks.startMoneyBonus) * (1 + zoneIndex * 1.6);
+    energy = 0;
+    coreIntegrity = integrityMax;
+    workloadIndex = 0;
+    _threatRamp = DcWorkloadCatalog.workloads.first.threat;
+    _rollMissions();
+    _publishSnapshot(force: true);
+  }
+
   // ---- Shake tuning: single source of truth (design asks for one place). ----
   static const double shakeDurationDefault = 0.16; // 160ms
   static const double shakeMagnitudeLight = 5;
@@ -258,7 +310,8 @@ class GridGuardGame extends FlameGame {
   Weather weather = WeatherCatalog.clear;
 
   /// Actual PV output right now (nameplate scaled by sunlight and weather).
-  double get effectivePvOutput => pvOutput * sunFactor * weather.sunScale;
+  double get effectivePvOutput =>
+      pvOutput * sunFactor * weather.sunScale * zone.sunScale;
 
   /// Combined nameplate output of all wind turbines (before wind).
   double get windOutput =>
@@ -270,7 +323,7 @@ class GridGuardGame extends FlameGame {
   double _windPhase = 0;
 
   double get effectiveWindOutput =>
-      windOutput * windFactor * weather.windScale;
+      windOutput * windFactor * weather.windScale * zone.windScale;
 
   /// Total energy generated right now: solar + wind, plus any always-on
   /// generator the player has unlocked.
@@ -352,7 +405,11 @@ class GridGuardGame extends FlameGame {
   double get dcIncome => dataCenters.fold(
         0.0,
         (s, dc) =>
-            s + workloadOf(dc).income * _dcShare(dc) * perks.incomeMultiplier,
+            s +
+                workloadOf(dc).income *
+                    _dcShare(dc) *
+                    perks.incomeMultiplier *
+                    zone.incomeScale,
       );
 
   /// Heat actually being applied right now. Switching to a hotter contract
@@ -379,7 +436,8 @@ class GridGuardGame extends FlameGame {
   }
 
   /// Where heat is heading, so the HUD can warn before it lands.
-  double get targetThreatMultiplier => siteThreat * growthThreat;
+  double get targetThreatMultiplier =>
+      siteThreat * growthThreat * zone.threatScale;
 
   /// Set from the HUD build tray; null == inspect/select mode.
   TowerType? selectedBuild;
@@ -1091,12 +1149,14 @@ class GridGuardGame extends FlameGame {
   static const double importThreshold = 0.35;
 
   /// Live import price per unit of energy.
-  double get gridPrice => GridMarket.priceAt(
+  double get gridPrice =>
+      GridMarket.priceAt(
         timeOfDay: timeOfDay,
         sunFactor: sunFactor,
         weather: weather,
         day: dayNumber,
-      );
+      ) *
+      zone.priceScale;
 
   /// Live export price per unit of energy.
   double get gridSellPrice => gridPrice * GridMarket.sellFraction;
@@ -1524,6 +1584,7 @@ class GridGuardGame extends FlameGame {
       dayNumber: dayNumber,
       timeOfDay: timeOfDay,
       workloadIndex: workloadIndex,
+      zoneIndex: zoneIndex,
       coreIntegrity: integrityMax <= 0 ? 1 : coreIntegrity / integrityMax,
       raidCount: raidCount,
       score: score,
@@ -1552,6 +1613,7 @@ class GridGuardGame extends FlameGame {
       }
     }
 
+    zoneIndex = save.zoneIndex;
     money = save.money.toDouble();
     coinsEarned = save.coins;
     dayNumber = save.dayNumber;
@@ -1618,9 +1680,6 @@ class GridGuardGame extends FlameGame {
         break;
       case SpeedupEffect.cash:
         money += item.amount;
-        break;
-      case SpeedupEffect.watt:
-        coinsEarned += item.amount;
         break;
       case SpeedupEffect.fullRepair:
         for (final s in structures) {
@@ -2037,6 +2096,9 @@ class GridGuardGame extends FlameGame {
       gridPrice: gridPrice,
       gridImporting: gridImportEnabled,
       gridContracts: gridContracts.length,
+      zoneName: zone.name,
+      zoneEmoji: zone.emoji,
+      canRelocate: canRelocate,
       weatherEmoji: weather.emoji,
       weatherName: weather.name,
       nightWavesTotal: nightWavesTotal,

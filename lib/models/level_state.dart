@@ -59,6 +59,9 @@ class LevelState {
     required this.gridPrice,
     required this.gridImporting,
     required this.gridContracts,
+    required this.zoneName,
+    required this.zoneEmoji,
+    required this.canRelocate,
     required this.weatherEmoji,
     required this.weatherName,
     required this.nightWavesTotal,
@@ -139,6 +142,11 @@ class LevelState {
 
   /// How many fixed-term power contracts are running.
   final int gridContracts;
+
+  /// Where the site stands, and whether it has held long enough to move on.
+  final String zoneName;
+  final String zoneEmoji;
+  final bool canRelocate;
 
   /// Today's forecast, for the status strip.
   final String weatherEmoji;

@@ -59,6 +59,7 @@ class BaseSave {
     this.dayNumber = 1,
     this.timeOfDay = 0.28,
     this.workloadIndex = 0,
+    this.zoneIndex = 0,
     this.coreIntegrity = 1,
     this.raidCount = 0,
     this.score = 0,
@@ -73,6 +74,9 @@ class BaseSave {
   final int dayNumber;
   final double timeOfDay;
   final int workloadIndex;
+
+  /// Which zone the site stands in.
+  final int zoneIndex;
 
   /// Core health as a fraction, so a battered core stays battered.
   final double coreIntegrity;
@@ -97,6 +101,7 @@ class BaseSave {
         'd': dayNumber,
         'tod': timeOfDay,
         'w': workloadIndex,
+        'z': zoneIndex,
         'ci': coreIntegrity,
         'rc': raidCount,
         'sc': score,
@@ -118,6 +123,7 @@ class BaseSave {
       dayNumber: (j['d'] as num?)?.toInt() ?? 1,
       timeOfDay: (j['tod'] as num?)?.toDouble() ?? 0.28,
       workloadIndex: (j['w'] as num?)?.toInt() ?? 0,
+      zoneIndex: (j['z'] as num?)?.toInt() ?? 0,
       coreIntegrity: (j['ci'] as num?)?.toDouble() ?? 1,
       raidCount: (j['rc'] as num?)?.toInt() ?? 0,
       score: (j['sc'] as num?)?.toInt() ?? 0,
