@@ -145,6 +145,15 @@ class _ReportSheet extends StatelessWidget {
                     '${WattSupply.maxSupply.toInt()}'),
 
             const SizedBox(height: 18),
+            _Header('CONDITION',
+                trailing:
+                    '${(game.averageCondition * 100).round()}% of nameplate'),
+            _Line('Units past their best', '${game.wornCount}'),
+            if (game.totalRefurbishCost > 0)
+              _Line('Refurbish everything', '${game.totalRefurbishCost}M'),
+            const SizedBox(height: 4),
+
+            const SizedBox(height: 14),
             _Header('WHAT IS BUILT'),
             for (final row in _inventory()) _Line(row.$1, row.$2),
 

@@ -63,6 +63,8 @@ class LevelState {
     required this.gridContracts,
     required this.operatingCost,
     required this.lightingLoad,
+    required this.averageCondition,
+    required this.wornCount,
     required this.reputation,
     required this.firewallName,
     required this.firewallTier,
@@ -169,6 +171,10 @@ class LevelState {
 
   /// Energy per second the site's own lighting draws after dark.
   final double lightingLoad;
+
+  /// How worn the plant is, and how many units are past 90% of nameplate.
+  final double averageCondition;
+  final int wornCount;
 
   /// Cyber posture and standing, and what is banked out of an intruder's reach.
   final double reputation;

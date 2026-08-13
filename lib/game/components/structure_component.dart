@@ -80,6 +80,31 @@ abstract class StructureComponent extends IsoComponent {
     _health = _maxHealth;
   }
 
+  /// Hours this unit has been running. Panels lose a little output every year
+  /// they stand in the sun; bearings wear; inverters age. Nothing on a real
+  /// site performs on its tenth birthday the way it did on its first.
+  double serviceHours = 0;
+
+  /// Output as a fraction of nameplate, after ageing. Falls toward a floor
+  /// rather than to zero — worn plant is worth less, not worthless.
+  double get condition {
+    // Roughly half a percent per in-game year of continuous service.
+    final years = serviceHours / (24 * 365);
+    return (1.0 - years * 0.06).clamp(0.55, 1.0);
+  }
+
+  bool get isWorn => condition < 0.9;
+
+  /// What a refurbishment costs: proportional to how far it has fallen.
+  int get refurbishCost =>
+      ((1.0 - condition) * spec.tier(tier).cost * 1.4).ceil();
+
+  /// Returns a unit to nameplate. Real refurbishment - new glass, new
+  /// bearings - not a repair of damage.
+  void refurbish() {
+    serviceHours = 0;
+  }
+
   /// Restores the condition a structure was in when the game was last closed.
   /// Safe to call before mount, when the health ceiling isn't sized yet.
   void restoreHealthFraction(double fraction) {
@@ -102,6 +127,8 @@ abstract class StructureComponent extends IsoComponent {
 
   @override
   void update(double dt) {
+    // The game clock runs an in-game hour per real minute.
+    serviceHours += dt / 60.0;
     super.update(dt);
     if (_hitFlash > 0) _hitFlash = (_hitFlash - dt).clamp(0, 1);
   }

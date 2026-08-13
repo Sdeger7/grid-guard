@@ -734,8 +734,8 @@ class GridGuardGame extends FlameGame {
 
   /// Total PV output (energy/sec) from every placed panel.
   /// Raw combined nameplate output of all PV panels (before sunlight).
-  double get pvOutput =>
-      pvPanels.fold(0.0, (s, p) => s + p.currentTier.mwPerSecond);
+  double get pvOutput => pvPanels.fold(
+      0.0, (s, p) => s + p.currentTier.mwPerSecond * p.condition);
 
   /// Time of day in [0,1): 0 = midnight, 0.25 = sunrise, 0.5 = noon,
   /// 0.75 = sunset. Advances continuously through the run. A run opens just
@@ -773,8 +773,8 @@ class GridGuardGame extends FlameGame {
       worldEvent.sunScale;
 
   /// Combined nameplate output of all wind turbines (before wind).
-  double get windOutput =>
-      windTurbines.fold(0.0, (s, w) => s + w.currentTier.mwPerSecond);
+  double get windOutput => windTurbines.fold(
+      0.0, (s, w) => s + w.currentTier.mwPerSecond * w.condition);
 
   /// Wind strength in [0.15,1.0], oscillating over time. Works day AND night —
   /// wind is what carries the grid when the sun is down.
@@ -1539,6 +1539,33 @@ class GridGuardGame extends FlameGame {
     _selectStructure(coord);
     _publishSnapshot(force: true);
   }
+
+  /// Refurbishes every worn unit you can afford, worst first. Separate from
+  /// repair: this is new glass and new bearings, not patching battle damage.
+  void refurbishAll() {
+    final worn = structures.where((s) => s.isWorn).toList()
+      ..sort((a, b) => a.condition.compareTo(b.condition));
+    for (final s in worn) {
+      final cost = s.refurbishCost;
+      if (cost <= 0) continue;
+      if (!_spendMoney(cost)) break;
+      s.refurbish();
+    }
+    _emitSfx(Sfx.towerPlace);
+    _publishSnapshot(force: true);
+  }
+
+  /// How worn the site is on average, 0..1 where 1 is factory-fresh.
+  double get averageCondition {
+    final list = structures.toList();
+    if (list.isEmpty) return 1;
+    return list.fold(0.0, (s, e) => s + e.condition) / list.length;
+  }
+
+  int get wornCount => structures.where((s) => s.isWorn).length;
+
+  int get totalRefurbishCost =>
+      structures.fold(0, (s, e) => s + e.refurbishCost);
 
   /// Repairs everything you can afford, cheapest first — the button you mash
   /// between raids.
@@ -2946,6 +2973,8 @@ class GridGuardGame extends FlameGame {
       gridContracts: gridContracts.length,
       operatingCost: operatingCost,
       lightingLoad: lightingLoad,
+      averageCondition: averageCondition,
+      wornCount: wornCount,
       reputation: reputation,
       firewallName: firewall.name,
       firewallTier: firewallTier,

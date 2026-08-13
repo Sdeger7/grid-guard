@@ -188,6 +188,32 @@ class _SecuritySheetState extends State<_SecuritySheet> {
               ],
             ),
 
+            // ---- Wear ----
+            const SizedBox(height: 18),
+            _Header('PLANT CONDITION'),
+            _Line('Average output',
+                '${(game.averageCondition * 100).round()}% of nameplate'),
+            _Line('Units past their best', '${game.wornCount}'),
+            const SizedBox(height: 4),
+            Text(
+                'Panels lose output every year they stand in the sun, bearings '
+                'wear, inverters age. Refurbishment is new glass and new '
+                'bearings — not a repair of battle damage, and not free.',
+                style: GGText.soft),
+            if (game.totalRefurbishCost > 0) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: game.money >= game.totalRefurbishCost
+                      ? () => setState(() => game.refurbishAll())
+                      : null,
+                  child: Text(
+                      'Refurbish everything · ${game.totalRefurbishCost}M'),
+                ),
+              ),
+            ],
+
             // ---- Cover ----
             const SizedBox(height: 18),
             _Header('COVER'),
