@@ -21,6 +21,7 @@ import '../widgets/dawn_panel.dart';
 import '../widgets/level_end.dart';
 import '../widgets/offline_panel.dart';
 import '../widgets/relocate_sheet.dart';
+import '../widgets/site_menu.dart';
 import '../widgets/speedup_sheet.dart';
 import '../widgets/tutorial_overlay.dart';
 import 'guide_screen.dart';
@@ -252,7 +253,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
     ));
   }
 
-  void _menu() => Navigator.of(context).pop();
+  /// End panels still offer a way out; with the site as the app's root there
+  /// is nothing to pop back to, so this just dismisses the panel.
+  void _menu() => setState(() => _result = null);
 
   /// Button zoom pivots on the middle of the viewport.
   Vector2 _viewCentre() {
@@ -343,9 +346,15 @@ class _GameScreenState extends ConsumerState<GameScreen>
                         MaterialPageRoute(builder: (_) => const GuideScreen())),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded,
+                    icon: const Icon(Icons.more_horiz_rounded,
                         color: GGColors.inkSoft),
-                    onPressed: _menu,
+                    tooltip: 'Site menu',
+                    onPressed: () => showSiteMenu(
+                      context,
+                      ref,
+                      onOpenServices: () => showSpeedupSheet(context, _game,
+                          ref.read(monetizationServiceProvider)),
+                    ),
                   ),
                 ],
               ),
