@@ -7,6 +7,7 @@ import 'package:flame/game.dart';
 import '../data/abilities.dart';
 import '../data/dc_workload.dart';
 import '../data/enemy_catalog.dart';
+import '../data/events.dart';
 import '../data/grid_market.dart';
 import '../data/premium_packages.dart';
 import '../data/skins.dart';
@@ -107,6 +108,7 @@ class DawnReport {
     required this.day,
     required this.missions,
     required this.forecast,
+    required this.event,
     required this.bonus,
     required this.coins,
     required this.weather,
@@ -121,6 +123,9 @@ class DawnReport {
 
   /// What the Intel Center can see of the coming nights. Empty without one.
   final List<({int day, bool raided, double weight})> forecast;
+
+  /// The week's world event.
+  final WorldEvent event;
 
   final int bonus;
   final double coins;
@@ -153,6 +158,7 @@ class GridGuardGame extends FlameGame {
         id: '_none', name: '', emoji: '', price: 0, blurb: ''),
     this.initialBase,
     this.skins = const {},
+    this.hasGridPass = false,
   });
 
   final LevelConfig config;
@@ -165,12 +171,20 @@ class GridGuardGame extends FlameGame {
   /// one continuous site, not a fresh run each time the app opens.
   final BaseSave? initialBase;
 
+  /// Whether the season pass is active. It buys time and paint only: a longer
+  /// offline window and the season wardrobe, never a number on the site.
+  final bool hasGridPass;
+
   /// The cosmetic sets the player is wearing, keyed by [SkinSlot.name]. Pure
   /// paint: nothing here touches a stat.
   final Map<SkinSlot, Skin> skins;
 
   Skin skinFor(SkinSlot slot) =>
       skins[slot] ?? SkinCatalog.defaultFor(slot);
+
+  /// This week's world event, resolved once at launch so it cannot change
+  /// under the player mid-session.
+  final WorldEvent worldEvent = EventCalendar.current(DateTime.now());
 
   /// Which zone this site sits in. Relocating to a harsher zone is the long
   /// game's reset: buildings are left behind, WATT and perks come with you.
@@ -321,7 +335,11 @@ class GridGuardGame extends FlameGame {
 
   /// Actual PV output right now (nameplate scaled by sunlight and weather).
   double get effectivePvOutput =>
-      pvOutput * sunFactor * weather.sunScale * zone.sunScale;
+      pvOutput *
+      sunFactor *
+      weather.sunScale *
+      zone.sunScale *
+      worldEvent.sunScale;
 
   /// Combined nameplate output of all wind turbines (before wind).
   double get windOutput =>
@@ -333,7 +351,11 @@ class GridGuardGame extends FlameGame {
   double _windPhase = 0;
 
   double get effectiveWindOutput =>
-      windOutput * windFactor * weather.windScale * zone.windScale;
+      windOutput *
+      windFactor *
+      weather.windScale *
+      zone.windScale *
+      worldEvent.windScale;
 
   /// Total energy generated right now: solar + wind, plus any always-on
   /// generator the player has unlocked.
@@ -419,7 +441,8 @@ class GridGuardGame extends FlameGame {
                 workloadOf(dc).income *
                     _dcShare(dc) *
                     perks.incomeMultiplier *
-                    zone.incomeScale,
+                    zone.incomeScale *
+                    worldEvent.incomeScale,
       );
 
   /// Heat actually being applied right now. Switching to a hotter contract
@@ -447,7 +470,7 @@ class GridGuardGame extends FlameGame {
 
   /// Where heat is heading, so the HUD can warn before it lands.
   double get targetThreatMultiplier =>
-      siteThreat * growthThreat * zone.threatScale;
+      siteThreat * growthThreat * zone.threatScale * worldEvent.threatScale;
 
   /// Set from the HUD build tray; null == inspect/select mode.
   TowerType? selectedBuild;
@@ -1169,7 +1192,8 @@ class GridGuardGame extends FlameGame {
         weather: weather,
         day: dayNumber,
       ) *
-      zone.priceScale;
+      zone.priceScale *
+      worldEvent.priceScale;
 
   /// Live export price per unit of energy.
   double get gridSellPrice => gridPrice * GridMarket.sellFraction;
@@ -1222,7 +1246,8 @@ class GridGuardGame extends FlameGame {
     return perHour /
         3600.0 *
         (1 + perks.miningBonus) *
-        emissionMultiplier;
+        emissionMultiplier *
+        worldEvent.miningScale;
   }
 
   /// Total invested value on the board — bigger base, bigger target.
@@ -1663,7 +1688,9 @@ class GridGuardGame extends FlameGame {
         (DateTime.now().millisecondsSinceEpoch - save.savedAtMs) / 1000.0;
     if (away <= 0) return const OfflineReport(seconds: 0, money: 0, coins: 0);
 
-    final maxOfflineSeconds = (8 + perks.offlineHoursBonus) * 3600.0;
+    final passHours = hasGridPass ? 8 : 0;
+    final maxOfflineSeconds =
+        (8 + perks.offlineHoursBonus + passHours) * 3600.0;
     const offlineRate = 0.35; // unattended sites run at a third of full pace
     final seconds = math.min(away, maxOfflineSeconds);
 
@@ -1693,6 +1720,11 @@ class GridGuardGame extends FlameGame {
         break;
       case SpeedupEffect.cash:
         money += item.amount;
+        break;
+      case SpeedupEffect.gridPass:
+        // The pass itself is a standing entitlement held in the profile; the
+        // in-run half is the first day's shift, credited on purchase.
+        money += dcIncome * 4 * 3600 * 0.35;
         break;
       case SpeedupEffect.fullRepair:
         for (final s in structures) {
@@ -2052,6 +2084,7 @@ class GridGuardGame extends FlameGame {
       day: dayNumber,
       missions: missions,
       forecast: visibleForecast,
+      event: worldEvent,
       bonus: lastDawnBonus,
       coins: coinBonus,
       weather: weather,
@@ -2180,6 +2213,8 @@ class GridGuardGame extends FlameGame {
       gridContracts: gridContracts.length,
       zoneName: zone.name,
       zoneEmoji: zone.emoji,
+      eventName: worldEvent.name,
+      eventEmoji: worldEvent.emoji,
       canRelocate: canRelocate,
       weatherEmoji: weather.emoji,
       weatherName: weather.name,

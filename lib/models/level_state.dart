@@ -61,6 +61,8 @@ class LevelState {
     required this.gridContracts,
     required this.zoneName,
     required this.zoneEmoji,
+    required this.eventName,
+    required this.eventEmoji,
     required this.canRelocate,
     required this.weatherEmoji,
     required this.weatherName,
@@ -146,6 +148,10 @@ class LevelState {
   /// Where the site stands, and whether it has held long enough to move on.
   final String zoneName;
   final String zoneEmoji;
+
+  /// This week's world event, or the quiet-week placeholder.
+  final String eventName;
+  final String eventEmoji;
   final bool canRelocate;
 
   /// Today's forecast, for the status strip.

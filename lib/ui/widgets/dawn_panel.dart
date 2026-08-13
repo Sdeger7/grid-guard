@@ -56,6 +56,31 @@ class DawnPanel extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(report.weather.note, style: GGText.soft),
+                    if (!report.event.isQuiet) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: GGColors.bg,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: GGColors.accentWarm),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                                '${report.event.emoji} ${report.event.name}'
+                                .toUpperCase(),
+                                style: GGText.soft.copyWith(
+                                    letterSpacing: 1,
+                                    fontWeight: FontWeight.w900,
+                                    color: GGColors.accentWarm)),
+                            const SizedBox(height: 3),
+                            Text(report.event.blurb, style: GGText.soft),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     _Line(
                       icon: Icons.shield_moon_rounded,

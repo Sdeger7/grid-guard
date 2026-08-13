@@ -117,6 +117,13 @@ class _TopBar extends StatelessWidget {
         label: '${state.dayNumber}',
         caption: state.isNight ? 'NIGHT' : 'DAY',
       ),
+      if (state.eventEmoji != '·')
+        _Stat(
+          icon: Icons.campaign_rounded,
+          color: GGColors.accentWarm,
+          label: state.eventEmoji,
+          caption: state.eventName.split(' ').first.toUpperCase(),
+        ),
       _Stat(
         icon: Icons.cloud_queue_rounded,
         color: GGColors.teal,

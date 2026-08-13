@@ -11,6 +11,9 @@ enum SpeedupEffect {
 
   /// Repairs every damaged structure on the site at no cash cost.
   fullRepair,
+
+  /// The season pass: a standing subscription rather than a one-off.
+  gridPass,
 }
 
 /// A real-money purchase. These exist because the site is deliberately a long
@@ -52,6 +55,19 @@ class Speedup {
 
 class SpeedupCatalog {
   static const List<Speedup> items = [
+    // The season pass sits first because it is the offer that actually suits
+    // this game: a long build rewards a standing relationship, not impulse
+    // buys, and everything it grants is time and paint rather than power.
+    Speedup(
+      sku: 'grid_pass',
+      name: 'Grid Pass — season',
+      emoji: '🎫',
+      priceLabel: '\$4.99 / month',
+      effect: SpeedupEffect.gridPass,
+      amount: 1,
+      blurb: 'Doubles banked offline hours, a daily 4-hour shift on the house, '
+          'and the season wardrobe. No stat is touched.',
+    ),
     Speedup(
       sku: 'rush_4h',
       name: '4-Hour Shift',

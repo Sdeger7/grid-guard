@@ -158,6 +158,20 @@ class GuideScreen extends StatelessWidget {
                 'wardrobe, where it buys looks and nothing else.',
           ),
           const _Section(
+            emoji: '📅',
+            title: 'The week',
+            body: 'A world event runs most weeks, the same one for everybody, '
+                'Monday to Sunday. Drought Week doubles power prices. A '
+                'Regional Blackout means nothing can be bought at any price '
+                'and every contract pays a premium to whoever can still '
+                'deliver. Gale Season is a wind week. Crackdown brings harder '
+                'raids and hazard rates. A Compute Boom pays half again on '
+                'contracts and mining. A Solar Glut drops prices through the '
+                'floor — fill your batteries and sell nothing.\n\n'
+                'One week in four is quiet, so an event landing is actually '
+                'news. The morning card tells you which week you are in.',
+          ),
+          const _Section(
             emoji: '🌳',
             title: 'The land',
             body: 'You can build anywhere except the base tile itself, but '

@@ -85,6 +85,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
       skins: worn,
       perks: PremiumCatalog.effectiveOf(
           ref.read(profileProvider).ownedPackages),
+      hasGridPass: ref
+          .read(monetizationServiceProvider)
+          .isProductPurchased('grid_pass'),
       callbacks: gg.GameCallbacks(
         onSnapshot: _onSnapshot,
         onFinished: _onFinished,
