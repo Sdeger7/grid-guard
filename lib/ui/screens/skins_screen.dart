@@ -42,8 +42,10 @@ class SkinsScreen extends ConsumerWidget {
           const SizedBox(height: 6),
           Text(
               'There will only ever be ${WattSupply.maxSupply.toInt()} WATT. '
-              'Issuance halves every ${WattSupply.halvingDays} days — the next '
-              'one is in ${WattSupply.daysToNextHalving()} days.',
+              '${(WattSupply.issuedFraction() * 100).toStringAsFixed(1)}% has '
+              'been issued, and mining is currently '
+              '${WattSupply.difficultyAt().toStringAsFixed(1)}× harder than at '
+              'launch — the emptier the reserve, the slower it comes.',
               style: GGText.soft.copyWith(color: GGColors.amber)),
           const SizedBox(height: 14),
           for (final slot in SkinSlot.values) ...[

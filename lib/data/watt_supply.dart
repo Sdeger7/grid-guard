@@ -28,12 +28,36 @@ class WattSupply {
     return days ~/ halvingDays;
   }
 
-  /// The issuance multiplier now: full rate in the first epoch, half in the
-  /// second, and so on. Floored so mining never stops outright — it simply
-  /// becomes slow enough that the cap is approached and never crossed.
+  /// How hard mining is right now, expressed as the fraction of the base rate
+  /// a rig actually produces.
+  ///
+  /// This is the mechanism that makes the cap real rather than a promise.
+  /// Difficulty is a function of how much of the supply has already been
+  /// issued: the emptier the remaining reserve, the slower everything mines.
+  /// Because the rate falls with what is left, the total issued approaches
+  /// 2,500,000 asymptotically and cannot cross it — no clamp, no special case,
+  /// no way to game it. Early operators mine at nearly full speed; late ones
+  /// work for hundredths of the same.
+  ///
+  /// The exponent decides how sharply it bites. Above one, difficulty rises
+  /// faster than the reserve empties, which front-loads the curve the way real
+  /// mining rewards are front-loaded.
+  static const double difficultyExponent = 1.6;
+
+  /// Floor, so mining never becomes literally impossible — only vanishingly
+  /// slow, which is what "capped" means in practice.
+  static const double minimumRate = 0.005;
+
   static double emissionMultiplier([DateTime? when]) {
-    final e = epochAt(when);
-    return math.max(0.03125, math.pow(0.5, e).toDouble());
+    final left = (remainingAt(when) / maxSupply).clamp(0.0, 1.0);
+    return math.max(minimumRate, math.pow(left, difficultyExponent).toDouble());
+  }
+
+  /// Mining difficulty as a multiple of launch-day difficulty, which is the
+  /// number worth showing a player.
+  static double difficultyAt([DateTime? when]) {
+    final rate = emissionMultiplier(when);
+    return rate <= 0 ? double.infinity : 1 / rate;
   }
 
   /// Days until the next halving, for the UI to count down.
@@ -66,7 +90,14 @@ class WattSupply {
     return (issued * maxSupply).clamp(0, maxSupply);
   }
 
-  static double get remaining => maxSupply - projectedIssued();
+  static double remainingAt([DateTime? when]) =>
+      maxSupply - projectedIssued(when);
+
+  static double get remaining => remainingAt();
+
+  /// Share of the cap already in circulation, 0..1.
+  static double issuedFraction([DateTime? when]) =>
+      (projectedIssued(when) / maxSupply).clamp(0.0, 1.0);
 }
 
 /// The treasury.

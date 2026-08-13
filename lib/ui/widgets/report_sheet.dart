@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/watt_supply.dart';
 import '../../game/grid_guard_game.dart';
 import '../../models/tower_type.dart';
 import '../theme.dart';
@@ -131,6 +132,13 @@ class _ReportSheet extends StatelessWidget {
                 ' of ${game.dataCenters.length}'),
             _Line('Balance', '₵${game.coinsEarned.toStringAsFixed(3)}',
                 bold: true),
+            _Line(
+                'Network difficulty',
+                '${WattSupply.difficultyAt().toStringAsFixed(1)}× launch rate'),
+            _Line(
+                'Supply issued',
+                '${(WattSupply.issuedFraction() * 100).toStringAsFixed(1)}% of '
+                    '${WattSupply.maxSupply.toInt()}'),
 
             const SizedBox(height: 18),
             _Header('WHAT IS BUILT'),
