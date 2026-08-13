@@ -356,6 +356,15 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       onOpenServices: () => showSpeedupSheet(context, _game,
                           ref.read(monetizationServiceProvider)),
                       onOpenReport: () => showReportSheet(context, _game),
+                      onAbandon: () {
+                        _game.abandonSite();
+                        _selectBuild(null);
+                        setState(() {
+                          _dawn = null;
+                          _offline = null;
+                          _result = null;
+                        });
+                      },
                     ),
                   ),
                 ],

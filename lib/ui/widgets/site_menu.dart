@@ -17,6 +17,7 @@ Future<void> showSiteMenu(
   WidgetRef ref, {
   required VoidCallback onOpenServices,
   required VoidCallback onOpenReport,
+  required VoidCallback onAbandon,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -107,7 +108,7 @@ Future<void> showSiteMenu(
               colour: GGColors.danger,
               title: 'Abandon site',
               subtitle: 'Start over. WATT, perks and skins are kept',
-              onTap: () => _confirmAbandon(context, ref),
+              onTap: () => _confirmAbandon(context, ref, onAbandon),
             ),
             const SizedBox(height: 8),
           ],
@@ -117,15 +118,15 @@ Future<void> showSiteMenu(
   );
 }
 
-Future<void> _confirmAbandon(BuildContext context, WidgetRef ref) async {
+Future<void> _confirmAbandon(
+    BuildContext context, WidgetRef ref, VoidCallback onAbandon) async {
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: const Text('Abandon the site?'),
       content: const Text(
           'Every structure, all your cash and the day count are gone for '
-          'good. Mined WATT, perks and cosmetics are kept.\n\n'
-          'Restart the app afterwards to begin the new site.'),
+          'good. Mined WATT, perks and cosmetics are kept.'),
       actions: [
         TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -137,10 +138,12 @@ Future<void> _confirmAbandon(BuildContext context, WidgetRef ref) async {
     ),
   );
   if (ok != true) return;
+  // Clear the running site first: the autosave would otherwise write the old
+  // one straight back over the deleted file.
+  onAbandon();
   await ref.read(saveServiceProvider).clearBase();
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-        content: Text('Site abandoned. Restart the app for a fresh one.')),
+    const SnackBar(content: Text('Site abandoned. Fresh ground.')),
   );
 }

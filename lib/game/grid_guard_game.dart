@@ -196,11 +196,35 @@ class GridGuardGame extends FlameGame {
       ZoneCatalog.hasNextAfter(zoneIndex) &&
       dayNumber >= (ZoneCatalog.nextAfter(zoneIndex)?.unlockDay ?? 9999);
 
-  /// Sells up and starts again in the next zone. Structures are left behind;
-  /// WATT, premium perks and your record come with you, and the new site opens
-  /// with capital scaled to how far you have come.
-  void relocate() {
-    if (!canRelocate) return;
+  /// Bulldozes the site and starts over in the same zone.
+  ///
+  /// Deleting the save alone is not enough: the live game keeps autosaving, so
+  /// within seconds it writes the old site straight back. The running state has
+  /// to be cleared too, which is what this does.
+  void abandonSite() {
+    _clearSite();
+    zoneIndex = 0;
+    dayNumber = 1;
+    raidCount = 0;
+    score = 0;
+    storyDayShown = 0;
+    blackoutCount = 0;
+    timeOfDay = 0.28;
+    _wasNight = false;
+    weather = WeatherCatalog.forDay(1);
+    money = (config.startMoney + perks.startMoneyBonus).toDouble();
+    energy = 0;
+    coreIntegrity = integrityMax;
+    workloadIndex = 0;
+    _threatRamp = DcWorkloadCatalog.workloads.first.threat;
+    abilityActive.clear();
+    abilityCooldown.clear();
+    _rollMissions();
+    _publishSnapshot(force: true);
+  }
+
+  /// Removes everything standing and everything in flight.
+  void _clearSite() {
     for (final s in List<StructureComponent>.from(structures)) {
       _occupied.remove(s.coord);
       s.removeFromParent();
@@ -219,6 +243,14 @@ class GridGuardGame extends FlameGame {
     _pendingSpawns.clear();
     _nightWaveTimes.clear();
     gridContracts.clear();
+  }
+
+  /// Sells up and starts again in the next zone. Structures are left behind;
+  /// WATT, premium perks and your record come with you, and the new site opens
+  /// with capital scaled to how far you have come.
+  void relocate() {
+    if (!canRelocate) return;
+    _clearSite();
 
     zoneIndex++;
     dayNumber = 1;
