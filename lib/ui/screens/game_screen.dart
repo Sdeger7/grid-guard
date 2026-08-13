@@ -21,6 +21,7 @@ import '../widgets/dawn_panel.dart';
 import '../widgets/level_end.dart';
 import '../widgets/offline_panel.dart';
 import '../widgets/relocate_sheet.dart';
+import '../widgets/report_sheet.dart';
 import '../widgets/site_menu.dart';
 import '../widgets/speedup_sheet.dart';
 import '../widgets/tutorial_overlay.dart';
@@ -354,6 +355,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       ref,
                       onOpenServices: () => showSpeedupSheet(context, _game,
                           ref.read(monetizationServiceProvider)),
+                      onOpenReport: () => showReportSheet(context, _game),
                     ),
                   ),
                 ],

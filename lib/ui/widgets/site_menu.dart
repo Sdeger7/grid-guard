@@ -16,6 +16,7 @@ Future<void> showSiteMenu(
   BuildContext context,
   WidgetRef ref, {
   required VoidCallback onOpenServices,
+  required VoidCallback onOpenReport,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -61,6 +62,13 @@ Future<void> showSiteMenu(
                           color: GGColors.amber)),
                 ],
               ),
+            ),
+            entry(
+              icon: Icons.receipt_long_rounded,
+              colour: GGColors.good,
+              title: 'Site report',
+              subtitle: 'Every M and ⚡ in and out, line by line',
+              onTap: onOpenReport,
             ),
             entry(
               icon: Icons.palette_rounded,

@@ -10,6 +10,7 @@ import '../../models/tower_type.dart';
 import '../theme.dart';
 import 'ability_bar.dart';
 import 'grid_sheet.dart';
+import 'report_sheet.dart';
 
 /// The full in-game HUD: a status bar (core + BESS energy + money/score/wave),
 /// a facilities row (Data Center / BESS upgrades), a contextual tower-upgrade
@@ -171,6 +172,7 @@ class _TopBar extends StatelessWidget {
         color: GGColors.good,
         label: '${state.money}M',
         caption: 'MONEY',
+        onTap: () => showReportSheet(context, game),
       ),
       _Stat(
         icon: Icons.savings_rounded,
