@@ -61,6 +61,7 @@ class LevelState {
     required this.gridImporting,
     required this.gridContracts,
     required this.operatingCost,
+    required this.netMoneyRate,
     required this.zoneName,
     required this.zoneEmoji,
     required this.eventName,
@@ -152,6 +153,9 @@ class LevelState {
 
   /// MONEY per second the site costs simply to keep running.
   final double operatingCost;
+
+  /// Net MONEY per second — the direction the balance is actually moving.
+  final double netMoneyRate;
 
   /// Where the site stands, and whether it has held long enough to move on.
   final String zoneName;

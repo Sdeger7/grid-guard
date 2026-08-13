@@ -169,9 +169,13 @@ class _TopBar extends StatelessWidget {
       ),
       _Stat(
         icon: Icons.paid_rounded,
-        color: GGColors.good,
+        color: state.netMoneyRate >= 0 ? GGColors.good : GGColors.danger,
         label: '${state.money}M',
-        caption: 'MONEY',
+        // The balance is a whole number that only moves every few seconds when
+        // the site is near break-even, so the rate is what the player actually
+        // needs to read: is this site solvent or bleeding?
+        caption: '${state.netMoneyRate >= 0 ? '+' : ''}'
+            '${state.netMoneyRate.toStringAsFixed(1)}/s',
         onTap: () => showReportSheet(context, game),
       ),
       _Stat(

@@ -334,6 +334,20 @@ class GridGuardGame extends FlameGame {
   double get intelUpkeep =>
       intelCenters.fold(0.0, (s, u) => s + u.currentTier.upkeep);
 
+  /// Net MONEY per second, everything included: what the machines are actually
+  /// earning at their current load, minus upkeep, intel and any running
+  /// contracts. This is the number that tells a player whether the site is
+  /// solvent, which an integer balance ticking over once every few seconds
+  /// cannot.
+  double get netMoneyRate {
+    var rate = dcIncome * dcLoadFraction - operatingCost - intelUpkeep;
+    for (final c in gridContracts) {
+      final v = c.price * c.ratePerSecond;
+      rate += c.side == GridContractSide.buy ? -v : v;
+    }
+    return rate;
+  }
+
   /// MONEY per second spent keeping everything on site running. Charged
   /// against the replacement value of what is built, so an upgraded site is
   /// genuinely more expensive to own.
@@ -2294,6 +2308,7 @@ class GridGuardGame extends FlameGame {
       gridImporting: gridImportEnabled,
       gridContracts: gridContracts.length,
       operatingCost: operatingCost,
+      netMoneyRate: netMoneyRate,
       zoneName: zone.name,
       zoneEmoji: zone.emoji,
       eventName: worldEvent.name,
