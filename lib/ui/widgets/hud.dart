@@ -110,14 +110,6 @@ class _TopBar extends StatelessWidget {
     final netLabel = '${net >= 0 ? '+' : ''}${net.toStringAsFixed(0)}/s';
     // Bars stay pinned; the stat strip scrolls so a narrow phone never clips it.
     final stats = <Widget>[
-      // Day number first: it is the run's real progress marker, and the
-      // forecast beside it tells the player what today's grid will be like.
-      _Stat(
-        icon: Icons.calendar_today_rounded,
-        color: GGColors.ink,
-        label: '${state.dayNumber}',
-        caption: state.isNight ? 'NIGHT' : 'DAY',
-      ),
       if (state.eventEmoji != '·')
         _Stat(
           icon: Icons.campaign_rounded,
@@ -188,15 +180,13 @@ class _TopBar extends StatelessWidget {
                 : GridMarket.bandFor(state.gridPrice),
         onTap: () => showGridSheet(context, game),
       ),
+      // The report is where the money detail lives now that the headline
+      // carries the balance itself.
       _Stat(
-        icon: Icons.paid_rounded,
-        color: state.netMoneyRate >= 0 ? GGColors.good : GGColors.danger,
-        label: '${state.money}M',
-        // The balance is a whole number that only moves every few seconds when
-        // the site is near break-even, so the rate is what the player actually
-        // needs to read: is this site solvent or bleeding?
-        caption: '${state.netMoneyRate >= 0 ? '+' : ''}'
-            '${state.netMoneyRate.toStringAsFixed(1)}/s',
+        icon: Icons.receipt_long_rounded,
+        color: GGColors.ink,
+        label: '📋',
+        caption: 'REPORT',
         onTap: () => showReportSheet(context, game),
       ),
       _Stat(
@@ -248,10 +238,46 @@ class _TopBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
       child: GGPanel(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // The headline: where you are, what the money is doing, and how
+            // long until the next thing that matters. Everything else is
+            // detail and lives in the scrolling strip below.
+            Row(
+              children: [
+                Text(
+                    state.isNight
+                        ? '🌙 Night ${state.dayNumber}'
+                        : '☀️ Day ${state.dayNumber}',
+                    style: GGText.body.copyWith(
+                        fontWeight: FontWeight.w900, fontSize: 15)),
+                const SizedBox(width: 8),
+                Text('${state.zoneEmoji} ${state.zoneName}',
+                    style: GGText.soft),
+                const Spacer(),
+                Text('${state.money}M',
+                    style: GGText.body.copyWith(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                      color: state.netMoneyRate >= 0
+                          ? GGColors.good
+                          : GGColors.danger,
+                    )),
+                const SizedBox(width: 4),
+                Text(
+                    '${state.netMoneyRate >= 0 ? '+' : ''}'
+                    '${state.netMoneyRate.toStringAsFixed(1)}/s',
+                    style: GGText.soft.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: state.netMoneyRate >= 0
+                          ? GGColors.good
+                          : GGColors.danger,
+                    )),
+              ],
+            ),
+            const SizedBox(height: 6),
             _MiniBar(
               label: 'CORE',
               fraction: state.integrityFraction,
