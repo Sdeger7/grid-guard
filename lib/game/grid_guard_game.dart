@@ -298,6 +298,21 @@ class GridGuardGame extends FlameGame {
   double get intelUpkeep =>
       intelCenters.fold(0.0, (s, u) => s + u.currentTier.upkeep);
 
+  /// MONEY per second spent keeping everything on site running. Charged
+  /// against the replacement value of what is built, so an upgraded site is
+  /// genuinely more expensive to own.
+  double get operatingCost {
+    var total = 0.0;
+    for (final s in structures) {
+      total += s.currentTier.cost * upkeepRate;
+      // A knocked-out building still costs money; it just earns nothing.
+    }
+    return total;
+  }
+
+  /// Fraction of a structure's build cost billed every second.
+  static const double upkeepRate = 0.0016;
+
   /// Energy per second the Intel Centers draw just to stay awake.
   static const double intelEnergyPerCenter = 1.6;
 
@@ -2211,6 +2226,7 @@ class GridGuardGame extends FlameGame {
       gridPrice: gridPrice,
       gridImporting: gridImportEnabled,
       gridContracts: gridContracts.length,
+      operatingCost: operatingCost,
       zoneName: zone.name,
       zoneEmoji: zone.emoji,
       eventName: worldEvent.name,

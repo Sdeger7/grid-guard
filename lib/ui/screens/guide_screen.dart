@@ -158,6 +158,19 @@ class GuideScreen extends StatelessWidget {
                 'wardrobe, where it buys looks and nothing else.',
           ),
           const _Section(
+            emoji: '📈',
+            title: 'Upgrades never run out',
+            body: 'Every structure can be upgraded forever. Past the first '
+                'few tiers each step costs roughly 2.2x the last and produces '
+                'about 1.14x more, so an upgrade is always in reach and never '
+                'quite cheap — the site is never finished.\n\n'
+                'Everything standing also costs money every second to keep '
+                'standing, billed against what it is worth. A bigger site has '
+                'a bigger running bill, which is why cash cannot simply pile '
+                'up: income has to keep pace with what you have built. The '
+                'facilities line shows your current upkeep.',
+          ),
+          const _Section(
             emoji: '📅',
             title: 'The week',
             body: 'A world event runs most weeks, the same one for everybody, '

@@ -419,7 +419,7 @@ class _FacilitiesRow extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      'DC ×${state.dataCenterCount} · +${state.dcIncome.toStringAsFixed(0)}M -${state.dcDraw.toStringAsFixed(0)}⚡  ·  🔋${state.energyCapacity.toStringAsFixed(0)}⚡  ·  🛡${state.security}',
+                      'DC ×${state.dataCenterCount} · +${state.dcIncome.toStringAsFixed(0)}M -${state.operatingCost.toStringAsFixed(0)}M/s upkeep · -${state.dcDraw.toStringAsFixed(0)}⚡  ·  🔋${state.energyCapacity.toStringAsFixed(0)}⚡  ·  🛡${state.security}',
                       style: GGText.soft,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -922,7 +922,7 @@ class _UpgradePanel extends StatelessWidget {
                         ? onUpgrade
                         : null,
                     icon: const Icon(Icons.upgrade_rounded, size: 16),
-                    label: Text('Upgrade ${selected.upgradeCost}M'),
+                    label: Text('Upgrade → T${selected.tier + 2} · ${selected.upgradeCost}M'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: GGColors.accent,
                       foregroundColor: Colors.white,

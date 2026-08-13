@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// Broad behavioural family a tower belongs to. Gameplay systems branch on this
@@ -149,9 +151,59 @@ class TowerSpec {
   /// Minimum clustered enemies for a chain bonus to apply (damage towers).
   final int chainThreshold;
 
-  int get maxTier => tiers.length - 1;
+  /// Upgrades never run out.
+  ///
+  /// A finite ladder means a site is finished the moment the last tier is
+  /// bought, and money keeps arriving with nothing to buy — which is exactly
+  /// how this game ran out of things to do on day two. Past the hand-written
+  /// tiers, every further step is generated: cost climbs [costStep]x while
+  /// output climbs [statStep]x, so each upgrade is affordable a little later
+  /// than the last and the site is never done.
+  static const int tierCeiling = 60;
+  static const double costStep = 2.2;
+  static const double statStep = 1.14;
 
-  TowerTier tier(int index) => tiers[index.clamp(0, maxTier)];
+  int get maxTier => tierCeiling;
+
+  TowerTier tier(int index) {
+    final i = index.clamp(0, tierCeiling);
+    if (i < tiers.length) return tiers[i];
+
+    final base = tiers.last;
+    final n = i - (tiers.length - 1);
+    final cost = math.pow(costStep, n).toDouble();
+    final stat = math.pow(statStep, n).toDouble();
+
+    return TowerTier(
+      cost: (base.cost * cost).round(),
+      damage: base.damage * stat,
+      range: base.range + n * 0.12,
+      fireInterval: base.fireInterval <= 0
+          ? 0
+          : math.max(0.12, base.fireInterval * math.pow(0.97, n).toDouble()),
+      mwPerSecond: base.mwPerSecond * stat,
+      // Slow multipliers approach, but never reach, a full stop.
+      slowMultiplier: base.slowMultiplier >= 1.0
+          ? base.slowMultiplier
+          : math.max(0.08, base.slowMultiplier * math.pow(0.94, n).toDouble()),
+      chainRadius: base.chainRadius + n * 0.08,
+      chainBonus: base.chainBonus + n * 0.05,
+      energyCost: base.energyCost * math.pow(1.08, n).toDouble(),
+      capacity: base.capacity * stat,
+      dcPower: base.dcPower * stat,
+      // Squadrons and forecasts have hard ceilings; they are not meant to
+      // scale forever the way raw output does.
+      droneCount: base.droneCount == 0
+          ? 0
+          : math.min(6, base.droneCount + n ~/ 3),
+      upkeep: base.upkeep * math.pow(1.16, n).toDouble(),
+      dcLoad: base.dcLoad * math.pow(1.1, n).toDouble(),
+      forecastNights: math.min(6, base.forecastNights + n ~/ 4),
+      forecastAccuracy: base.forecastAccuracy <= 0
+          ? 0
+          : math.min(0.95, base.forecastAccuracy + n * 0.005),
+    );
+  }
 }
 
 /// Which tiles a structure may occupy.

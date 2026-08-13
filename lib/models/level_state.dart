@@ -59,6 +59,7 @@ class LevelState {
     required this.gridPrice,
     required this.gridImporting,
     required this.gridContracts,
+    required this.operatingCost,
     required this.zoneName,
     required this.zoneEmoji,
     required this.eventName,
@@ -144,6 +145,9 @@ class LevelState {
 
   /// How many fixed-term power contracts are running.
   final int gridContracts;
+
+  /// MONEY per second the site costs simply to keep running.
+  final double operatingCost;
 
   /// Where the site stands, and whether it has held long enough to move on.
   final String zoneName;
