@@ -7,6 +7,7 @@ import 'package:flame/game.dart';
 import '../data/dc_workload.dart';
 import '../data/enemy_catalog.dart';
 import '../data/premium_packages.dart';
+import '../data/missions.dart';
 import '../data/story.dart';
 import '../data/tower_catalog.dart';
 import '../data/weather.dart';
@@ -98,6 +99,7 @@ enum Sfx {
 class DawnReport {
   const DawnReport({
     required this.day,
+    required this.missions,
     required this.bonus,
     required this.coins,
     required this.weather,
@@ -106,6 +108,10 @@ class DawnReport {
   });
 
   final int day;
+
+  /// Today's objectives, listed so the morning card sets the day's agenda.
+  final List<Mission> missions;
+
   final int bonus;
   final double coins;
   final Weather weather;
@@ -632,6 +638,8 @@ class GridGuardGame extends FlameGame {
     final cost = comp.upgradeCost;
     if (cost == null || !_spendMoney(cost)) return;
     comp.upgrade();
+    _upgradesToday++;
+    _checkMissions();
     _emitSfx(Sfx.towerPlace);
     _selectStructure(coord);
     _publishSnapshot(force: true);
@@ -763,6 +771,8 @@ class GridGuardGame extends FlameGame {
     final cost = repairCostOf(s);
     if (cost <= 0 || !_spendMoney(cost)) return;
     s.repairFully();
+    _repairsToday++;
+    _checkMissions();
     _emitSfx(Sfx.towerPlace);
     _selectStructure(coord);
     _publishSnapshot(force: true);
@@ -778,7 +788,9 @@ class GridGuardGame extends FlameGame {
       if (cost <= 0) continue;
       if (!_spendMoney(cost)) break;
       s.repairFully();
+      _repairsToday++;
     }
+    _checkMissions();
     _emitSfx(Sfx.towerPlace);
     _publishSnapshot(force: true);
   }
@@ -879,6 +891,8 @@ class GridGuardGame extends FlameGame {
     final comp = _createStructure(spec, coord, 0);
     worldRoot.add(comp);
     _occupied[coord] = comp;
+    _buildsToday++;
+    _checkMissions();
     _emitSfx(Sfx.towerPlace);
     _publishSnapshot(force: true);
   }
@@ -1007,6 +1021,8 @@ class GridGuardGame extends FlameGame {
 
   void onEnemyKilled(EnemyComponent e) {
     enemies.remove(e);
+    _killsToday++;
+    _checkMissions();
     // Kills award SCORE only — not energy, not money. Money comes from the Data
     // Center; energy comes from PV.
     score += e.spec.scoreValue;
@@ -1038,6 +1054,7 @@ class GridGuardGame extends FlameGame {
   /// carry on the next morning.
   void _blackout() {
     blackoutCount++;
+    _blackoutTonight = true;
     for (final e in List<EnemyComponent>.from(enemies)) {
       e.removeFromParent();
     }
@@ -1054,6 +1071,9 @@ class GridGuardGame extends FlameGame {
     timeOfDay = 0.27;
     _wasNight = false;
     dayNumber++;
+    weather = WeatherCatalog.forDay(dayNumber);
+    _blackoutTonight = false;
+    _rollMissions();
     addShake(shakeMagnitudeHeavy);
     _emitSfx(Sfx.coreDamage);
     _publishSnapshot(force: true);
@@ -1238,6 +1258,68 @@ class GridGuardGame extends FlameGame {
   /// How many blackouts the site has suffered — a scar, not a game over.
   int blackoutCount = 0;
 
+  // ---- Daily missions ----
+  // Small goals that reset every dawn and pay WATT, so a short session still
+  // ends with something banked.
+
+  List<Mission> missions = MissionCatalog.forDay(1);
+
+  /// Progress per mission index, and which have already paid out.
+  List<int> missionProgress = [0, 0, 0];
+  List<bool> missionDone = [false, false, false];
+
+  int _killsToday = 0;
+  int _buildsToday = 0;
+  int _upgradesToday = 0;
+  int _repairsToday = 0;
+  bool _blackoutTonight = false;
+
+  int missionValue(MissionMetric m) {
+    switch (m) {
+      case MissionMetric.kills:
+        return _killsToday;
+      case MissionMetric.builds:
+        return _buildsToday;
+      case MissionMetric.upgrades:
+        return _upgradesToday;
+      case MissionMetric.repairs:
+        return _repairsToday;
+      case MissionMetric.nightsHeld:
+        // Credited at dawn, and only if the night went clean.
+        return 0;
+    }
+  }
+
+  /// Re-reads the counters and pays out anything newly finished. Cheap enough
+  /// to call whenever one of those counters moves.
+  void _checkMissions() {
+    for (var i = 0; i < missions.length; i++) {
+      if (missionDone[i]) continue;
+      final m = missions[i];
+      if (m.metric == MissionMetric.nightsHeld) continue;
+      missionProgress[i] = missionValue(m.metric);
+      if (missionProgress[i] >= m.target) {
+        missionDone[i] = true;
+        coinsEarned += m.reward;
+        spawnFloatingText(
+            '+${m.reward.toStringAsFixed(1)} WTT',
+            Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
+            const Color(0xFFF4B740));
+      }
+    }
+  }
+
+  /// Rolls a fresh set of missions and clears the day's counters.
+  void _rollMissions() {
+    missions = MissionCatalog.forDay(dayNumber);
+    missionProgress = List<int>.filled(missions.length, 0);
+    missionDone = List<bool>.filled(missions.length, false);
+    _killsToday = 0;
+    _buildsToday = 0;
+    _upgradesToday = 0;
+    _repairsToday = 0;
+  }
+
   /// Waves still to launch tonight, as delays measured from nightfall.
   final List<double> _nightWaveTimes = [];
   double _nightClock = 0;
@@ -1328,11 +1410,24 @@ class GridGuardGame extends FlameGame {
     final coinBonus = workload.minesCoins ? 1.0 + dayNumber * 0.15 : 0.0;
     coinsEarned += coinBonus;
 
+    // The night-hold mission pays only if the grid never went dark.
+    for (var i = 0; i < missions.length; i++) {
+      if (missionDone[i]) continue;
+      if (missions[i].metric != MissionMetric.nightsHeld) continue;
+      if (_blackoutTonight) continue;
+      missionDone[i] = true;
+      missionProgress[i] = 1;
+      coinsEarned += missions[i].reward;
+    }
+    _blackoutTonight = false;
+    _rollMissions();
+
     final beat = dayNumber > storyDayShown ? StoryCatalog.forDay(dayNumber) : null;
     if (beat != null) storyDayShown = dayNumber;
 
     pendingDawn = DawnReport(
       day: dayNumber,
+      missions: missions,
       bonus: lastDawnBonus,
       coins: coinBonus,
       weather: weather,

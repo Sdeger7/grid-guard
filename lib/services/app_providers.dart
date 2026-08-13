@@ -66,7 +66,7 @@ class ProfileNotifier extends Notifier<PlayerProfile> {
     await _save.saveProfile(state);
   }
 
-  /// Banks COIN mined in a run and updates endless records.
+  /// Banks WATT mined in a run and updates endless records.
   Future<void> bankRunResults({
     required int coins,
     required int raid,
@@ -80,7 +80,7 @@ class ProfileNotifier extends Notifier<PlayerProfile> {
     await _save.saveProfile(state);
   }
 
-  /// Buys a premium package with COIN. Returns false when short.
+  /// Buys a premium package with WATT. Returns false when short.
   Future<bool> buyPackage(String id, int price) async {
     if (state.coins < price || state.ownedPackages.contains(id)) return false;
     state = state.copyWith(

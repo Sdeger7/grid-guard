@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/missions.dart';
 import '../../game/grid_guard_game.dart' show DawnReport;
 import '../theme.dart';
 
@@ -71,6 +72,27 @@ class DawnPanel extends StatelessWidget {
                         value: '${report.damaged}',
                       ),
                     ],
+                    const SizedBox(height: 16),
+                    Text("TODAY'S ORDERS",
+                        style: GGText.soft.copyWith(
+                            letterSpacing: 1.2, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 6),
+                    for (final m in report.missions)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.radio_button_unchecked_rounded,
+                                size: 14, color: GGColors.inkSoft),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(m.title, style: GGText.soft)),
+                            Text('+${m.reward.toStringAsFixed(1)} ⚡WTT',
+                                style: GGText.soft.copyWith(
+                                    color: GGColors.amber,
+                                    fontWeight: FontWeight.w800)),
+                          ],
+                        ),
+                      ),
                     if (beat != null) ...[
                       const SizedBox(height: 16),
                       Container(

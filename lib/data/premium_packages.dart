@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-/// A premium package bought with COIN — the currency crypto-mining workloads
+/// A premium package bought with WATT — the currency crypto-mining workloads
 /// mint. Packages are permanent account perks that carry into every future run,
 /// so mining time converts into a real head start.
 @immutable
@@ -23,7 +23,7 @@ class PremiumPackage {
   final String name;
   final String emoji;
 
-  /// Cost in COIN.
+  /// Cost in WATT.
   final int price;
   final String blurb;
 

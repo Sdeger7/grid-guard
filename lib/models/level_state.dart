@@ -93,7 +93,7 @@ class LevelState {
   /// Current base security rating (gates high-value workloads).
   final int security;
 
-  /// COIN mined this run (crypto workloads only).
+  /// WATT mined this run (crypto workloads only).
   final double coins;
 
   /// Damaged structures and what it costs to fix them all.

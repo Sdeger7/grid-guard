@@ -125,7 +125,7 @@ class _TopBar extends StatelessWidget {
         icon: Icons.currency_bitcoin_rounded,
         color: GGColors.amber,
         label: state.coins.toStringAsFixed(1),
-        caption: 'COIN',
+        caption: 'WATT',
       ),
       _Stat(
         icon: Icons.local_fire_department_rounded,

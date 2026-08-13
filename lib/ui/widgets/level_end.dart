@@ -250,7 +250,7 @@ class SurvivalEndPanel extends StatelessWidget {
             _RewardRow(label: 'Raids survived', value: '\$raid'),
             _RewardRow(label: 'Score', value: '\$score'),
             _RewardRow(
-                label: 'COIN banked', value: '+\$coins', highlight: coins > 0),
+                label: 'WATT banked', value: '+\$coins', highlight: coins > 0),
             const SizedBox(height: 16),
             if (coins > 0)
               SizedBox(
@@ -258,7 +258,7 @@ class SurvivalEndPanel extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onPremium,
                   icon: const Icon(Icons.currency_bitcoin_rounded),
-                  label: const Text('Spend COIN on perks'),
+                  label: const Text('Spend WATT on perks'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: GGColors.amber,
                     side: const BorderSide(color: GGColors.amber),

@@ -67,7 +67,7 @@ class DcWorkloadCatalog {
       draw: 8,
       threat: 1.3,
       requiredSecurity: 6,
-      blurb: 'Mints COIN — and a known target.',
+      blurb: 'Mints WATT — and a known target.',
       minesCoins: true,
     ),
     DcWorkload(

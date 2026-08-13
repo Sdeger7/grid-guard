@@ -161,7 +161,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
     if (_resultApplied) return;
     _resultApplied = true;
 
-    // Endless runs bank mined COIN and update records; campaign levels award
+    // Endless runs bank mined WATT and update records; campaign levels award
     // stars/credits as before.
     if (widget.config.endless) {
       await ref.read(profileProvider.notifier).bankRunResults(

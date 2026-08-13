@@ -5,7 +5,7 @@ import '../../data/premium_packages.dart';
 import '../../services/app_providers.dart';
 import '../theme.dart';
 
-/// The COIN store: permanent account perks bought with the coin crypto-mining
+/// The WATT store: permanent account perks bought with the currency crypto-mining
 /// workloads mint. Every purchase carries into all future runs.
 class PremiumScreen extends ConsumerWidget {
   const PremiumScreen({super.key});
@@ -48,7 +48,7 @@ class PremiumScreen extends ConsumerWidget {
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
-                    'Run the Crypto Mining workload to mint COIN. Perks bought '
+                    'Run the Crypto Mining workload to mint ⚡WATT. Perks bought '
                     'here apply to every run, permanently.',
                     style: GGText.soft,
                   ),
@@ -70,7 +70,7 @@ class PremiumScreen extends ConsumerWidget {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: Text(ok
                       ? '${p.name} unlocked!'
-                      : 'Not enough COIN — mine more with Crypto Mining.'),
+                      : 'Not enough WATT — mine more with Crypto Mining.'),
                 ));
               },
             ),

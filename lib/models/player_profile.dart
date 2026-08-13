@@ -33,14 +33,14 @@ class PlayerProfile {
     this.ownedPackages = const {},
   });
 
-  /// COIN mined by crypto workloads — the permanent currency for premium packs.
+  /// WATT mined by crypto workloads — the permanent currency for premium packs.
   final int coins;
 
   /// Best endless run so far.
   final int bestRaid;
   final int bestScore;
 
-  /// Premium packages bought with COIN.
+  /// Premium packages bought with WATT.
   final Set<String> ownedPackages;
 
   /// Permanent soft currency.
