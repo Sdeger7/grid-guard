@@ -59,6 +59,7 @@ class TowerTier {
     this.upkeep = 0,
     this.dcLoad = 0,
     this.forecastNights = 0,
+    this.forecastAccuracy = 0,
   });
 
   /// MW cost to reach this tier (to *build* for tier 0, to *upgrade into* for
@@ -74,6 +75,11 @@ class TowerTier {
 
   /// How many nights ahead this can forecast.
   final int forecastNights;
+
+  /// Odds the forecast is right, 0..1. Deliberately never 1: intelligence is
+  /// bought, not guaranteed, and a site that trusts a reading blindly should
+  /// occasionally get burned for it.
+  final double forecastAccuracy;
 
   /// Damage per shot (damage towers).
   final double damage;

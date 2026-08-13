@@ -132,17 +132,20 @@ class TowerCatalog {
             mwPerSecond: 0,
             upkeep: 2.5,
             dcLoad: 0.8,
-            forecastNights: 1),
+            forecastNights: 1,
+            forecastAccuracy: 0.40),
         TowerTier(
             cost: 4200,
             upkeep: 4.0,
             dcLoad: 1.2,
-            forecastNights: 2),
+            forecastNights: 2,
+            forecastAccuracy: 0.65),
         TowerTier(
             cost: 9000,
             upkeep: 6.5,
             dcLoad: 1.8,
-            forecastNights: 4),
+            forecastNights: 4,
+            forecastAccuracy: 0.90),
       ],
     ),
   };

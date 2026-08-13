@@ -5,6 +5,7 @@ import '../../data/levels.dart';
 import '../../services/app_providers.dart';
 import '../theme.dart';
 import 'game_screen.dart';
+import 'guide_screen.dart';
 import 'level_select_screen.dart';
 import 'premium_screen.dart';
 import 'store_screen.dart';
@@ -67,6 +68,14 @@ class MainMenuScreen extends ConsumerWidget {
                 color: GGColors.amber,
                 onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const PremiumScreen())),
+              ),
+              const SizedBox(height: 12),
+              _MenuButton(
+                icon: Icons.menu_book_rounded,
+                label: 'HOW IT WORKS',
+                color: GGColors.teal,
+                onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const GuideScreen())),
               ),
               const SizedBox(height: 12),
               _MenuButton(

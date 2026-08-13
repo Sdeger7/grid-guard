@@ -21,6 +21,7 @@ import '../widgets/level_end.dart';
 import '../widgets/offline_panel.dart';
 import '../widgets/speedup_sheet.dart';
 import '../widgets/tutorial_overlay.dart';
+import 'guide_screen.dart';
 import 'premium_screen.dart';
 
 /// Hosts one level: the Flame [gg.GridGuardGame] plus the Flutter HUD and
@@ -316,9 +317,21 @@ class _GameScreenState extends ConsumerState<GameScreen>
             top: 8,
             right: 8,
             child: SafeArea(
-              child: IconButton(
-                icon: const Icon(Icons.close_rounded, color: GGColors.inkSoft),
-                onPressed: _menu,
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.menu_book_rounded,
+                        color: GGColors.inkSoft),
+                    tooltip: 'How the site works',
+                    onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const GuideScreen())),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded,
+                        color: GGColors.inkSoft),
+                    onPressed: _menu,
+                  ),
+                ],
               ),
             ),
           ),

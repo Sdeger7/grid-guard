@@ -1583,10 +1583,40 @@ class GridGuardGame extends FlameGame {
   int get forecastRange {
     var best = 0;
     for (final c in intelCenters) {
+      if (c.isOffline) continue; // a wrecked centre reports nothing
       final n = c.currentTier.forecastNights;
       if (n > best) best = n;
     }
     return best;
+  }
+
+  /// How often the readout is right, from the best working centre. Zero when
+  /// the site has no intelligence at all.
+  double get forecastAccuracy {
+    var best = 0.0;
+    for (final c in intelCenters) {
+      if (c.isOffline) continue;
+      final a = c.currentTier.forecastAccuracy;
+      if (a > best) best = a;
+    }
+    return best;
+  }
+
+  /// What the centre *reports* about night [day], which is not always what
+  /// happens. A wrong reading is a confident wrong reading — it names the
+  /// opposite of the truth — because a forecast that hedged would be useless
+  /// and would never actually cost the player anything.
+  ({bool raided, double weight}) reportedForecastFor(int day) {
+    final truth = raidForecastFor(day);
+    final acc = forecastAccuracy;
+    if (acc <= 0) return truth;
+    // Deterministic per night *and* per accuracy level, so a reading never
+    // flickers between frames, and upgrading the centre re-reads the night.
+    final r = math.Random(day * 3319 + (acc * 100).round() * 17);
+    if (r.nextDouble() < acc) return truth;
+    return truth.raided
+        ? (raided: false, weight: 0)
+        : (raided: true, weight: 0.6 + r.nextDouble() * 0.9);
   }
 
   /// The forecast the player is allowed to see: one entry per night within
@@ -1595,7 +1625,7 @@ class GridGuardGame extends FlameGame {
     final out = <({int day, bool raided, double weight})>[];
     for (var i = 0; i < forecastRange; i++) {
       final d = dayNumber + i;
-      final f = raidForecastFor(d);
+      final f = reportedForecastFor(d);
       out.add((day: d, raided: f.raided, weight: f.weight));
     }
     return out;
@@ -1786,9 +1816,11 @@ class GridGuardGame extends FlameGame {
       waveNumber: waveNumber,
       dayNumber: dayNumber,
       forecastRange: forecastRange,
-      tonightRaided: forecastRange > 0 && raidForecastFor(dayNumber).raided,
+      tonightRaided:
+          forecastRange > 0 && reportedForecastFor(dayNumber).raided,
       tonightWeight:
-          forecastRange > 0 ? raidForecastFor(dayNumber).weight : 0.0,
+          forecastRange > 0 ? reportedForecastFor(dayNumber).weight : 0.0,
+      forecastAccuracy: forecastAccuracy,
       gridPrice: gridPrice,
       gridImporting: gridImportEnabled,
       weatherEmoji: weather.emoji,

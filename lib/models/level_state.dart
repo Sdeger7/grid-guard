@@ -55,6 +55,7 @@ class LevelState {
     required this.forecastRange,
     required this.tonightRaided,
     required this.tonightWeight,
+    required this.forecastAccuracy,
     required this.gridPrice,
     required this.gridImporting,
     required this.weatherEmoji,
@@ -127,6 +128,9 @@ class LevelState {
   final int forecastRange;
   final bool tonightRaided;
   final double tonightWeight;
+
+  /// How often that reading is right, 0..1 — never 1.
+  final double forecastAccuracy;
 
   /// Live grid price per unit of energy, and whether the site is buying.
   final double gridPrice;

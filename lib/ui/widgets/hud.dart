@@ -131,7 +131,8 @@ class _TopBar extends StatelessWidget {
           label: state.tonightRaided
               ? (state.tonightWeight > 1.1 ? 'HEAVY' : 'RAID')
               : 'QUIET',
-          caption: 'TONIGHT',
+          // The confidence is part of the reading: at 40% it is barely a hint.
+          caption: '${(state.forecastAccuracy * 100).round()}% SURE',
         ),
       // The market price is a live decision, not decoration: tapping it turns
       // grid buying on and off.
