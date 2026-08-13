@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../data/missions.dart';
 import '../../game/grid_guard_game.dart' show DawnReport;
 import '../theme.dart';
 
