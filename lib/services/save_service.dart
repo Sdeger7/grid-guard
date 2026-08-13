@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/base_save.dart';
 import '../models/player_profile.dart';
 import '../models/star_rating.dart';
 
@@ -10,6 +11,7 @@ class SaveService {
   SaveService(this._prefs);
 
   static const _profileKey = 'grid_guard.player_profile.v1';
+  static const _baseKey = 'grid_guard.base.v1';
 
   final SharedPreferences _prefs;
 
@@ -81,4 +83,27 @@ class SaveService {
   }
 
   Future<void> resetAll() async => _prefs.remove(_profileKey);
+
+  // ---- Persistent base ----
+
+  /// The base as the player left it, or null on a first run.
+  BaseSave? loadBase() {
+    final raw = _prefs.getString(_baseKey);
+    if (raw == null) return null;
+    try {
+      return BaseSave.decode(raw);
+    } catch (_) {
+      // Corrupt or older-format save: better to start a fresh site than to
+      // refuse to launch.
+      return null;
+    }
+  }
+
+  Future<void> saveBase(BaseSave base) async {
+    await _prefs.setString(_baseKey, base.encode());
+  }
+
+  Future<void> clearBase() async {
+    await _prefs.remove(_baseKey);
+  }
 }

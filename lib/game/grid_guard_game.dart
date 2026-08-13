@@ -10,6 +10,7 @@ import '../data/premium_packages.dart';
 import '../data/tower_catalog.dart';
 import '../data/zone_theme.dart';
 import '../models/enemy_type.dart';
+import '../models/base_save.dart';
 import '../models/level_config.dart';
 import '../models/level_state.dart';
 import '../models/star_rating.dart';
@@ -107,6 +108,7 @@ class GridGuardGame extends FlameGame {
     required this.callbacks,
     this.perks = const PremiumPackage(
         id: '_none', name: '', emoji: '', price: 0, blurb: ''),
+    this.initialBase,
   });
 
   final LevelConfig config;
@@ -114,6 +116,10 @@ class GridGuardGame extends FlameGame {
 
   /// Combined premium perks the player owns, applied to this run.
   final PremiumPackage perks;
+
+  /// A previously saved base to rebuild on load, if there is one. Survival is
+  /// one continuous site, not a fresh run each time the app opens.
+  final BaseSave? initialBase;
 
   // ---- Shake tuning: single source of truth (design asks for one place). ----
   static const double shakeDurationDefault = 0.16; // 160ms
@@ -325,6 +331,11 @@ class GridGuardGame extends FlameGame {
     );
 
     _recenter();
+
+    final saved = initialBase;
+    if (saved != null && !saved.isEmpty) {
+      restoreSave(saved);
+    }
     _publishSnapshot(force: true);
   }
 
@@ -728,47 +739,62 @@ class GridGuardGame extends FlameGame {
     if (coord == baseCoord) return;
     if (!_spendMoney(spec.tier(0).cost)) return;
 
+    final comp = _createStructure(spec, coord, 0);
+    worldRoot.add(comp);
+    _occupied[coord] = comp;
+    _emitSfx(Sfx.towerPlace);
+    _publishSnapshot(force: true);
+  }
+
+  /// Instantiates and registers a structure without charging for it, so both
+  /// placement and restoring a saved base go through one path.
+  PositionComponent _createStructure(TowerSpec spec, TileCoord coord, int tier) {
     late final PositionComponent comp;
     switch (spec.category) {
       case TowerCategory.economy:
         if (spec.type == TowerType.windTurbine) {
-          final w = WindTurbineComponent(spec: spec, coord: coord);
+          final w = WindTurbineComponent(spec: spec, coord: coord, tier: tier);
           windTurbines.add(w);
           comp = w;
         } else {
-          final pv = PvPanelComponent(spec: spec, coord: coord);
+          final pv = PvPanelComponent(spec: spec, coord: coord, tier: tier);
           pvPanels.add(pv);
           comp = pv;
         }
         break;
       case TowerCategory.storage:
         final b = FacilityComponent(
-            spec: spec, coord: coord, spriteKey: 'bess', widthTiles: 1.6);
+            spec: spec,
+            coord: coord,
+            tier: tier,
+            spriteKey: 'bess',
+            widthTiles: 1.6);
         bessUnits.add(b);
         comp = b;
         break;
       case TowerCategory.datacenter:
         final d = FacilityComponent(
-            spec: spec, coord: coord, spriteKey: 'core', widthTiles: 1.9);
+            spec: spec,
+            coord: coord,
+            tier: tier,
+            spriteKey: 'core',
+            widthTiles: 1.9);
         dataCenters.add(d);
         comp = d;
         break;
       case TowerCategory.droneBay:
-        final bay = DroneBayComponent(spec: spec, coord: coord);
+        final bay = DroneBayComponent(spec: spec, coord: coord, tier: tier);
         droneBays.add(bay);
         comp = bay;
         break;
       case TowerCategory.slow:
       case TowerCategory.damage:
-        final tower = TowerComponent(spec: spec, coord: coord);
+        final tower = TowerComponent(spec: spec, coord: coord, tier: tier);
         if (spec.category == TowerCategory.slow) _slowTowers[coord] = tower;
         comp = tower;
         break;
     }
-    worldRoot.add(comp);
-    _occupied[coord] = comp;
-    _emitSfx(Sfx.towerPlace);
-    _publishSnapshot(force: true);
+    return comp;
   }
 
   void _selectStructure(TileCoord coord) {
@@ -861,8 +887,39 @@ class GridGuardGame extends FlameGame {
         : shakeMagnitudeLight);
     _emitSfx(Sfx.coreDamage);
     if (coreIntegrity <= 0 && phase == RunPhase.inProgress) {
-      _finish(false);
+      if (config.endless) {
+        _blackout();
+      } else {
+        _finish(false);
+      }
     }
+  }
+
+  /// A survival site is never wiped. Losing the core is a blackout: the raid
+  /// breaks off, the grid comes back at partial strength, and repairs cost
+  /// money — expensive and demoralising, but you keep the base you built and
+  /// carry on the next morning.
+  void _blackout() {
+    blackoutCount++;
+    for (final e in List<EnemyComponent>.from(enemies)) {
+      e.removeFromParent();
+    }
+    enemies.clear();
+    _pendingSpawns.clear();
+    _nightWaveTimes.clear();
+
+    // Emergency restart costs a third of the cash on hand.
+    money = (money * 0.66).floorToDouble();
+    coreIntegrity = integrityMax * 0.45;
+    energy = 0;
+
+    // Skip to first light: the night is over, whatever was left of it.
+    timeOfDay = 0.27;
+    _wasNight = false;
+    dayNumber++;
+    addShake(shakeMagnitudeHeavy);
+    _emitSfx(Sfx.coreDamage);
+    _publishSnapshot(force: true);
   }
 
   // ---- Wave callbacks ----
@@ -910,6 +967,121 @@ class GridGuardGame extends FlameGame {
     _publishSnapshot(force: true);
   }
 
+  // ---- Persistence: the base is permanent ----
+
+  /// Highest day whose story beat has been read; carried through the save so a
+  /// returning player never sees the same message twice.
+  int storyDayShown = 0;
+
+  /// Everything needed to put the player back exactly where they left off.
+  BaseSave captureSave() {
+    final list = <SavedStructure>[];
+    _occupied.forEach((coord, comp) {
+      if (comp is! StructureComponent) return;
+      list.add(SavedStructure(
+        type: comp.spec.type,
+        col: coord.col,
+        row: coord.row,
+        tier: comp.tier,
+        healthFraction: comp.healthFraction,
+      ));
+    });
+    return BaseSave(
+      structures: list,
+      money: money.floor(),
+      coins: coinsEarned,
+      energy: energy,
+      dayNumber: dayNumber,
+      timeOfDay: timeOfDay,
+      workloadIndex: workloadIndex,
+      coreIntegrity: integrityMax <= 0 ? 1 : coreIntegrity / integrityMax,
+      raidCount: raidCount,
+      score: score,
+      storyDayShown: storyDayShown,
+      savedAtMs: DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  /// Rebuilds a saved base into the live world. Called once, right after load.
+  void restoreSave(BaseSave save) {
+    for (final st in save.structures) {
+      final coord = TileCoord(st.col, st.row);
+      if (coord == baseCoord || _occupied.containsKey(coord)) continue;
+      if (st.col < 0 ||
+          st.row < 0 ||
+          st.col >= config.gridCols ||
+          st.row >= config.gridRows) {
+        continue;
+      }
+      final spec = TowerCatalog.of(st.type);
+      final comp = _createStructure(spec, coord, st.tier.clamp(0, 2));
+      worldRoot.add(comp);
+      _occupied[coord] = comp;
+      if (comp is StructureComponent) {
+        comp.restoreHealthFraction(st.healthFraction);
+      }
+    }
+
+    money = save.money.toDouble();
+    coinsEarned = save.coins;
+    dayNumber = save.dayNumber;
+    timeOfDay = save.timeOfDay;
+    raidCount = save.raidCount;
+    score = save.score;
+    storyDayShown = save.storyDayShown;
+    _wasNight = isNight;
+    // Only adopt the saved workload if the restored base still qualifies for it.
+    if (securityRating >=
+        DcWorkloadCatalog.workloads[
+                save.workloadIndex.clamp(0, DcWorkloadCatalog.workloads.length - 1)]
+            .requiredSecurity) {
+      workloadIndex =
+          save.workloadIndex.clamp(0, DcWorkloadCatalog.workloads.length - 1);
+    }
+    _threatRamp = workload.threat;
+    energy = save.energy.clamp(0, energyCapacity);
+    coreIntegrity = (save.coreIntegrity.clamp(0.05, 1.0)) * integrityMax;
+    // A restored site is already running; there is no "press start" any more.
+    phase = RunPhase.inProgress;
+    _publishSnapshot(force: true);
+  }
+
+  /// What the site produced while the app was closed. Offline production runs
+  /// at a reduced rate and is capped, so leaving the game shut for a week isn't
+  /// better than playing it — but coming back always pays something.
+  OfflineReport computeOfflineEarnings(BaseSave save) {
+    if (save.savedAtMs <= 0) {
+      return const OfflineReport(seconds: 0, money: 0, coins: 0);
+    }
+    final away =
+        (DateTime.now().millisecondsSinceEpoch - save.savedAtMs) / 1000.0;
+    if (away <= 0) return const OfflineReport(seconds: 0, money: 0, coins: 0);
+
+    const maxOfflineSeconds = 8 * 3600.0; // 8 hours of banked production
+    const offlineRate = 0.35; // unattended sites run at a third of full pace
+    final seconds = math.min(away, maxOfflineSeconds);
+
+    // Generation has to cover the draw for the DC to have been running at all.
+    final couldRun = dcTotalPower > 0 &&
+        (pvOutput * 0.5 + windOutput * 0.6) >= dcDraw * 0.8;
+    if (!couldRun) {
+      return OfflineReport(seconds: seconds, money: 0, coins: 0);
+    }
+
+    return OfflineReport(
+      seconds: seconds,
+      money: (dcIncome * seconds * offlineRate).round(),
+      coins: workload.minesCoins ? coinRate * seconds * offlineRate : 0.0,
+    );
+  }
+
+  /// Banks an offline report the player has seen.
+  void applyOfflineEarnings(OfflineReport report) {
+    money += report.money;
+    coinsEarned += report.coins;
+    _publishSnapshot(force: true);
+  }
+
   // ---- Endless raid director ----
 
   /// Raiders come at night, never in daylight. A run therefore reads as a
@@ -923,6 +1095,9 @@ class GridGuardGame extends FlameGame {
   /// Tonight's wave plan, for the HUD ("wave 2 of 3").
   int nightWavesTotal = 0;
   int nightWavesDone = 0;
+
+  /// How many blackouts the site has suffered — a scar, not a game over.
+  int blackoutCount = 0;
 
   /// Waves still to launch tonight, as delays measured from nightfall.
   final List<double> _nightWaveTimes = [];

@@ -80,6 +80,13 @@ abstract class StructureComponent extends IsoComponent {
     _health = _maxHealth;
   }
 
+  /// Restores the condition a structure was in when the game was last closed.
+  /// Safe to call before mount, when the health ceiling isn't sized yet.
+  void restoreHealthFraction(double fraction) {
+    if (_maxHealth == 0) _maxHealth = baseMaxHealth;
+    _health = _maxHealth * fraction.clamp(0.05, 1.0);
+  }
+
   /// Raider damage. Returns true if this destroyed the structure.
   bool takeStructureDamage(double amount) {
     if (_destroyed) return false;

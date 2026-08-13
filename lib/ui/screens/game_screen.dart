@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/levels.dart';
 import '../../data/premium_packages.dart';
 import '../../game/grid_guard_game.dart' as gg;
+import '../../models/base_save.dart';
 import '../../models/level_config.dart';
 import '../../models/level_state.dart';
 import '../../models/tower_type.dart';
@@ -14,6 +17,7 @@ import '../../services/monetization_service.dart';
 import '../theme.dart';
 import '../widgets/hud.dart';
 import '../widgets/level_end.dart';
+import '../widgets/offline_panel.dart';
 import '../widgets/tutorial_overlay.dart';
 import 'premium_screen.dart';
 
@@ -29,8 +33,15 @@ class GameScreen extends ConsumerStatefulWidget {
   ConsumerState<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends ConsumerState<GameScreen> {
+class _GameScreenState extends ConsumerState<GameScreen>
+    with WidgetsBindingObserver {
   late gg.GridGuardGame _game;
+
+  /// Autosave cadence. The site is permanent, so losing more than a few
+  /// seconds of progress to a killed app is not acceptable.
+  static const _autosaveInterval = Duration(seconds: 5);
+  Timer? _autosaveTimer;
+  OfflineReport? _offline;
 
   LevelState? _snapshot;
   gg.SelectedStructure? _selected;
@@ -49,8 +60,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   void initState() {
     super.initState();
+    // Survival is one continuous site: reload whatever the player left behind.
+    final save = widget.config.endless
+        ? ref.read(saveServiceProvider).loadBase()
+        : null;
     _game = gg.GridGuardGame(
       config: widget.config,
+      initialBase: save,
       perks: PremiumCatalog.effectiveOf(
           ref.read(profileProvider).ownedPackages),
       callbacks: gg.GameCallbacks(
@@ -60,6 +76,42 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         onSelection: (s) => setState(() => _selected = s),
       ),
     );
+
+    if (widget.config.endless) {
+      WidgetsBinding.instance.addObserver(this);
+      _autosaveTimer = Timer.periodic(_autosaveInterval, (_) => _saveBase());
+      if (save != null && !save.isEmpty) {
+        // Report what the site produced while the app was closed, once the
+        // game has finished rebuilding the base.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final report = _game.computeOfflineEarnings(save);
+          if (!mounted || !report.isWorthShowing) return;
+          _game.applyOfflineEarnings(report);
+          setState(() => _offline = report);
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _autosaveTimer?.cancel();
+    if (widget.config.endless) {
+      WidgetsBinding.instance.removeObserver(this);
+      _saveBase();
+    }
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Backgrounding the app is the most common way a session ends on a phone.
+    if (state != AppLifecycleState.resumed) _saveBase();
+  }
+
+  void _saveBase() {
+    if (!widget.config.endless) return;
+    ref.read(saveServiceProvider).saveBase(_game.captureSave());
   }
 
   void _onSnapshot(LevelState state) {
@@ -285,6 +337,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
             ),
           ),
+          if (_offline != null)
+            OfflinePanel(
+              report: _offline!,
+              onClose: () => setState(() => _offline = null),
+            ),
           if (showSurvivalEnd)
             SurvivalEndPanel(
               raid: _game.raidCount,
