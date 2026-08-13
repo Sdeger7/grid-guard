@@ -24,6 +24,7 @@ import 'components/facility_component.dart';
 import 'components/floating_text.dart';
 import 'components/ground_tile.dart';
 import 'components/night_overlay.dart';
+import 'components/scenery.dart';
 import 'components/wind_turbine_component.dart';
 import 'components/pv_panel_component.dart';
 import 'components/structure_component.dart';
@@ -397,12 +398,118 @@ class GridGuardGame extends FlameGame {
       }
     }
 
+    _scatterScenery();
+
     core = CoreComponent(
       tile: Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
       accent: theme.accent,
     );
     worldRoot.add(core);
   }
+
+  /// Dresses the yard with ponds, trees, rocks and bushes so the map reads as a
+  /// piece of countryside rather than a green sheet. All of it is cosmetic: a
+  /// prop hides itself the moment something is built on its tile, so nothing
+  /// here takes buildable ground away from the player. The layout is derived
+  /// from a fixed seed, so a site looks the same every time it is loaded.
+  void _scatterScenery() {
+    final rng = math.Random(config.id * 7919 + 13);
+    final pond = <TileCoord>{};
+
+    // One or two ponds, grown as blobs from a seed tile well clear of the base.
+    final pondCount = 1 + rng.nextInt(2);
+    for (var p = 0; p < pondCount; p++) {
+      final cx = 1 + rng.nextInt(config.gridCols - 2);
+      final cy = 1 + rng.nextInt(config.gridRows - 2);
+      if ((cx - baseCoord.col).abs() + (cy - baseCoord.row).abs() < 4) continue;
+      final size = 3 + rng.nextInt(4);
+      var x = cx, y = cy;
+      for (var i = 0; i < size; i++) {
+        final c = TileCoord(x, y);
+        if (x > 0 &&
+            y > 0 &&
+            x < config.gridCols - 1 &&
+            y < config.gridRows - 1 &&
+            c != baseCoord) {
+          pond.add(c);
+        }
+        // Random walk keeps the shape organic instead of a square block.
+        if (rng.nextBool()) {
+          x += rng.nextBool() ? 1 : -1;
+        } else {
+          y += rng.nextBool() ? 1 : -1;
+        }
+      }
+    }
+
+    for (final c in pond) {
+      final touchesLand = [
+            TileCoord(c.col + 1, c.row),
+            TileCoord(c.col - 1, c.row),
+            TileCoord(c.col, c.row + 1),
+            TileCoord(c.col, c.row - 1),
+          ].any((n) => !pond.contains(n));
+      worldRoot.add(PondTile(
+        tile: Vector2(c.col.toDouble(), c.row.toDouble()),
+        seed: rng.nextDouble(),
+        edges: touchesLand,
+      ));
+    }
+
+    final centre =
+        Vector2(config.gridCols / 2 - 0.5, config.gridRows / 2 - 0.5);
+    for (var r = 0; r < config.gridRows; r++) {
+      for (var c = 0; c < config.gridCols; c++) {
+        final coord = TileCoord(c, r);
+        if (coord == baseCoord) continue;
+
+        final here = Vector2(c.toDouble(), r.toDouble());
+        final onWater = pond.contains(coord);
+        final byWater = !onWater &&
+            [
+              TileCoord(c + 1, r),
+              TileCoord(c - 1, r),
+              TileCoord(c, r + 1),
+              TileCoord(c, r - 1),
+            ].any(pond.contains);
+
+        if (onWater) continue;
+
+        // Reeds line the shore; elsewhere, density grows toward the edges so
+        // the middle of the yard stays open to build on.
+        SceneryKind? kind;
+        if (byWater && rng.nextDouble() < 0.55) {
+          kind = SceneryKind.reeds;
+        } else {
+          final edgeness =
+              ((here - centre).length / (config.gridCols / 2)).clamp(0.0, 1.0);
+          final chance = 0.04 + edgeness * 0.30;
+          if (rng.nextDouble() < chance) {
+            final roll = rng.nextDouble();
+            kind = roll < 0.34
+                ? SceneryKind.tree
+                : roll < 0.58
+                    ? SceneryKind.pine
+                    : roll < 0.82
+                        ? SceneryKind.bush
+                        : SceneryKind.rock;
+          }
+        }
+        if (kind == null) continue;
+
+        worldRoot.add(SceneryComponent(
+          tile: here,
+          kind: kind,
+          seed: rng.nextDouble(),
+        ));
+      }
+    }
+  }
+
+  /// True when something is built on this tile — scenery uses it to get out of
+  /// the way of real structures.
+  bool isOccupiedTile(int col, int row) =>
+      _occupied.containsKey(TileCoord(col, row));
 
   void _recenter() {
     if (size.x == 0 || size.y == 0) return;
