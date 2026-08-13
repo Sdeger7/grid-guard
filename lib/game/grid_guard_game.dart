@@ -988,6 +988,15 @@ class GridGuardGame extends FlameGame {
       }
     }
 
+    // 1f) Operating costs. Everything standing on the site costs money to keep
+    //     standing — staff, spares, insurance — billed against what it is worth.
+    //     A site's running bill therefore grows as fast as the site does, which
+    //     is what stops cash from piling up with nothing to buy.
+    final opex = operatingCost * dt;
+    if (opex > 0) {
+      money = math.max(0.0, money - opex);
+    }
+
     // 2) Data Centers consume to run, and pay out while powered — but they only
     //    get what's above the defence reserve, so a greedy workload can't starve
     //    the towers and leave the base defenceless.
