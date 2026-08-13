@@ -51,6 +51,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
   /// seconds of progress to a killed app is not acceptable.
   static const _autosaveInterval = Duration(seconds: 5);
   Timer? _autosaveTimer;
+  Timer? _weatherTimer;
   OfflineReport? _offline;
   gg.DawnReport? _dawn;
 
@@ -114,6 +115,10 @@ class _GameScreenState extends ConsumerState<GameScreen>
         setState(() => _streakDay = day);
       });
       _autosaveTimer = Timer.periodic(_autosaveInterval, (_) => _saveBase());
+      // Real conditions over the real site, refreshed occasionally and cached.
+      _refreshWeather();
+      _weatherTimer =
+          Timer.periodic(const Duration(minutes: 10), (_) => _refreshWeather());
       if (save != null && !save.isEmpty) {
         // Report what the site produced while the app was closed, once the
         // game has finished rebuilding the base.
@@ -130,6 +135,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
   @override
   void dispose() {
     _autosaveTimer?.cancel();
+    _weatherTimer?.cancel();
     if (widget.config.endless) {
       WidgetsBinding.instance.removeObserver(this);
       _saveBase();
@@ -141,6 +147,19 @@ class _GameScreenState extends ConsumerState<GameScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Backgrounding the app is the most common way a session ends on a phone.
     if (state != AppLifecycleState.resumed) _saveBase();
+  }
+
+  Future<void> _refreshWeather() async {
+    final service = ref.read(weatherServiceProvider);
+    if (service == null) return;
+    final city = _game.city;
+    final live = await service.conditionsFor(
+      cityId: city.id,
+      latitude: city.latitude,
+      longitude: city.longitude,
+    );
+    if (!mounted || live == null) return;
+    _game.liveWeather = live;
   }
 
   void _saveBase() {
@@ -372,7 +391,10 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       onOpenChallenge: () =>
                           showChallengeSheet(context, ref, _game),
                       onOpenCities: () => showCitySheet(context, _game,
-                          onMoved: () => setState(() {})),
+                          onMoved: () {
+                            _refreshWeather();
+                            setState(() {});
+                          }),
                       onAbandon: () {
                         _game.abandonSite();
                         _selectBuild(null);

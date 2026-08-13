@@ -15,6 +15,9 @@ class SaveService {
 
   final SharedPreferences _prefs;
 
+  /// Shared with the weather cache, which has no reason to open its own store.
+  SharedPreferences get prefs => _prefs;
+
   /// Convenience async constructor for app startup.
   static Future<SaveService> create() async {
     final prefs = await SharedPreferences.getInstance();

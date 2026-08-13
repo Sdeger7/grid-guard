@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/level_state.dart';
 import '../data/streak.dart';
 import '../models/player_profile.dart';
+import 'weather_service.dart';
 import '../models/star_rating.dart';
 import '../models/tower_type.dart';
 import 'audio_service.dart';
@@ -11,6 +12,10 @@ import 'save_service.dart';
 
 /// Provides the [SaveService]. Overridden in `main()` with the real instance
 /// once shared_preferences has initialised.
+/// Live weather for the site's province. Optional by design: without it the
+/// game falls back to its own weather model and plays exactly as before.
+final weatherServiceProvider = Provider<WeatherService?>((ref) => null);
+
 final saveServiceProvider = Provider<SaveService>(
   (ref) => throw UnimplementedError('saveServiceProvider must be overridden'),
 );

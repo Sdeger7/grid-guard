@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'services/app_providers.dart';
 import 'services/save_service.dart';
+import 'services/weather_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +26,11 @@ Future<void> main() async {
   final saveService = await SaveService.create();
 
   final container = ProviderContainer(
-    overrides: [saveServiceProvider.overrideWithValue(saveService)],
+    overrides: [
+      saveServiceProvider.overrideWithValue(saveService),
+      weatherServiceProvider
+          .overrideWithValue(WeatherService(saveService.prefs)),
+    ],
   );
 
   // Warm the audio cache (no-op if placeholder SFX are absent).
