@@ -24,8 +24,7 @@ class PremiumScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                const Icon(Icons.currency_bitcoin_rounded,
-                    size: 18, color: GGColors.amber),
+                const WattIcon(size: 18),
                 const SizedBox(width: 3),
                 Text('${profile.coins}', style: GGText.stat),
               ],
@@ -131,7 +130,7 @@ class _PackageTile extends StatelessWidget {
             else
               ElevatedButton.icon(
                 onPressed: affordable ? onBuy : null,
-                icon: const Icon(Icons.currency_bitcoin_rounded, size: 16),
+                icon: const WattIcon(size: 16),
                 label: Text('${pack.price}'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: GGColors.amber,

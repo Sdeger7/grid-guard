@@ -173,9 +173,9 @@ class _TopBar extends StatelessWidget {
         caption: 'MONEY',
       ),
       _Stat(
-        icon: Icons.currency_bitcoin_rounded,
+        icon: Icons.savings_rounded,
         color: GGColors.amber,
-        label: state.coins.toStringAsFixed(3),
+        label: '₵${state.coins.toStringAsFixed(3)}',
         caption: 'WATT ⇄',
         onTap: () => _showExchangeSheet(context, game, state.coins),
       ),
@@ -479,7 +479,7 @@ class _DcChips extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       w.minesCoins
-                          ? '⚡WTT'
+                          ? '₵WATT'
                           : '+${w.income.toStringAsFixed(0)}M',
                       style: GGText.soft.copyWith(
                         fontWeight: FontWeight.w700,
@@ -1068,8 +1068,7 @@ void _showExchangeSheet(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
               child: Row(
                 children: [
-                  const Icon(Icons.currency_bitcoin_rounded,
-                      color: GGColors.amber),
+                  const WattIcon(size: 20),
                   const SizedBox(width: 8),
                   Text('WATT EXCHANGE',
                       style: GGText.body.copyWith(

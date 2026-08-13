@@ -145,7 +145,7 @@ class GuideScreen extends StatelessWidget {
             body: 'MONEY (M) is the build currency: contracts, missions, the '
                 'dawn bonus and grid sales all pay it, and it buys '
                 'structures, upgrades, repairs and land clearing.\n\n'
-                'WATT (⚡WTT) is minted by exactly one thing — the Crypto '
+                'WATT (₵WATT) is minted by exactly one thing — the Crypto '
                 'Mining workload — and buys permanent perks that carry across '
                 'everything you do. You can cash WATT out for MONEY at '
                 '${GridGuardGame.wattToCash} M each, but spent WATT is gone '

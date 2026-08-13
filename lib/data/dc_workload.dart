@@ -70,7 +70,7 @@ class DcWorkloadCatalog {
       draw: 8,
       threat: 1.3,
       requiredSecurity: 6,
-      blurb: 'Pays only in ⚡WATT, no cash — and a known target.',
+      blurb: 'Pays only in ₵WATT, no cash — and a known target.',
       minesCoins: true,
     ),
     DcWorkload(

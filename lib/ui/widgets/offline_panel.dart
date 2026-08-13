@@ -64,7 +64,7 @@ class OfflinePanel extends StatelessWidget {
                     if (report.coins > 0) ...[
                       const SizedBox(height: 8),
                       _Row(
-                        icon: Icons.currency_bitcoin_rounded,
+                        icon: Icons.paid_rounded, // WATT stat draws its own mark
                         color: GGColors.amber,
                         label: 'Mined',
                         value: report.coins.toStringAsFixed(2),

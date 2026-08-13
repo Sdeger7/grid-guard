@@ -257,7 +257,7 @@ class SurvivalEndPanel extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: onPremium,
-                  icon: const Icon(Icons.currency_bitcoin_rounded),
+                  icon: const WattIcon(size: 18),
                   label: const Text('Spend WATT on perks'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: GGColors.amber,

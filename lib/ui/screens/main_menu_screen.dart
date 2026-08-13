@@ -55,7 +55,7 @@ class MainMenuScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               const SizedBox(height: 12),
               _MenuButton(
-                icon: Icons.currency_bitcoin_rounded,
+                icon: Icons.paid_rounded, // WATT stat draws its own mark
                 label: 'PREMIUM',
                 color: GGColors.amber,
                 onTap: () => Navigator.of(context).push(
@@ -84,10 +84,9 @@ class MainMenuScreen extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.currency_bitcoin_rounded,
-                      size: 16, color: GGColors.amber),
+                  const WattIcon(size: 16),
                   const SizedBox(width: 4),
-                  Text('${profile.coins} ⚡WATT',
+                  Text('₵${profile.coins} WATT',
                       style: GGText.soft.copyWith(
                           fontWeight: FontWeight.w800)),
                   if (profile.bestRaid > 0) ...[

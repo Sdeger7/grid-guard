@@ -68,6 +68,35 @@ class GGPanel extends StatelessWidget {
   }
 }
 
+/// The WATT mark: a struck-through C, the same shape language as a currency
+/// glyph without borrowing Bitcoin's B — this is our own closed currency and
+/// should not read as somebody else's.
+class WattIcon extends StatelessWidget {
+  const WattIcon({super.key, this.size = 16, this.color = GGColors.amber});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Center(
+        child: Text(
+          '₵',
+          style: TextStyle(
+            fontSize: size,
+            height: 1,
+            fontWeight: FontWeight.w900,
+            color: color,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 ThemeData buildAppTheme() {
   return ThemeData(
     useMaterial3: true,

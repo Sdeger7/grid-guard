@@ -91,7 +91,7 @@ class DawnPanel extends StatelessWidget {
                     if (report.coins > 0) ...[
                       const SizedBox(height: 6),
                       _Line(
-                        icon: Icons.currency_bitcoin_rounded,
+                        icon: Icons.paid_rounded, // WATT stat draws its own mark
                         color: GGColors.amber,
                         text: 'Mined overnight',
                         value: report.coins.toStringAsFixed(2),
