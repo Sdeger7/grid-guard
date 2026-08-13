@@ -22,6 +22,7 @@ import '../widgets/dawn_panel.dart';
 import '../widgets/level_end.dart';
 import '../widgets/offline_panel.dart';
 import '../widgets/relocate_sheet.dart';
+import '../widgets/challenge_sheet.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/site_menu.dart';
 import '../widgets/streak_panel.dart';
@@ -368,6 +369,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       onOpenServices: () => showSpeedupSheet(context, _game,
                           ref.read(monetizationServiceProvider)),
                       onOpenReport: () => showReportSheet(context, _game),
+                      onOpenChallenge: () =>
+                          showChallengeSheet(context, ref, _game),
                       onAbandon: () {
                         _game.abandonSite();
                         _selectBuild(null);

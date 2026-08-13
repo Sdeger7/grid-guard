@@ -35,6 +35,7 @@ class PlayerProfile {
     this.streakDays = 0,
     this.lastPlayedEpochDay = 0,
     this.streakClaimedEpochDay = 0,
+    this.challengeScores = const {},
   });
 
   /// WATT mined by crypto workloads — the permanent currency for premium packs.
@@ -53,6 +54,9 @@ class PlayerProfile {
   final int streakDays;
   final int lastPlayedEpochDay;
   final int streakClaimedEpochDay;
+
+  /// Best score per weekly challenge, keyed by week number.
+  final Map<int, int> challengeScores;
 
   /// Which cosmetic set is worn in each slot, keyed by SkinSlot.name. What is
   /// owned lives in [ownedSkins].
@@ -112,6 +116,7 @@ class PlayerProfile {
     int? streakDays,
     int? lastPlayedEpochDay,
     int? streakClaimedEpochDay,
+    Map<int, int>? challengeScores,
   }) {
     return PlayerProfile(
       gridCredits: gridCredits ?? this.gridCredits,
@@ -135,6 +140,7 @@ class PlayerProfile {
       lastPlayedEpochDay: lastPlayedEpochDay ?? this.lastPlayedEpochDay,
       streakClaimedEpochDay:
           streakClaimedEpochDay ?? this.streakClaimedEpochDay,
+      challengeScores: challengeScores ?? this.challengeScores,
     );
   }
 
@@ -159,6 +165,8 @@ class PlayerProfile {
         'streakDays': streakDays,
         'lastPlayedEpochDay': lastPlayedEpochDay,
         'streakClaimedEpochDay': streakClaimedEpochDay,
+        'challengeScores':
+            challengeScores.map((k, v) => MapEntry(k.toString(), v)),
       };
 
   factory PlayerProfile.fromJson(Map<String, dynamic> json) {
@@ -181,6 +189,9 @@ class PlayerProfile {
       streakDays: json['streakDays'] as int? ?? 0,
       lastPlayedEpochDay: json['lastPlayedEpochDay'] as int? ?? 0,
       streakClaimedEpochDay: json['streakClaimedEpochDay'] as int? ?? 0,
+      challengeScores:
+          ((json['challengeScores'] as Map<String, dynamic>?) ?? const {})
+              .map((k, v) => MapEntry(int.parse(k), v as int)),
       equippedSkins: ((json['equippedSkins'] as Map<String, dynamic>?) ??
               const <String, dynamic>{})
           .map((k, v) => MapEntry(k, v as String)),

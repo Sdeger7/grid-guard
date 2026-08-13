@@ -18,6 +18,7 @@ Future<void> showSiteMenu(
   required VoidCallback onOpenServices,
   required VoidCallback onOpenReport,
   required VoidCallback onAbandon,
+  required VoidCallback onOpenChallenge,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -63,6 +64,13 @@ Future<void> showSiteMenu(
                           color: GGColors.amber)),
                 ],
               ),
+            ),
+            entry(
+              icon: Icons.emoji_events_rounded,
+              colour: GGColors.amber,
+              title: 'Weekly challenge',
+              subtitle: 'Same seed for everyone — a score worth comparing',
+              onTap: onOpenChallenge,
             ),
             entry(
               icon: Icons.receipt_long_rounded,

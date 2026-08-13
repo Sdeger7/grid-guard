@@ -121,6 +121,18 @@ class ProfileNotifier extends Notifier<PlayerProfile> {
     await ref.read(saveServiceProvider).saveProfile(updated);
   }
 
+  /// Records a challenge result, keeping the best score for that week.
+  Future<void> recordChallengeScore(int week, int score) async {
+    final p = state;
+    final best = p.challengeScores[week] ?? 0;
+    if (score <= best) return;
+    final updated = p.copyWith(
+      challengeScores: {...p.challengeScores, week: score},
+    );
+    state = updated;
+    await ref.read(saveServiceProvider).saveProfile(updated);
+  }
+
   /// Buys a cosmetic set with WATT. Returns false when the balance is short.
   Future<bool> buySkin(String id, int price) async {
     final p = state;
