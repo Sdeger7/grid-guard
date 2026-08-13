@@ -8,7 +8,6 @@ import 'game_screen.dart';
 import 'guide_screen.dart';
 import 'premium_screen.dart';
 import 'skins_screen.dart';
-import 'store_screen.dart';
 
 /// Title screen. Minimal engineering-dashboard framing with entry points to the
 /// campaign and the store.
@@ -79,26 +78,25 @@ class MainMenuScreen extends ConsumerWidget {
                     MaterialPageRoute(builder: (_) => const GuideScreen())),
               ),
               const SizedBox(height: 12),
-              _MenuButton(
-                icon: Icons.storefront_rounded,
-                label: 'MARKET',
-                color: GGColors.accent,
-                onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const StoreScreen())),
-              ),
               const SizedBox(height: 20),
+              // One line, one currency: WATT is the only thing the player
+              // actually earns and spends outside a run.
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.bolt_rounded, size: 16, color: GGColors.mw),
+                  const Icon(Icons.currency_bitcoin_rounded,
+                      size: 16, color: GGColors.amber),
                   const SizedBox(width: 4),
-                  Text('${profile.gridCredits} Grid Credits',
-                      style: GGText.soft),
-                  const SizedBox(width: 16),
-                  const Icon(Icons.hexagon_rounded,
-                      size: 14, color: GGColors.accentWarm),
-                  const SizedBox(width: 4),
-                  Text('${profile.energyCores} Cores', style: GGText.soft),
+                  Text('${profile.coins} ⚡WATT',
+                      style: GGText.soft.copyWith(
+                          fontWeight: FontWeight.w800)),
+                  if (profile.bestRaid > 0) ...[
+                    const SizedBox(width: 16),
+                    const Icon(Icons.waves_rounded,
+                        size: 14, color: GGColors.accentWarm),
+                    const SizedBox(width: 4),
+                    Text('best raid ${profile.bestRaid}', style: GGText.soft),
+                  ],
                 ],
               ),
               const SizedBox(height: 8),
