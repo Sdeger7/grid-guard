@@ -1310,7 +1310,17 @@ class GridGuardGame extends FlameGame {
 
   /// Growth itself raises the stakes: a richer base draws heavier raids on top
   /// of the workload's own threat.
-  double get growthThreat => 1.0 + (baseValue / 1200.0).clamp(0.0, 1.4);
+  /// Attention grows with what the site is worth, but on a curve rather than a
+  /// line, and it never stops: a site fifty times richer is not fifty times
+  /// more watched, yet it is never left alone either.
+  ///
+  /// The scale is tied to build costs — when those tripled, a starter site was
+  /// pinning the old ceiling on day one — and the reference point is roughly
+  /// what a modest working site is worth.
+  static const double threatReferenceValue = 6000.0;
+
+  double get growthThreat =>
+      1.0 + 0.55 * math.log(1 + baseValue / threatReferenceValue);
 
   /// Towers call this to spend energy on a shot. Returns false (don't fire) when
   /// the BESS is too low — that's how starving the grid makes defences fail.
