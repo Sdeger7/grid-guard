@@ -23,8 +23,9 @@ enum MissionMetric {
 }
 
 /// A daily objective. Missions are the small, always-reachable goal that gives
-/// a session a point beyond "watch the meter go up", and they pay in WATT —
-/// the currency that buys permanent perks.
+/// a session a point beyond "watch the meter go up". They pay cash: WATT is
+/// minted by mining hardware and nothing else, so no side activity may create
+/// it out of thin air.
 @immutable
 class Mission {
   const Mission({
@@ -37,8 +38,8 @@ class Mission {
   final MissionMetric metric;
   final int target;
 
-  /// WATT paid on completion.
-  final double reward;
+  /// Cash paid on completion.
+  final int reward;
 
   final String title;
 }
@@ -53,31 +54,31 @@ class MissionCatalog {
       Mission(
         metric: MissionMetric.kills,
         target: 8 + day * 2,
-        reward: 1.0 + day * 0.1,
+        reward: 60 + day * 10,
         title: 'Shoot down ${8 + day * 2} raiders',
       ),
       Mission(
         metric: MissionMetric.builds,
         target: 2 + (day ~/ 4),
-        reward: 0.8 + day * 0.08,
+        reward: 45 + day * 8,
         title: 'Build ${2 + (day ~/ 4)} new units',
       ),
       Mission(
         metric: MissionMetric.upgrades,
         target: 1 + (day ~/ 5),
-        reward: 1.2 + day * 0.1,
+        reward: 70 + day * 12,
         title: 'Buy ${1 + (day ~/ 5)} upgrades',
       ),
       Mission(
         metric: MissionMetric.repairs,
         target: 2 + (day ~/ 3),
-        reward: 0.7 + day * 0.07,
+        reward: 40 + day * 7,
         title: 'Repair ${2 + (day ~/ 3)} structures',
       ),
       const Mission(
         metric: MissionMetric.nightsHeld,
         target: 1,
-        reward: 1.5,
+        reward: 90,
         title: 'Hold tonight without a blackout',
       ),
     ];

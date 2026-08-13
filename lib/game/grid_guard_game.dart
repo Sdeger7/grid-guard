@@ -808,6 +808,25 @@ class GridGuardGame extends FlameGame {
   /// Coins mined this run (whole coins are banked to the profile at run end).
   double coinsEarned = 0;
 
+  /// What one WATT fetches when sold for cash. WATT is deliberately scarce —
+  /// only mining hardware mints it — so cashing out is a real decision: spend
+  /// it on permanent perks, or burn it to get through a bad week.
+  static const double wattToCash = 40.0;
+
+  /// Sells [amount] WATT for cash. Returns false when the balance is short.
+  bool exchangeWatt(double amount) {
+    if (amount <= 0 || coinsEarned < amount) return false;
+    coinsEarned -= amount;
+    money += amount * wattToCash;
+    spawnFloatingText(
+      '+\$${(amount * wattToCash).round()}',
+      Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
+      const Color(0xFF2FBF71),
+    );
+    _publishSnapshot(force: true);
+    return true;
+  }
+
   /// Coins per second while a crypto workload runs powered — scales with how
   /// much Data Center capacity is pointed at it.
   double get coinRate =>
@@ -1417,7 +1436,7 @@ class GridGuardGame extends FlameGame {
       if (_blackoutTonight) continue;
       missionDone[i] = true;
       missionProgress[i] = 1;
-      coinsEarned += missions[i].reward;
+      money += missions[i].reward;
     }
     _blackoutTonight = false;
     _rollMissions();

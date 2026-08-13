@@ -41,7 +41,7 @@ class Hud extends StatelessWidget {
     return SafeArea(
       child: Column(
         children: [
-          if (s != null) _TopBar(state: s),
+          if (s != null) _TopBar(state: s, game: game),
           if (s != null) _FacilitiesRow(state: s, game: game),
           const Spacer(),
           if (s != null && s.bossWaveActive && s.phase == RunPhase.inProgress)
@@ -80,8 +80,9 @@ class Hud extends StatelessWidget {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.state});
+  const _TopBar({required this.state, required this.game});
   final LevelState state;
+  final GridGuardGame game;
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +126,8 @@ class _TopBar extends StatelessWidget {
         icon: Icons.currency_bitcoin_rounded,
         color: GGColors.amber,
         label: state.coins.toStringAsFixed(1),
-        caption: 'WATT',
+        caption: 'WATT ⇄',
+        onTap: () => _showExchangeSheet(context, game, state.coins),
       ),
       _Stat(
         icon: Icons.local_fire_department_rounded,
@@ -260,14 +262,29 @@ class _Stat extends StatelessWidget {
     required this.color,
     required this.label,
     required this.caption,
+    this.onTap,
   });
   final IconData icon;
   final Color color;
   final String label;
   final String caption;
 
+  /// Set on stats that are also a control (WATT opens the exchange).
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
+    final content = _content();
+    if (onTap == null) return content;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2), child: content),
+    );
+  }
+
+  Widget _content() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -869,4 +886,73 @@ class _BossBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The WATT exchange: mining is the only source of WATT, so this is where a
+/// player decides whether to keep it for permanent perks or burn it to get
+/// through a hard stretch.
+void _showExchangeSheet(
+    BuildContext context, GridGuardGame game, double balance) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: GGColors.panel,
+    builder: (ctx) {
+      Widget option(double amount, String label) {
+        final affordable = balance >= amount && amount > 0;
+        return ListTile(
+          enabled: affordable,
+          leading: const Icon(Icons.swap_horiz_rounded, color: GGColors.amber),
+          title: Text(label, style: GGText.body),
+          subtitle: Text(
+              '${amount.toStringAsFixed(2)} WATT → '
+              '\$${(amount * GridGuardGame.wattToCash).round()}',
+              style: GGText.soft),
+          onTap: affordable
+              ? () {
+                  game.exchangeWatt(amount);
+                  Navigator.of(ctx).pop();
+                }
+              : null,
+        );
+      }
+
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.currency_bitcoin_rounded,
+                      color: GGColors.amber),
+                  const SizedBox(width: 8),
+                  Text('WATT EXCHANGE',
+                      style: GGText.body.copyWith(
+                          fontWeight: FontWeight.w900, letterSpacing: 1)),
+                  const Spacer(),
+                  Text('${balance.toStringAsFixed(2)} ⚡',
+                      style: GGText.body
+                          .copyWith(fontWeight: FontWeight.w800)),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                  'Only Crypto Mining mints WATT. Rate: 1 WATT = '
+                  '\$${GridGuardGame.wattToCash.round()}. Spent WATT is gone '
+                  'from your perk budget.',
+                  style: GGText.soft),
+            ),
+            option(1, 'Cash out 1'),
+            option(5, 'Cash out 5'),
+            option(25, 'Cash out 25'),
+            option(balance.floorToDouble(), 'Cash out everything'),
+            const SizedBox(height: 8),
+          ],
+        ),
+      );
+    },
+  );
 }
