@@ -25,6 +25,7 @@ import '../data/zone_theme.dart';
 import '../models/enemy_type.dart';
 import '../models/base_save.dart';
 import '../models/grid_contract.dart';
+import '../models/land_holding.dart';
 import '../models/level_config.dart';
 import '../models/level_state.dart';
 import '../models/star_rating.dart';
@@ -225,19 +226,138 @@ class GridGuardGame extends FlameGame {
     return true;
   }
 
-  /// Moving is a purchase, not a milestone: any province is open at any time
-  /// if you can pay for the plot and the haulage.
-  int relocationCostTo(City target) => CityCatalog.relocationCost(city, target);
+  // ---- Land ----
 
-  bool canRelocateTo(City target) =>
-      target.id != cityId && money >= relocationCostTo(target);
+  /// Every plot the player holds, anywhere in the world. The site standing on
+  /// [cityId] is simulated in detail; the rest run in the background off their
+  /// development level.
+  final List<LandHolding> holdings = [];
 
-  /// Moves the operation to another province. Buildings do not come with you;
-  /// half of what they are worth is recovered as salvage, which is what pays
-  /// for the first structures on the new ground.
-  bool relocateTo(City target) {
-    if (!canRelocateTo(target)) return false;
-    final bill = relocationCostTo(target);
+  LandHolding? holdingFor(String id) {
+    for (final h in holdings) {
+      if (h.cityId == id) return h;
+    }
+    return null;
+  }
+
+  bool holds(String id) => holdingFor(id) != null;
+
+  /// What it costs to take a plot, either way. Renting is cheap to start and
+  /// billed daily forever; buying ties capital up in dirt but ends the bill.
+  int acquisitionCost(City target, Tenure tenure) =>
+      tenure == Tenure.owned ? target.landPrice : target.rentPerDay * 7;
+
+  /// Takes a plot. Premium ground stays locked until it is unlocked elsewhere.
+  bool acquireLand(City target, Tenure tenure) {
+    if (target.premium && !premiumUnlocked.contains(target.id)) return false;
+    if (holds(target.id)) return false;
+    final cost = acquisitionCost(target, tenure);
+    if (!_spendMoney(cost)) return false;
+    holdings.add(LandHolding(
+      cityId: target.id,
+      tenure: tenure,
+      acquiredAtMs: DateTime.now().millisecondsSinceEpoch,
+    ));
+    _publishSnapshot(force: true);
+    return true;
+  }
+
+  /// Sells a plot back. Freehold returns most of its price; a lease returns
+  /// nothing, which is the cost of having started cheap.
+  bool releaseLand(String id) {
+    final h = holdingFor(id);
+    if (h == null || id == cityId) return false;
+    final target = CityCatalog.byId(id);
+    if (h.tenure == Tenure.owned) {
+      money += target.landPrice * 0.8 + h.development * 0.5;
+    }
+    holdings.remove(h);
+    _publishSnapshot(force: true);
+    return true;
+  }
+
+  /// Premium locations the player has unlocked.
+  final Set<String> premiumUnlocked = {};
+
+  /// Invests in a plot you are not standing on. Background sites have no
+  /// buildings to place — they have capital in the ground and produce from it.
+  bool developHolding(String id, int amount) {
+    final h = holdingFor(id);
+    if (h == null || amount <= 0) return false;
+    if (!_spendMoney(amount)) return false;
+    holdings[holdings.indexOf(h)] =
+        h.copyWith(development: h.development + amount);
+    _publishSnapshot(force: true);
+    return true;
+  }
+
+  /// What the background plots earn per second between them.
+  ///
+  /// Deliberately worse than being there: unattended capital returns about a
+  /// third of what the same money would make under your eye, weighted by the
+  /// site's own sun, wind and local prices. It is a reason to own several
+  /// places, not a reason to stop playing.
+  double get remoteIncome {
+    var total = 0.0;
+    for (final h in holdings) {
+      if (h.cityId == cityId || h.development <= 0) continue;
+      final c = CityCatalog.byId(h.cityId);
+      final sunNow = SolarMath.at(
+        latitude: c.latitude,
+        longitude: c.longitude,
+      ).clearSkyFactor;
+      final resource = sunNow * c.solarIndex * 0.7 + c.windIndex * 0.3;
+      total += h.development * 0.00025 * resource * c.priceIndex;
+    }
+    return total;
+  }
+
+  /// Daily rent across every leased plot, charged per second.
+  double get rentPerSecond {
+    var perDay = 0.0;
+    for (final h in holdings) {
+      if (h.tenure != Tenure.rented) continue;
+      perDay += CityCatalog.byId(h.cityId).rentPerDay;
+    }
+    return perDay / 86400.0;
+  }
+
+  /// Cost of wheeling one unit of energy between two of your own sites.
+  ///
+  /// Distance is the whole of it: losses over a long line are real, and the
+  /// further the power travels the less of it arrives. Below, the fraction that
+  /// survives the trip.
+  static double transmissionEfficiency(double km) =>
+      (1.0 - km / 20000.0).clamp(0.55, 0.985);
+
+  static int wheelingFee(double km) => 40 + (km * 0.05).round();
+
+  /// Moves energy from a background plot to the site you are standing on,
+  /// paying the line fee and losing what the distance costs.
+  bool importFromHolding(String id, double units) {
+    final h = holdingFor(id);
+    if (h == null || h.cityId == cityId || units <= 0) return false;
+    final from = CityCatalog.byId(h.cityId);
+    final km = from.distanceTo(city);
+    final fee = wheelingFee(km);
+    if (!_spendMoney(fee)) return false;
+    final delivered = units * transmissionEfficiency(km);
+    energy = (energy + delivered).clamp(0, energyCapacity);
+    spawnFloatingText(
+      '+${delivered.round()}⚡ from ${from.name}',
+      Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
+      const Color(0xFF2E7DF6),
+    );
+    _publishSnapshot(force: true);
+    return true;
+  }
+
+  /// Moves the standing operation onto another plot you already hold. The
+  /// buildings do not travel; half their value comes back as salvage.
+  bool moveOperationTo(City target) {
+    if (!holds(target.id) || target.id == cityId) return false;
+    final bill = CityCatalog.haulageBetween(city, target);
+    if (money < bill) return false;
     final salvage = baseValue * 0.5;
     _clearSite();
     money = math.max(0, money - bill) + salvage;
@@ -374,7 +494,11 @@ class GridGuardGame extends FlameGame {
   /// solvent, which an integer balance ticking over once every few seconds
   /// cannot.
   double get netMoneyRate {
-    var rate = dcIncome * dcLoadFraction - operatingCost - intelUpkeep;
+    var rate = dcIncome * dcLoadFraction +
+        remoteIncome -
+        operatingCost -
+        intelUpkeep -
+        rentPerSecond;
     for (final c in gridContracts) {
       final v = c.price * c.ratePerSecond;
       rate += c.side == GridContractSide.buy ? -v : v;
@@ -1053,10 +1177,14 @@ class GridGuardGame extends FlameGame {
     //     standing — staff, spares, insurance — billed against what it is worth.
     //     A site's running bill therefore grows as fast as the site does, which
     //     is what stops cash from piling up with nothing to buy.
-    final opex = operatingCost * dt;
+    final opex = (operatingCost + rentPerSecond) * dt;
     if (opex > 0) {
       money = math.max(0.0, money - opex);
     }
+
+    // 1g) Plots elsewhere in the world keep working while you are not on them,
+    //     at a fraction of what the same capital makes under your eye.
+    money += remoteIncome * dt;
 
     // 2) Data Centers consume to run, and pay out while powered — but they only
     //    get what's above the defence reserve, so a greedy workload can't starve
@@ -1766,6 +1894,8 @@ class GridGuardGame extends FlameGame {
       workloadIndex: workloadIndex,
       zoneIndex: zoneIndex,
       cityId: cityId,
+      holdings: List<LandHolding>.from(holdings),
+      premiumUnlocked: premiumUnlocked.toList(),
       cityId: cityId,
       coreIntegrity: integrityMax <= 0 ? 1 : coreIntegrity / integrityMax,
       raidCount: raidCount,
@@ -1797,6 +1927,20 @@ class GridGuardGame extends FlameGame {
 
     zoneIndex = save.zoneIndex;
     cityId = save.cityId;
+    holdings
+      ..clear()
+      ..addAll(save.holdings);
+    premiumUnlocked
+      ..clear()
+      ..addAll(save.premiumUnlocked);
+    // A site always sits on land you hold; older saves predate the concept.
+    if (!holds(cityId)) {
+      holdings.add(LandHolding(
+        cityId: cityId,
+        tenure: Tenure.owned,
+        acquiredAtMs: DateTime.now().millisecondsSinceEpoch,
+      ));
+    }
     money = save.money.toDouble();
     coinsEarned = save.coins;
     dayNumber = save.dayNumber;

@@ -69,8 +69,8 @@ Future<void> showSiteMenu(
             entry(
               icon: Icons.map_rounded,
               colour: GGColors.accent,
-              title: 'Site location',
-              subtitle: 'Real provinces, real sun — and what moving costs',
+              title: 'Land',
+              subtitle: 'Buy or rent plots worldwide, wheel power between them',
               onTap: onOpenCities,
             ),
             entry(

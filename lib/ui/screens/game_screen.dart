@@ -391,7 +391,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       onOpenChallenge: () =>
                           showChallengeSheet(context, ref, _game),
                       onOpenCities: () => showCitySheet(context, _game,
-                          onMoved: () {
+                          onChanged: () {
                             _refreshWeather();
                             setState(() {});
                           }),

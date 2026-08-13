@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
+import 'land_holding.dart';
 import 'tower_type.dart';
 
 /// One placed structure, as stored on disk.
@@ -61,6 +62,8 @@ class BaseSave {
     this.workloadIndex = 0,
     this.zoneIndex = 0,
     this.cityId = 'konya',
+    this.holdings = const [],
+    this.premiumUnlocked = const [],
     this.coreIntegrity = 1,
     this.raidCount = 0,
     this.score = 0,
@@ -81,6 +84,10 @@ class BaseSave {
 
   /// Which province the site stands in.
   final String cityId;
+
+  /// Every plot held, and which premium locations have been unlocked.
+  final List<LandHolding> holdings;
+  final List<String> premiumUnlocked;
 
   /// Core health as a fraction, so a battered core stays battered.
   final double coreIntegrity;
@@ -107,6 +114,8 @@ class BaseSave {
         'w': workloadIndex,
         'z': zoneIndex,
         'city': cityId,
+        'hold': holdings.map((e) => e.toJson()).toList(),
+        'prem': premiumUnlocked,
         'ci': coreIntegrity,
         'rc': raidCount,
         'sc': score,
@@ -130,6 +139,12 @@ class BaseSave {
       workloadIndex: (j['w'] as num?)?.toInt() ?? 0,
       zoneIndex: (j['z'] as num?)?.toInt() ?? 0,
       cityId: j['city'] as String? ?? 'konya',
+      holdings: ((j['hold'] as List<dynamic>?) ?? const [])
+          .map((e) => LandHolding.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      premiumUnlocked: ((j['prem'] as List<dynamic>?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
       coreIntegrity: (j['ci'] as num?)?.toDouble() ?? 1,
       raidCount: (j['rc'] as num?)?.toInt() ?? 0,
       score: (j['sc'] as num?)?.toInt() ?? 0,
