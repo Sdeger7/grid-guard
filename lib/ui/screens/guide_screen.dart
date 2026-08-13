@@ -18,8 +18,8 @@ class GuideScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('How the site works')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-        children: const [
-          _Section(
+        children: [
+          const _Section(
             emoji: '⚡',
             title: 'Energy is the whole game',
             body: 'PV panels only produce in daylight. Wind turbines work day '
@@ -46,7 +46,7 @@ class GuideScreen extends StatelessWidget {
                 'window to prepare.',
             table: _workloadTable,
           ),
-          _Section(
+          const _Section(
             emoji: '🌗',
             title: 'Days, nights and raids',
             body: 'One game day is 24 minutes: twelve of daylight, twelve of '
@@ -58,7 +58,7 @@ class GuideScreen extends StatelessWidget {
                 'split into waves. Raiders fly in from every edge and will '
                 'attack ANY structure, not just your base.',
           ),
-          _Section(
+          const _Section(
             emoji: '📡',
             title: 'Intelligence is bought, never certain',
             body: 'An Intel Center forecasts which nights get raided. It is '
@@ -77,7 +77,7 @@ class GuideScreen extends StatelessWidget {
                 'should trust it. A wrecked Intel Center reports nothing at '
                 'all.',
           ),
-          _Section(
+          const _Section(
             emoji: '🔌',
             title: 'The electricity market',
             body: 'Power has a live price, and it moves the way a real '
@@ -93,7 +93,7 @@ class GuideScreen extends StatelessWidget {
                 'pays for itself: fill it when power is worthless, live off '
                 'it when power is dear.',
           ),
-          _Section(
+          const _Section(
             emoji: '💥',
             title: 'Damage, repair and blackout',
             body: 'Structures take damage instead of vanishing. Below 30% '
@@ -107,7 +107,7 @@ class GuideScreen extends StatelessWidget {
                 'comes back at partial strength next morning. The site you '
                 'built stays built.',
           ),
-          _Section(
+          const _Section(
             emoji: '💰',
             title: 'Three currencies, kept apart',
             body: 'MONEY (M) is the build currency: contracts, missions, the '
@@ -122,7 +122,7 @@ class GuideScreen extends StatelessWidget {
                 'which sells time — banked production, an emergency repair '
                 'crew, capital. Nothing there is unreachable by playing.',
           ),
-          _Section(
+          const _Section(
             emoji: '🌳',
             title: 'The land',
             body: 'You can build anywhere except the base tile itself, but '
@@ -131,7 +131,7 @@ class GuideScreen extends StatelessWidget {
                 'that bill is added to the build cost. The open middle of the '
                 'yard is the cheapest real estate you have — spend it well.',
           ),
-          _Section(
+          const _Section(
             emoji: '🏦',
             title: 'While you are away',
             body: 'The site keeps running when the app is closed: up to eight '
