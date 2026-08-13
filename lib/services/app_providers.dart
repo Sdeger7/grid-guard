@@ -133,34 +133,17 @@ class ProfileNotifier extends Notifier<PlayerProfile> {
     await ref.read(saveServiceProvider).saveProfile(updated);
   }
 
-  /// Takes the entry stake for a week. Returns false when the player cannot
-  /// cover it or has already entered.
-  Future<bool> stakeChallenge(int week, double stake) async {
+  /// Pays a week's reward, once. Nothing is ever deducted.
+  Future<double> awardChallengeReward(int week, double watt) async {
     final p = state;
-    if (p.challengeStakes.containsKey(week)) return false;
-    // WATT is held as whole units in the profile, so the smallest stakes are
-    // charged against the thousandths the game actually mines.
-    if (p.coins < stake) return false;
+    if (p.challengeSettled[week] == true || watt <= 0) return 0;
     final updated = p.copyWith(
-      coins: p.coins - stake,
-      challengeStakes: {...p.challengeStakes, week: stake},
-    );
-    state = updated;
-    await ref.read(saveServiceProvider).saveProfile(updated);
-    return true;
-  }
-
-  /// Pays out a finished week, once.
-  Future<double> settleChallenge(int week, double payout) async {
-    final p = state;
-    if (p.challengeSettled[week] == true) return 0;
-    final updated = p.copyWith(
-      coins: p.coins + payout,
+      coins: p.coins + watt,
       challengeSettled: {...p.challengeSettled, week: true},
     );
     state = updated;
     await ref.read(saveServiceProvider).saveProfile(updated);
-    return payout;
+    return watt;
   }
 
   /// Records a challenge result, keeping the best score for that week.

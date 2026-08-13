@@ -170,34 +170,36 @@ class _GameScreenState extends ConsumerState<GameScreen>
     if (state != AppLifecycleState.resumed) _saveBase();
   }
 
-  /// Pays out a finished challenge run against the target it was staked on.
+  /// Pays a finished challenge run for what it achieved. Nothing is deducted;
+  /// a run that misses every tier simply pays nothing and still scores.
   Future<void> _settleChallenge() async {
     final week = ChallengeCatalog.current();
-    final profile = ref.read(profileProvider);
-    final stake = profile.challengeStakes[week.week];
     final score = ChallengeCatalog.scoreFor(
       baseValue: _game.baseValue,
       money: _game.money.floor(),
       blackouts: _game.blackoutCount,
       watt: _game.coinsEarned,
     );
-    await ref.read(profileProvider.notifier).recordChallengeScore(week.week, score);
-    if (stake == null) return;
+    await ref
+        .read(profileProvider.notifier)
+        .recordChallengeScore(week.week, score);
 
-    final payout = ChallengeCatalog.payoutFor(
-      stake: stake,
+    final tier = ChallengeCatalog.tierFor(
       score: score,
-      par: ChallengeCatalog.parFor(week, stake),
+      target: ChallengeCatalog.targetFor(week),
     );
-    await ref.read(profileProvider.notifier).settleChallenge(week.week, payout);
+    if (tier != null) {
+      await ref
+          .read(profileProvider.notifier)
+          .awardChallengeReward(week.week, tier.watt);
+    }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(payout <= 0
-            ? 'Week over — short of target, stake lost.'
-            : payout > stake
-                ? 'Week over — target beaten. ₵${payout.toStringAsFixed(2)} returned.'
-                : 'Week over — close enough, stake refunded.'),
+        content: Text(tier == null
+            ? 'Week over. Short of the target this time — the score still '
+                'stands.'
+            : 'Week over — ${tier.name}. ₵${tier.watt} earned.'),
       ),
     );
   }

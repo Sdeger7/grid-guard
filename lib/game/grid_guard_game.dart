@@ -1533,7 +1533,7 @@ class GridGuardGame extends FlameGame {
     return v;
   }
 
-  /// Growth itself raises the stakes: a richer base draws heavier raids on top
+  /// Growth itself raises the pressure: a richer base draws heavier raids on top
   /// of the workload's own threat.
   /// Attention grows with what the site is worth, but on a curve rather than a
   /// line, and it never stops: a site fifty times richer is not fifty times

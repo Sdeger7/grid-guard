@@ -79,52 +79,40 @@ class ChallengeCatalog {
     return monday.add(const Duration(days: 7));
   }
 
-  // ---- Entry stakes ----
+  // ---- Rewards ----
   //
-  // Entering costs WATT, and the run either returns more than went in or none
-  // of it. That only stays lawful because WATT cannot be bought at any price:
-  // it is earned in-game and spent in-game, which keeps this a skill contest
-  // in a closed currency rather than a wager on money. If WATT is ever made
-  // purchasable, this mechanic has to go with it.
-  //
-  // Without a server there is no pool of other players to win from, so a run
-  // is measured against par: a target derived from the same seed everyone
-  // else gets, scaled by the stake. Beating it pays; missing it does not. When
-  // a server exists, par becomes the field's median and the payout becomes the
-  // pool — the shape does not change.
+  // Entry is free and nothing is ever taken away. A week pays WATT for what
+  // the run achieved, against targets derived from the same seed everyone
+  // else is given, so two players who reach the same tier earned it the same
+  // way. Falling short simply pays nothing — the run still counts, and the
+  // score still stands on the board.
 
-  /// The stakes a player may enter at, in WATT.
-  static const List<double> stakes = [0.05, 0.20, 1.00];
+  /// Reward tiers: the score to reach, and the WATT it pays.
+  static const List<({String name, double share, double watt})> tiers = [
+    (name: 'Qualified', share: 0.6, watt: 0.05),
+    (name: 'Strong week', share: 1.0, watt: 0.15),
+    (name: 'Exceptional', share: 1.5, watt: 0.40),
+  ];
 
-  /// The score to beat at a given stake. Bigger stakes ask for more, so the
-  /// high table is not simply a bigger bet on the same run.
-  static int parFor(WeeklyChallenge c, double stake) {
+  /// The reference score for a week — what a solid run of it looks like.
+  static int targetFor(WeeklyChallenge c) {
     final r = math.Random(c.seed);
-    final base = 24000 + r.nextInt(9000);
-    final multiplier = stake <= 0.05
-        ? 1.0
-        : stake <= 0.2
-            ? 1.9
-            : 3.4;
-    return (base * multiplier).round();
+    return 24000 + r.nextInt(9000);
   }
 
-  /// What a finished run returns, in WATT.
-  ///
-  /// Missing par loses the stake outright; landing just under it is refunded,
-  /// because a run that came close should not feel like a mugging; beating it
-  /// pays, and beating it convincingly pays properly.
-  static double payoutFor({
-    required double stake,
+  /// The highest tier a score reaches, or null when it falls short of all of
+  /// them. Nothing is deducted in either case.
+  static ({String name, double share, double watt})? tierFor({
     required int score,
-    required int par,
+    required int target,
   }) {
-    if (par <= 0) return stake;
-    final ratio = score / par;
-    if (ratio >= 1.5) return stake * 3.0;
-    if (ratio >= 1.0) return stake * 1.8;
-    if (ratio >= 0.9) return stake;
-    return 0;
+    if (target <= 0) return null;
+    final ratio = score / target;
+    ({String name, double share, double watt})? best;
+    for (final t in tiers) {
+      if (ratio >= t.share) best = t;
+    }
+    return best;
   }
 
   /// A score worth ranking: what the site is worth, weighted by how cleanly it

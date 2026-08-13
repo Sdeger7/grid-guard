@@ -36,7 +36,6 @@ class PlayerProfile {
     this.lastPlayedEpochDay = 0,
     this.streakClaimedEpochDay = 0,
     this.challengeScores = const {},
-    this.challengeStakes = const {},
     this.challengeSettled = const {},
   });
 
@@ -62,9 +61,7 @@ class PlayerProfile {
   /// Best score per weekly challenge, keyed by week number.
   final Map<int, int> challengeScores;
 
-  /// WATT staked on each challenge week, and which weeks have already paid
-  /// out — a run settles exactly once.
-  final Map<int, double> challengeStakes;
+  /// Which challenge weeks have already paid their reward — a week pays once.
   final Map<int, bool> challengeSettled;
 
   /// Which cosmetic set is worn in each slot, keyed by SkinSlot.name. What is
@@ -126,7 +123,6 @@ class PlayerProfile {
     int? lastPlayedEpochDay,
     int? streakClaimedEpochDay,
     Map<int, int>? challengeScores,
-    Map<int, double>? challengeStakes,
     Map<int, bool>? challengeSettled,
   }) {
     return PlayerProfile(
@@ -152,7 +148,6 @@ class PlayerProfile {
       streakClaimedEpochDay:
           streakClaimedEpochDay ?? this.streakClaimedEpochDay,
       challengeScores: challengeScores ?? this.challengeScores,
-      challengeStakes: challengeStakes ?? this.challengeStakes,
       challengeSettled: challengeSettled ?? this.challengeSettled,
     );
   }
@@ -180,8 +175,6 @@ class PlayerProfile {
         'streakClaimedEpochDay': streakClaimedEpochDay,
         'challengeScores':
             challengeScores.map((k, v) => MapEntry(k.toString(), v)),
-        'challengeStakes':
-            challengeStakes.map((k, v) => MapEntry(k.toString(), v)),
         'challengeSettled':
             challengeSettled.map((k, v) => MapEntry(k.toString(), v)),
       };
@@ -209,9 +202,6 @@ class PlayerProfile {
       challengeScores:
           ((json['challengeScores'] as Map<String, dynamic>?) ?? const {})
               .map((k, v) => MapEntry(int.parse(k), v as int)),
-      challengeStakes:
-          ((json['challengeStakes'] as Map<String, dynamic>?) ?? const {})
-              .map((k, v) => MapEntry(int.parse(k), (v as num).toDouble())),
       challengeSettled:
           ((json['challengeSettled'] as Map<String, dynamic>?) ?? const {})
               .map((k, v) => MapEntry(int.parse(k), v as bool)),
