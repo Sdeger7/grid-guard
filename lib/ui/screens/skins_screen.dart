@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/skins.dart';
+import '../../data/watt_supply.dart';
 import '../../services/app_providers.dart';
 import '../theme.dart';
 
@@ -38,6 +39,12 @@ class SkinsScreen extends ConsumerWidget {
               'Paint only. Nothing here changes a single number — WATT buys '
               'looks, never power.',
               style: GGText.soft),
+          const SizedBox(height: 6),
+          Text(
+              'There will only ever be ${WattSupply.maxSupply.toInt()} WATT. '
+              'Issuance halves every ${WattSupply.halvingDays} days — the next '
+              'one is in ${WattSupply.daysToNextHalving()} days.',
+              style: GGText.soft.copyWith(color: GGColors.amber)),
           const SizedBox(height: 14),
           for (final slot in SkinSlot.values) ...[
             Text(_slotName(slot).toUpperCase(),

@@ -38,6 +38,7 @@ class PlayerProfile {
     this.challengeScores = const {},
     this.challengeSettled = const {},
     this.challengeEntered = const {},
+    this.treasury = 0,
   });
 
   /// WATT mined by crypto workloads — the permanent currency for perks and
@@ -61,6 +62,11 @@ class PlayerProfile {
 
   /// Best score per weekly challenge, keyed by week number.
   final Map<int, int> challengeScores;
+
+  /// WATT held by the treasury rather than by the player: the share of prize
+  /// pools not paid to the places. Rewards are drawn from here, so the supply
+  /// circulates instead of being minted or destroyed.
+  final double treasury;
 
   /// Which challenge weeks have already paid out — a week pays once — and
   /// which have been entered.
@@ -128,6 +134,7 @@ class PlayerProfile {
     Map<int, int>? challengeScores,
     Map<int, bool>? challengeSettled,
     Map<int, bool>? challengeEntered,
+    double? treasury,
   }) {
     return PlayerProfile(
       gridCredits: gridCredits ?? this.gridCredits,
@@ -154,6 +161,7 @@ class PlayerProfile {
       challengeScores: challengeScores ?? this.challengeScores,
       challengeSettled: challengeSettled ?? this.challengeSettled,
       challengeEntered: challengeEntered ?? this.challengeEntered,
+      treasury: treasury ?? this.treasury,
     );
   }
 
@@ -184,6 +192,7 @@ class PlayerProfile {
             challengeSettled.map((k, v) => MapEntry(k.toString(), v)),
         'challengeEntered':
             challengeEntered.map((k, v) => MapEntry(k.toString(), v)),
+        'treasury': treasury,
       };
 
   factory PlayerProfile.fromJson(Map<String, dynamic> json) {
@@ -215,6 +224,7 @@ class PlayerProfile {
       challengeEntered:
           ((json['challengeEntered'] as Map<String, dynamic>?) ?? const {})
               .map((k, v) => MapEntry(int.parse(k), v as bool)),
+      treasury: (json['treasury'] as num?)?.toDouble() ?? 0,
       equippedSkins: ((json['equippedSkins'] as Map<String, dynamic>?) ??
               const <String, dynamic>{})
           .map((k, v) => MapEntry(k, v as String)),

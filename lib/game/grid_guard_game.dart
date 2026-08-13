@@ -14,6 +14,7 @@ import '../data/premium_packages.dart';
 import '../data/cities.dart';
 import '../data/skins.dart';
 import '../data/solar.dart';
+import '../data/watt_supply.dart';
 import '../services/weather_service.dart';
 import '../data/solar.dart';
 import '../data/missions.dart';
@@ -1502,9 +1503,9 @@ class GridGuardGame extends FlameGame {
   static const double wattPerHour = 0.01;
   static const double tierMiningStep = 0.15;
 
-  /// Current emission multiplier. Reserved for the halving: drop this to 0.5,
-  /// then 0.25, as the total minted supply passes each threshold.
-  double get emissionMultiplier => 1.0;
+  /// Current issuance rate against the 2,500,000 WATT cap. Halves every 180
+  /// days on a fixed calendar, so every client agrees without asking anyone.
+  double get emissionMultiplier => WattSupply.emissionMultiplier();
 
   double get coinRate {
     if (dcLoadFraction <= 0) return 0;

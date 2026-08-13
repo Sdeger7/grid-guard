@@ -42,7 +42,6 @@ class _ChallengeSheet extends StatelessWidget {
     final field = ChallengeCatalog.benchmarkField(challenge);
     final pool = (field.length + 1) * ChallengeCatalog.entryFee;
     final entered = profile.challengeEntered[challenge.week] == true;
-    final liveRank = ChallengeCatalog.rankOf(live, field);
     final city = CityCatalog.cities[
         challenge.cityIndex.clamp(0, CityCatalog.cities.length - 1)];
     final closes = ChallengeCatalog.endOfWeek();
@@ -55,6 +54,7 @@ class _ChallengeSheet extends StatelessWidget {
       blackouts: game.blackoutCount,
       watt: game.coinsEarned,
     );
+    final liveRank = ChallengeCatalog.rankOf(live, field);
 
     return SafeArea(
       child: Padding(

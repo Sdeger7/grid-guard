@@ -197,6 +197,11 @@ class _GameScreenState extends ConsumerState<GameScreen>
           .read(profileProvider.notifier)
           .awardChallengeReward(week.week, prize);
     }
+    // Whatever the places did not take goes to the treasury, which is where
+    // streak and event rewards are paid from. Supply is fixed; it circulates.
+    await ref
+        .read(profileProvider.notifier)
+        .depositRake((field.length + 1) * ChallengeCatalog.entryFee);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

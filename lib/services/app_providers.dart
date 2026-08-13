@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/level_state.dart';
+import '../data/watt_supply.dart';
 import '../data/streak.dart';
 import '../models/player_profile.dart';
 import 'leaderboard_service.dart';
@@ -122,9 +125,12 @@ class ProfileNotifier extends Notifier<PlayerProfile> {
     final p = state;
     if (p.streakClaimedEpochDay == today) return;
     final reward = StreakCalendar.rewardFor(p.streakDays);
+    // Streak WATT comes out of the treasury, so a milestone never mints any.
+    final fromTreasury = math.min(reward.watt, p.treasury);
     final updated = p.copyWith(
       streakClaimedEpochDay: today,
-      coins: p.coins + reward.watt,
+      treasury: p.treasury - fromTreasury,
+      coins: p.coins + fromTreasury,
       ownedSkins: reward.skinId == null
           ? p.ownedSkins
           : {...p.ownedSkins, reward.skinId!},
@@ -145,6 +151,30 @@ class ProfileNotifier extends Notifier<PlayerProfile> {
     state = updated;
     await ref.read(saveServiceProvider).saveProfile(updated);
     return true;
+  }
+
+  /// Banks the share of a prize pool that was not paid to the places.
+  Future<void> depositRake(double pool) async {
+    final updated = state.copyWith(
+      treasury: state.treasury + WattTreasury.rakeFrom(pool),
+    );
+    state = updated;
+    await ref.read(saveServiceProvider).saveProfile(updated);
+  }
+
+  /// Pays a reward out of the treasury, never out of thin air. Returns what
+  /// was actually paid, which is nothing when the treasury is empty.
+  Future<double> payFromTreasury(double amount) async {
+    final p = state;
+    final paid = math.min(amount, p.treasury);
+    if (paid <= 0) return 0;
+    final updated = p.copyWith(
+      treasury: p.treasury - paid,
+      coins: p.coins + paid,
+    );
+    state = updated;
+    await ref.read(saveServiceProvider).saveProfile(updated);
+    return paid;
   }
 
   /// Pays a week's prize, once.
