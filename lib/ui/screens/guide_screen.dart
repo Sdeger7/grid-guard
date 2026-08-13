@@ -110,6 +110,22 @@ class GuideScreen extends StatelessWidget {
                 'power is worthless, live off it when power is dear.',
           ),
           const _Section(
+            emoji: '🎛️',
+            title: 'Your own controls',
+            body: 'Towers fire themselves, so the row above the build tray is '
+                'how you actually fight a raid. Each one is a trade, and each '
+                'has a long cooldown, so spending one early is a decision you '
+                'can regret.\n\n'
+                '⚡ Overcharge — transformers hit twice as hard and burn twice '
+                'the energy for 20 seconds.\n'
+                '⏹️ Emergency Stop — Data Centers go dark for 30 seconds. No '
+                'income, no mining, but every joule goes to the guns.\n'
+                '🌑 Go Dark — kill the lights for 10 seconds and raiders lose '
+                'their targets entirely and scatter.\n'
+                '🔧 Crew Callout — patch everything damaged by 30% instantly, '
+                'paid for in energy rather than cash.',
+          ),
+          const _Section(
             emoji: '💥',
             title: 'Damage, repair and blackout',
             body: 'Structures take damage instead of vanishing. Below 30% '

@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 
+import '../data/abilities.dart';
 import '../data/dc_workload.dart';
 import '../data/enemy_catalog.dart';
 import '../data/grid_market.dart';
@@ -808,6 +809,7 @@ class GridGuardGame extends FlameGame {
     super.update(dt);
 
     if (phase != RunPhase.won && phase != RunPhase.lost) {
+      _tickAbilities(dt);
       _tickEconomy(dt);
       _tickCoins(dt);
     }
@@ -902,13 +904,15 @@ class GridGuardGame extends FlameGame {
     // 2) Data Centers consume to run, and pay out while powered — but they only
     //    get what's above the defence reserve, so a greedy workload can't starve
     //    the towers and leave the base defenceless.
-    final draw = dcDraw * dt;
+    final draw = dcHalted ? 0.0 : dcDraw * dt;
     final spare = energy - defenceReserve;
-    if (dcTotalPower > 0 && spare >= draw) {
+    if (!dcHalted && dcTotalPower > 0 && spare >= draw) {
       energy -= draw;
       money += dcIncome * dt;
       dcPowered = true;
     } else {
+      // Stopped machines earn nothing and mine nothing — that is the cost of
+      // throwing everything at the guns.
       dcPowered = false;
     }
   }
@@ -1713,6 +1717,75 @@ class GridGuardGame extends FlameGame {
 
   /// How many blackouts the site has suffered — a scar, not a game over.
   int blackoutCount = 0;
+
+  // ---- Manual abilities ----
+
+  /// Seconds left on each active effect, and on each cooldown.
+  final Map<AbilityKind, double> abilityActive = {};
+  final Map<AbilityKind, double> abilityCooldown = {};
+
+  bool isAbilityActive(AbilityKind k) => (abilityActive[k] ?? 0) > 0;
+  double cooldownLeft(AbilityKind k) => abilityCooldown[k] ?? 0;
+  bool canUseAbility(AbilityKind k) =>
+      cooldownLeft(k) <= 0 && !isAbilityActive(k);
+
+  /// Damage multiplier on towers while Overcharge runs.
+  double get overchargeFactor => isAbilityActive(AbilityKind.overcharge) ? 2.0 : 1.0;
+
+  /// True while the Data Centers are deliberately stopped.
+  bool get dcHalted => isAbilityActive(AbilityKind.shutdown);
+
+  /// True while the site is dark and raiders cannot find anything.
+  bool get siteDark => isAbilityActive(AbilityKind.blackout);
+
+  /// Fires an ability if it is off cooldown. Returns false when it isn't.
+  bool useAbility(AbilityKind kind) {
+    if (!canUseAbility(kind)) return false;
+    final a = AbilityCatalog.of(kind);
+
+    if (kind == AbilityKind.crew) {
+      // Instant: costs energy proportional to the damage being undone, so a
+      // wrecked site can't patch itself for free mid-raid.
+      final damaged = structures.where((s) => s.needsRepair).toList();
+      if (damaged.isEmpty) return false;
+      final cost = 6.0 * damaged.length;
+      if (!tryDrawEnergy(cost)) return false;
+      for (final s in damaged) {
+        s.restoreHealthFraction(
+            (s.healthFraction + 0.30).clamp(0.0, 1.0));
+      }
+      spawnFloatingText(
+        'Crew patch ×${damaged.length}',
+        Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
+        const Color(0xFF2FBF71),
+      );
+    } else {
+      abilityActive[kind] = a.duration;
+      spawnFloatingText(
+        '${a.emoji} ${a.name}',
+        Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
+        const Color(0xFF2E7DF6),
+      );
+    }
+
+    abilityCooldown[kind] = a.cooldown;
+    addShake(shakeMagnitudeLight);
+    _publishSnapshot(force: true);
+    return true;
+  }
+
+  void _tickAbilities(double dt) {
+    for (final k in AbilityKind.values) {
+      final active = abilityActive[k] ?? 0;
+      if (active > 0) {
+        abilityActive[k] = (active - dt).clamp(0.0, double.infinity);
+      }
+      final cd = abilityCooldown[k] ?? 0;
+      if (cd > 0) {
+        abilityCooldown[k] = (cd - dt).clamp(0.0, double.infinity);
+      }
+    }
+  }
 
   // ---- Daily missions ----
   // Small goals that reset every dawn and pay WATT, so a short session still

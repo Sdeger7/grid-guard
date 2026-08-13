@@ -72,6 +72,17 @@ class EnemyComponent extends IsoComponent {
     if (_hitFlash > 0) _hitFlash = (_hitFlash - dt).clamp(0, 1);
     if (_attackCooldown > 0) _attackCooldown -= dt;
 
+    // A dark site gives raiders nothing to lock onto: they lose the target and
+    // mill about until the lights come back, which is the whole point of
+    // spending the ability.
+    if (game.siteDark) {
+      _prey = null;
+      tile += Vector2(math.cos(_bob * 0.31), math.sin(_bob * 0.37)) *
+          (speed * 0.5 * dt);
+      super.update(dt);
+      return;
+    }
+
     // Re-acquire a nearby structure to maul; fall back to the base.
     final prey = _prey;
     if (prey == null || prey.isDestroyed || !prey.isMounted) {

@@ -8,6 +8,7 @@ import '../../game/grid_guard_game.dart';
 import '../../models/level_state.dart';
 import '../../models/tower_type.dart';
 import '../theme.dart';
+import 'ability_bar.dart';
 import 'grid_sheet.dart';
 
 /// The full in-game HUD: a status bar (core + BESS energy + money/score/wave),
@@ -27,6 +28,7 @@ class Hud extends StatelessWidget {
     required this.onRepair,
     required this.onRepairAll,
     required this.onOpenStore,
+    required this.onAbilityUsed,
   });
 
   final GridGuardGame game;
@@ -41,6 +43,9 @@ class Hud extends StatelessWidget {
 
   /// Opens the real-money services sheet.
   final VoidCallback onOpenStore;
+
+  /// Called after an ability fires, so the HUD refreshes its cooldowns.
+  final VoidCallback onAbilityUsed;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +81,10 @@ class Hud extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: _StartButton(onStart: onStart),
             ),
+          // Manual controls sit directly above the tray: during a raid your
+          // thumb is already down there.
+          if (s != null && s.phase == RunPhase.inProgress)
+            AbilityBar(game: game, onUsed: onAbilityUsed),
           _BuildTray(
             money: s?.money ?? 0,
             selectedBuild: selectedBuild,

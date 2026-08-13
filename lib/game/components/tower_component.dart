@@ -41,7 +41,9 @@ class TowerComponent extends StructureComponent {
 
     // Draw energy from the BESS to fire. If the grid is starved, the shot is
     // skipped (cooldown not reset, so it fires the instant power returns).
-    if (!game.tryDrawEnergy(t.energyCost)) {
+    // Overcharge doubles the punch and doubles what the shot costs.
+    final boost = game.overchargeFactor;
+    if (!game.tryDrawEnergy(t.energyCost * boost)) {
       _starved = true;
       return;
     }
@@ -54,7 +56,7 @@ class TowerComponent extends StructureComponent {
       if ((e.tile - target.tile).length <= t.chainRadius) cluster.add(e);
     }
     final chained = cluster.length >= spec.chainThreshold;
-    final dmg = chained ? t.damage * t.chainBonus : t.damage;
+    final dmg = (chained ? t.damage * t.chainBonus : t.damage) * boost;
 
     // Primary hit.
     target.takeDamage(dmg);

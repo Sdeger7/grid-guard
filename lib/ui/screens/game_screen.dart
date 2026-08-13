@@ -299,6 +299,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
               onUpgrade: _game.upgradeSelected,
               onRepair: _game.repairSelected,
               onRepairAll: _game.repairAll,
+              onAbilityUsed: () => setState(() {}),
               onOpenStore: () => showSpeedupSheet(
                   context, _game, ref.read(monetizationServiceProvider)),
             ),
