@@ -170,8 +170,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
     if (state != AppLifecycleState.resumed) _saveBase();
   }
 
-  /// Pays a finished challenge run for what it achieved. Nothing is deducted;
-  /// a run that misses every tier simply pays nothing and still scores.
+  /// Settles a finished week: place the run in the field, pay what that
+  /// position is worth out of the pool.
   Future<void> _settleChallenge() async {
     final week = ChallengeCatalog.current();
     final score = ChallengeCatalog.scoreFor(
@@ -184,22 +184,26 @@ class _GameScreenState extends ConsumerState<GameScreen>
         .read(profileProvider.notifier)
         .recordChallengeScore(week.week, score);
 
-    final tier = ChallengeCatalog.tierFor(
-      score: score,
-      target: ChallengeCatalog.targetFor(week),
-    );
-    if (tier != null) {
+    final entered =
+        ref.read(profileProvider).challengeEntered[week.week] == true;
+    if (!entered) return;
+
+    final field = ChallengeCatalog.benchmarkField(week);
+    final rank = ChallengeCatalog.rankOf(score, field);
+    final prize =
+        ChallengeCatalog.prizeFor(rank: rank, field: field.length + 1);
+    if (prize > 0) {
       await ref
           .read(profileProvider.notifier)
-          .awardChallengeReward(week.week, tier.watt);
+          .awardChallengeReward(week.week, prize);
     }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(tier == null
-            ? 'Week over. Short of the target this time — the score still '
-                'stands.'
-            : 'Week over — ${tier.name}. ₵${tier.watt} earned.'),
+        content: Text(prize > 0
+            ? 'Week over — finished #$rank. ₵${prize.toStringAsFixed(2)} '
+                'from the pool.'
+            : 'Week over — finished #$rank, outside the places.'),
       ),
     );
   }

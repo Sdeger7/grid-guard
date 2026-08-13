@@ -39,7 +39,10 @@ class _ChallengeSheet extends StatelessWidget {
     final challenge = ChallengeCatalog.current();
     final profile = ref.read(profileProvider);
     final best = profile.challengeScores[challenge.week] ?? 0;
-    final target = ChallengeCatalog.targetFor(challenge);
+    final field = ChallengeCatalog.benchmarkField(challenge);
+    final pool = (field.length + 1) * ChallengeCatalog.entryFee;
+    final entered = profile.challengeEntered[challenge.week] == true;
+    final liveRank = ChallengeCatalog.rankOf(live, field);
     final city = CityCatalog.cities[
         challenge.cityIndex.clamp(0, CityCatalog.cities.length - 1)];
     final closes = ChallengeCatalog.endOfWeek();
@@ -97,40 +100,82 @@ class _ChallengeSheet extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
-              // Rewards. Entry is free and nothing is ever taken away: a week
-              // pays for what the run achieved, against targets everyone is
-              // given the same seed for.
-              Text('THIS WEEK PAYS',
-                  style: GGText.soft.copyWith(
-                      letterSpacing: 1.2, fontWeight: FontWeight.w800)),
+              // The pool. Everyone pays the same entry and the pool is paid
+              // back by finishing position — the entry is WATT, which is
+              // earned and spent only in-game.
+              Row(
+                children: [
+                  Text('PRIZE POOL',
+                      style: GGText.soft.copyWith(
+                          letterSpacing: 1.2, fontWeight: FontWeight.w800)),
+                  const Spacer(),
+                  Text('₵${pool.toStringAsFixed(2)} · ${field.length + 1} entries',
+                      style: GGText.soft.copyWith(
+                          color: GGColors.amber,
+                          fontWeight: FontWeight.w800)),
+                ],
+              ),
               const SizedBox(height: 6),
-              for (final t in ChallengeCatalog.tiers)
+              for (final row in const [
+                ('1st', 0.25),
+                ('2nd', 0.15),
+                ('3rd', 0.10),
+                ('4th–10th', 0.03),
+                ('11th–20th', 0.015),
+              ])
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.only(bottom: 3),
                   child: Row(
                     children: [
-                      Icon(
-                        live >= (target * t.share)
-                            ? Icons.check_circle_rounded
-                            : Icons.radio_button_unchecked_rounded,
-                        size: 15,
-                        color: live >= (target * t.share)
-                            ? GGColors.good
-                            : GGColors.inkSoft,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                            '${t.name} — reach ${_short((target * t.share).round())}',
-                            style: GGText.soft),
-                      ),
-                      Text('₵${t.watt}',
+                      Expanded(child: Text(row.\$1, style: GGText.soft)),
+                      Text('₵${(pool * row.\$2).toStringAsFixed(2)}',
                           style: GGText.soft.copyWith(
-                              color: GGColors.amber,
-                              fontWeight: FontWeight.w800)),
+                              fontWeight: FontWeight.w700)),
                     ],
                   ),
                 ),
+              const SizedBox(height: 8),
+              GGPanel(
+                padding: const EdgeInsets.all(10),
+                borderColor: entered ? GGColors.good : GGColors.panelBorder,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                          entered
+                              ? 'Entered · currently standing #$liveRank of '
+                                  '${field.length + 1}'
+                              : 'Entry ₵${ChallengeCatalog.entryFee} — one '
+                                  'per week',
+                          style: GGText.soft.copyWith(
+                              fontWeight: FontWeight.w700)),
+                    ),
+                    if (!entered)
+                      FilledButton(
+                        onPressed:
+                            profile.coins >= ChallengeCatalog.entryFee
+                                ? () async {
+                                    await ref
+                                        .read(profileProvider.notifier)
+                                        .enterChallenge(challenge.week,
+                                            ChallengeCatalog.entryFee);
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop();
+                                    }
+                                  }
+                                : null,
+                        child: const Text('ENTER'),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                  'The field is a benchmark ladder for now — runs generated '
+                  'from this week\'s seed, identical for every player, so a '
+                  'position means the same thing to everyone. Real entries '
+                  'replace it when the game goes online.',
+                  style: GGText.soft),
               const SizedBox(height: 12),
 
               SizedBox(

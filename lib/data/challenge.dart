@@ -79,40 +79,73 @@ class ChallengeCatalog {
     return monday.add(const Duration(days: 7));
   }
 
-  // ---- Rewards ----
+  // ---- Entry and prize pool ----
   //
-  // Entry is free and nothing is ever taken away. A week pays WATT for what
-  // the run achieved, against targets derived from the same seed everyone
-  // else is given, so two players who reach the same tier earned it the same
-  // way. Falling short simply pays nothing — the run still counts, and the
-  // score still stands on the board.
+  // A week is a tournament: everyone pays the same entry into a pool, and the
+  // pool is paid back out by finishing position. Nothing is taken from anyone
+  // who does not choose to enter, and the entry is WATT — earned in-game,
+  // spendable only in-game, and never purchasable — so the pool is an internal
+  // economy, not a market in anything.
+  //
+  // Part of the pool is not paid back. That is deliberate: WATT is minted
+  // continuously by mining, and a competition that returns less than it takes
+  // is the one place the economy removes any, which is what keeps it worth
+  // something over years rather than inflating away.
 
-  /// Reward tiers: the score to reach, and the WATT it pays.
-  static const List<({String name, double share, double watt})> tiers = [
-    (name: 'Qualified', share: 0.6, watt: 0.05),
-    (name: 'Strong week', share: 1.0, watt: 0.15),
-    (name: 'Exceptional', share: 1.5, watt: 0.40),
-  ];
+  /// What it costs to enter a week.
+  static const double entryFee = 0.10;
+
+  /// The share of the pool paid to each finishing position.
+  ///
+  /// Top-heavy enough that winning matters, wide enough that a good week
+  /// outside the podium is still worth entering.
+  static double poolShareForRank(int rank, int field) {
+    if (rank <= 0 || rank > field) return 0;
+    if (rank == 1) return 0.25;
+    if (rank == 2) return 0.15;
+    if (rank == 3) return 0.10;
+    if (rank <= 10) return 0.03; // 7 places, 21%
+    if (rank <= 20) return 0.015; // 10 places, 15%
+    return 0;
+  }
+
+  /// What a finishing position pays out of a pool of [field] entries.
+  static double prizeFor({required int rank, required int field}) =>
+      field * entryFee * poolShareForRank(rank, field);
+
+  /// This week's field, until real entries exist.
+  ///
+  /// These are benchmark runs, not people: scores generated from the same seed
+  /// the week itself uses, so the ladder is identical for everyone and a
+  /// position means the same thing to two different players. When entries are
+  /// real, this is the function that gets replaced and nothing else.
+  static List<int> benchmarkField(WeeklyChallenge c, {int size = 60}) {
+    final r = math.Random(c.seed * 31 + 7);
+    final target = targetFor(c);
+    final scores = <int>[];
+    for (var i = 0; i < size; i++) {
+      // A long tail of ordinary runs and a thin top end, which is what a real
+      // ladder looks like.
+      final skill = math.pow(r.nextDouble(), 2.2).toDouble();
+      scores.add((target * (0.35 + skill * 1.6)).round());
+    }
+    scores.sort((a, b) => b.compareTo(a));
+    return scores;
+  }
+
+  /// Where a score would place in the field.
+  static int rankOf(int score, List<int> field) {
+    var rank = 1;
+    for (final s in field) {
+      if (s > score) rank++;
+    }
+    return rank;
+  }
 
   /// The reference score for a week — what a solid run of it looks like.
   static int targetFor(WeeklyChallenge c) {
     final r = math.Random(c.seed);
     return 24000 + r.nextInt(9000);
-  }
-
-  /// The highest tier a score reaches, or null when it falls short of all of
-  /// them. Nothing is deducted in either case.
-  static ({String name, double share, double watt})? tierFor({
-    required int score,
-    required int target,
-  }) {
-    if (target <= 0) return null;
-    final ratio = score / target;
-    ({String name, double share, double watt})? best;
-    for (final t in tiers) {
-      if (ratio >= t.share) best = t;
-    }
-    return best;
   }
 
   /// A score worth ranking: what the site is worth, weighted by how cleanly it

@@ -133,7 +133,21 @@ class ProfileNotifier extends Notifier<PlayerProfile> {
     await ref.read(saveServiceProvider).saveProfile(updated);
   }
 
-  /// Pays a week's reward, once. Nothing is ever deducted.
+  /// Pays the entry fee for a week. Returns false if already entered or the
+  /// balance is short.
+  Future<bool> enterChallenge(int week, double fee) async {
+    final p = state;
+    if (p.challengeEntered[week] == true || p.coins < fee) return false;
+    final updated = p.copyWith(
+      coins: p.coins - fee,
+      challengeEntered: {...p.challengeEntered, week: true},
+    );
+    state = updated;
+    await ref.read(saveServiceProvider).saveProfile(updated);
+    return true;
+  }
+
+  /// Pays a week's prize, once.
   Future<double> awardChallengeReward(int week, double watt) async {
     final p = state;
     if (p.challengeSettled[week] == true || watt <= 0) return 0;
