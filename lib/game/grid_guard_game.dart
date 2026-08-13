@@ -164,6 +164,7 @@ class GridGuardGame extends FlameGame {
     this.initialBase,
     this.skins = const {},
     this.hasGridPass = false,
+    this.challenge = false,
   });
 
   final LevelConfig config;
@@ -175,6 +176,14 @@ class GridGuardGame extends FlameGame {
   /// A previously saved base to rebuild on load, if there is one. Survival is
   /// one continuous site, not a fresh run each time the app opens.
   final BaseSave? initialBase;
+
+  /// True when this is a weekly challenge run.
+  ///
+  /// The challenge is the only place two players' results are compared, so it
+  /// is the one place nothing bought may apply: no perks, no premium ground, no
+  /// bought time. Everything that could tilt it is switched off here rather
+  /// than merely hidden, so the rule holds even if a screen forgets it.
+  final bool challenge;
 
   /// Whether the season pass is active. It buys time and paint only: a longer
   /// offline window and the season wardrobe, never a number on the site.
@@ -249,7 +258,10 @@ class GridGuardGame extends FlameGame {
 
   /// Takes a plot. Premium ground stays locked until it is unlocked elsewhere.
   bool acquireLand(City target, Tenure tenure) {
-    if (target.premium && !premiumUnlocked.contains(target.id)) return false;
+    // Premium ground is bought, so it stays out of the compared lane.
+    if (target.premium && (challenge || !premiumUnlocked.contains(target.id))) {
+      return false;
+    }
     if (holds(target.id)) return false;
     final cost = acquisitionCost(target, tenure);
     if (!_spendMoney(cost)) return false;
@@ -2015,6 +2027,9 @@ class GridGuardGame extends FlameGame {
   /// would have produced on its own given time — the purchase buys the time,
   /// not an advantage that is otherwise unreachable.
   void applySpeedup(Speedup item) {
+    // Belt and braces: a challenge run refuses bought advantages outright,
+    // whatever the UI happens to offer.
+    if (challenge) return;
     switch (item.effect) {
       case SpeedupEffect.bankedHours:
         final seconds = item.amount * 3600;
@@ -2051,6 +2066,9 @@ class GridGuardGame extends FlameGame {
   static String _clock(DateTime t) =>
       '${t.hour.toString().padLeft(2, '0')}:'
       '${t.minute.toString().padLeft(2, '0')}';
+
+  /// How long a challenge run lasts.
+  static const int challengeDays = 7;
 
   /// Credits cash from outside the simulation (streak rewards and the like).
   void grantCash(double amount) {
@@ -2524,6 +2542,9 @@ class GridGuardGame extends FlameGame {
   /// The morning's news, handed to the UI once per dawn.
   DawnReport? pendingDawn;
 
+  /// Set on a challenge run once its last day is done.
+  bool challengeComplete = false;
+
   /// Dawn: the night is survived. Pay for it, and roll the day over.
   void _onDawn() {
     _nightWaveTimes.clear();
@@ -2553,6 +2574,10 @@ class GridGuardGame extends FlameGame {
 
     final beat = dayNumber > storyDayShown ? StoryCatalog.forDay(dayNumber) : null;
     if (beat != null) storyDayShown = dayNumber;
+
+    if (challenge && dayNumber > challengeDays) {
+      challengeComplete = true;
+    }
 
     pendingDawn = DawnReport(
       day: dayNumber,

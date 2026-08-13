@@ -35,9 +35,14 @@ import 'premium_screen.dart';
 /// win/lose overlays. Owns the glue between the game's callbacks and Riverpod
 /// (profile persistence, monetization, audio).
 class GameScreen extends ConsumerStatefulWidget {
-  const GameScreen({super.key, required this.config});
+  const GameScreen({super.key, required this.config, this.challenge = false});
 
   final LevelConfig config;
+
+  /// A weekly challenge run: its own save slot, no perks, no purchases, and a
+  /// fixed length. Everyone's is identical, which is the only reason comparing
+  /// them means anything.
+  final bool challenge;
 
   @override
   ConsumerState<GameScreen> createState() => _GameScreenState();
@@ -78,7 +83,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
     super.initState();
     // Survival is one continuous site: reload whatever the player left behind.
     final save = widget.config.endless
-        ? ref.read(saveServiceProvider).loadBase()
+        ? ref.read(saveServiceProvider).loadBase(challenge: widget.challenge)
         : null;
     // Whatever the player is wearing, resolved once at launch.
     final worn = <SkinSlot, Skin>{};
@@ -93,11 +98,15 @@ class _GameScreenState extends ConsumerState<GameScreen>
       config: widget.config,
       initialBase: save,
       skins: worn,
-      perks: PremiumCatalog.effectiveOf(
-          ref.read(profileProvider).ownedPackages),
-      hasGridPass: ref
-          .read(monetizationServiceProvider)
-          .isProductPurchased('grid_pass'),
+      challenge: widget.challenge,
+      // Nothing bought applies inside a challenge run.
+      perks: widget.challenge
+          ? const PremiumPackage(
+              id: '_none', name: '', emoji: '', price: 0, blurb: '')
+          : PremiumCatalog.effectiveOf(
+              ref.read(profileProvider).ownedPackages),
+      hasGridPass: !widget.challenge &&
+          ref.read(monetizationServiceProvider).isProductPurchased('grid_pass'),
       callbacks: gg.GameCallbacks(
         onSnapshot: _onSnapshot,
         onFinished: _onFinished,
@@ -172,7 +181,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
   void _saveBase() {
     if (!widget.config.endless) return;
-    ref.read(saveServiceProvider).saveBase(_game.captureSave());
+    ref
+        .read(saveServiceProvider)
+        .saveBase(_game.captureSave(), challenge: widget.challenge);
   }
 
   void _onSnapshot(LevelState state) {
@@ -463,6 +474,19 @@ class _GameScreenState extends ConsumerState<GameScreen>
             OfflinePanel(
               report: _offline!,
               raids: _missedRaids,
+              onWatchToDouble: widget.challenge
+                  ? null
+                  : () async {
+                      final ok = await ref
+                          .read(monetizationServiceProvider)
+                          .showRewardedAd(AdPlacements.doubleOffline);
+                      if (!ok || !mounted) return;
+                      _game.grantCash(_offline!.money.toDouble());
+                      setState(() {
+                        _offline = null;
+                        _missedRaids = null;
+                      });
+                    },
               onClose: () => setState(() {
                 _offline = null;
                 _missedRaids = null;

@@ -6,7 +6,9 @@ import '../../data/challenge.dart';
 import '../../data/cities.dart';
 import '../../game/grid_guard_game.dart';
 import '../../services/app_providers.dart';
+import '../../data/levels.dart';
 import '../../services/leaderboard_service.dart';
+import '../screens/game_screen.dart';
 import '../theme.dart';
 
 /// The weekly challenge board: this week's brief, your standing on it, and a
@@ -93,7 +95,41 @@ class _ChallengeSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              _Row('Your site right now', '${_short(live)}'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: Text(best > 0
+                      ? 'CONTINUE THIS WEEK\'S RUN'
+                      : 'START THIS WEEK\'S RUN'),
+                  onPressed: () async {
+                    // A new week wipes last week's attempt: everyone racing the
+                    // same seed is the entire point.
+                    final save = ref.read(saveServiceProvider);
+                    if (save.challengeWeek != challenge.week) {
+                      await save.clearBase(challenge: true);
+                      await save.setChallengeWeek(challenge.week);
+                    }
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => GameScreen(
+                        config: LevelCatalog.survival,
+                        challenge: true,
+                      ),
+                    ));
+                  },
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                  'A challenge run is separate from your site and starts from '
+                  'nothing. Perks, premium ground and anything bought are '
+                  'switched off — the only difference between two results is '
+                  'the decisions.',
+                  style: GGText.soft),
+              const SizedBox(height: 14),
+              _Row('This run right now', '${_short(live)}'),
               _Row('Your best this week', best == 0 ? '—' : _short(best)),
               const SizedBox(height: 12),
               Text(

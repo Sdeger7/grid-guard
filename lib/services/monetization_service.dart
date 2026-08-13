@@ -5,6 +5,11 @@ class AdPlacements {
   static const continueRun = 'continue';
   static const doubleReward = 'double_reward';
   static const dailyBonus = 'daily_bonus';
+
+  /// Doubles a welcome-back payout. Optional, capped, and never the only way
+  /// to get anything — an ad the player chooses is worth more than one they
+  /// resent.
+  static const doubleOffline = 'double_offline';
 }
 
 /// Well-known IAP SKUs.

@@ -223,13 +223,16 @@ class _TopBar extends StatelessWidget {
         label: '${state.score}',
         caption: 'SCORE',
       ),
-      _Stat(
-        icon: Icons.storefront_rounded,
-        color: GGColors.accent,
-        label: '⏩',
-        caption: 'SPEED UP',
-        onTap: onOpenStore,
-      ),
+      // The services shop does not exist inside a challenge: it is the one
+      // place results are compared, so nothing bought may reach it.
+      if (!game.challenge)
+        _Stat(
+          icon: Icons.storefront_rounded,
+          color: GGColors.accent,
+          label: '⏩',
+          caption: 'SPEED UP',
+          onTap: onOpenStore,
+        ),
       _Stat(
         icon: Icons.waves_rounded,
         color: GGColors.accentWarm,

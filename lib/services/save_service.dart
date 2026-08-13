@@ -13,6 +13,12 @@ class SaveService {
   static const _profileKey = 'grid_guard.player_profile.v1';
   static const _baseKey = 'grid_guard.base.v1';
 
+  /// The weekly challenge runs in its own slot so it can never touch, or be
+  /// helped by, the permanent site.
+  static const _challengeKey = 'grid_guard.challenge.v1';
+
+  String _slotKey(bool challenge) => challenge ? _challengeKey : _baseKey;
+
   final SharedPreferences _prefs;
 
   /// Shared with the weather cache, which has no reason to open its own store.
@@ -90,8 +96,8 @@ class SaveService {
   // ---- Persistent base ----
 
   /// The base as the player left it, or null on a first run.
-  BaseSave? loadBase() {
-    final raw = _prefs.getString(_baseKey);
+  BaseSave? loadBase({bool challenge = false}) {
+    final raw = _prefs.getString(_slotKey(challenge));
     if (raw == null) return null;
     try {
       return BaseSave.decode(raw);
@@ -102,11 +108,18 @@ class SaveService {
     }
   }
 
-  Future<void> saveBase(BaseSave base) async {
-    await _prefs.setString(_baseKey, base.encode());
+  Future<void> saveBase(BaseSave base, {bool challenge = false}) async {
+    await _prefs.setString(_slotKey(challenge), base.encode());
   }
 
-  Future<void> clearBase() async {
-    await _prefs.remove(_baseKey);
+  Future<void> clearBase({bool challenge = false}) async {
+    await _prefs.remove(_slotKey(challenge));
   }
+
+  /// Which challenge week the stored challenge run belongs to. A new week
+  /// wipes the old run — that is what makes everyone's attempt comparable.
+  int get challengeWeek => _prefs.getInt('grid_guard.challenge.week') ?? -1;
+
+  Future<void> setChallengeWeek(int week) async =>
+      _prefs.setInt('grid_guard.challenge.week', week);
 }

@@ -12,6 +12,7 @@ class OfflinePanel extends StatelessWidget {
     required this.report,
     required this.onClose,
     this.raids,
+    this.onWatchToDouble,
   });
 
   final OfflineReport report;
@@ -19,6 +20,9 @@ class OfflinePanel extends StatelessWidget {
 
   /// What the automated defences had to deal with alone while you were gone.
   final ({int raids, int damaged, int destroyed, bool blackout})? raids;
+
+  /// Offered only when there is something to double, and always skippable.
+  final Future<void> Function()? onWatchToDouble;
 
   String get _away {
     final mins = report.seconds ~/ 60;
@@ -134,6 +138,20 @@ class OfflinePanel extends StatelessWidget {
                           style: GGText.soft.copyWith(color: GGColors.danger)),
                     ],
                     const SizedBox(height: 18),
+                    if (onWatchToDouble != null && report.money > 0) ...[
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.play_circle_outline_rounded,
+                              size: 18),
+                          label: const Text('WATCH TO DOUBLE'),
+                          onPressed: () async {
+                            await onWatchToDouble!();
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
