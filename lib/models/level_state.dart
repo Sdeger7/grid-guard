@@ -63,6 +63,11 @@ class LevelState {
     required this.gridContracts,
     required this.operatingCost,
     required this.lightingLoad,
+    required this.reputation,
+    required this.firewallName,
+    required this.firewallTier,
+    required this.vaultMoney,
+    required this.vaultWatt,
     required this.netMoneyRate,
     required this.zoneName,
     required this.zoneEmoji,
@@ -164,6 +169,13 @@ class LevelState {
 
   /// Energy per second the site's own lighting draws after dark.
   final double lightingLoad;
+
+  /// Cyber posture and standing, and what is banked out of an intruder's reach.
+  final double reputation;
+  final String firewallName;
+  final int firewallTier;
+  final double vaultMoney;
+  final double vaultWatt;
 
   /// Net MONEY per second — the direction the balance is actually moving.
   final double netMoneyRate;

@@ -64,6 +64,10 @@ class BaseSave {
     this.cityId = 'konya',
     this.holdings = const [],
     this.premiumUnlocked = const [],
+    this.firewallTier = 0,
+    this.reputation = 75,
+    this.vaultMoney = 0,
+    this.vaultWatt = 0,
     this.coreIntegrity = 1,
     this.raidCount = 0,
     this.score = 0,
@@ -88,6 +92,12 @@ class BaseSave {
   /// Every plot held, and which premium locations have been unlocked.
   final List<LandHolding> holdings;
   final List<String> premiumUnlocked;
+
+  /// Cyber posture, standing, and what is banked out of reach.
+  final int firewallTier;
+  final double reputation;
+  final double vaultMoney;
+  final double vaultWatt;
 
   /// Core health as a fraction, so a battered core stays battered.
   final double coreIntegrity;
@@ -116,6 +126,10 @@ class BaseSave {
         'city': cityId,
         'hold': holdings.map((e) => e.toJson()).toList(),
         'prem': premiumUnlocked,
+        'fw': firewallTier,
+        'rep': reputation,
+        'vm': vaultMoney,
+        'vw': vaultWatt,
         'ci': coreIntegrity,
         'rc': raidCount,
         'sc': score,
@@ -145,6 +159,10 @@ class BaseSave {
       premiumUnlocked: ((j['prem'] as List<dynamic>?) ?? const [])
           .map((e) => e as String)
           .toList(),
+      firewallTier: (j['fw'] as num?)?.toInt() ?? 0,
+      reputation: (j['rep'] as num?)?.toDouble() ?? 75,
+      vaultMoney: (j['vm'] as num?)?.toDouble() ?? 0,
+      vaultWatt: (j['vw'] as num?)?.toDouble() ?? 0,
       coreIntegrity: (j['ci'] as num?)?.toDouble() ?? 1,
       raidCount: (j['rc'] as num?)?.toInt() ?? 0,
       score: (j['sc'] as num?)?.toInt() ?? 0,

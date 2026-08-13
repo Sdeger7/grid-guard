@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/levels.dart';
 import '../../data/premium_packages.dart';
+import '../../data/insurance.dart';
 import '../../data/skins.dart';
 import '../../data/streak.dart';
 import '../../game/grid_guard_game.dart' as gg;
@@ -25,6 +26,7 @@ import '../../data/challenge.dart';
 import '../widgets/challenge_sheet.dart';
 import '../widgets/city_sheet.dart';
 import '../widgets/report_sheet.dart';
+import '../widgets/security_sheet.dart';
 import '../widgets/site_menu.dart';
 import '../widgets/streak_panel.dart';
 import '../widgets/speedup_sheet.dart';
@@ -111,6 +113,12 @@ class _GameScreenState extends ConsumerState<GameScreen>
               ref.read(profileProvider).ownedPackages),
       hasGridPass: !widget.challenge &&
           ref.read(monetizationServiceProvider).isProductPurchased('grid_pass'),
+      // Cover is bought, so it stays out of the compared lane like everything
+      // else that is.
+      policies: widget.challenge
+          ? const <String>{}
+          : InsuranceCatalog.heldFrom(
+              ref.read(monetizationServiceProvider).isProductPurchased),
       callbacks: gg.GameCallbacks(
         onSnapshot: _onSnapshot,
         onFinished: _onFinished,
@@ -462,6 +470,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       onOpenReport: () => showReportSheet(context, _game),
                       onOpenChallenge: () =>
                           showChallengeSheet(context, ref, _game),
+                      onOpenSecurity: () => showSecuritySheet(context, _game,
+                          ref.read(monetizationServiceProvider)),
                       onOpenCities: () => showCitySheet(context, _game,
                           onChanged: () {
                             _refreshWeather();

@@ -180,6 +180,16 @@ class _TopBar extends StatelessWidget {
                 : GridMarket.bandFor(state.gridPrice),
         onTap: () => showGridSheet(context, game),
       ),
+      _Stat(
+        icon: Icons.verified_user_rounded,
+        color: state.reputation >= 65
+            ? GGColors.good
+            : state.reputation >= 40
+                ? GGColors.accentWarm
+                : GGColors.danger,
+        label: '${state.reputation.round()}',
+        caption: 'TRUST',
+      ),
       // The report is where the money detail lives now that the headline
       // carries the balance itself.
       _Stat(

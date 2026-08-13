@@ -12,6 +12,8 @@ import '../data/events.dart';
 import '../data/grid_market.dart';
 import '../data/premium_packages.dart';
 import '../data/cities.dart';
+import '../data/insurance.dart';
+import '../data/security.dart';
 import '../data/skins.dart';
 import '../data/solar.dart';
 import '../data/watt_supply.dart';
@@ -166,6 +168,7 @@ class GridGuardGame extends FlameGame {
     this.skins = const {},
     this.hasGridPass = false,
     this.challenge = false,
+    this.policies = const {},
   });
 
   final LevelConfig config;
@@ -177,6 +180,10 @@ class GridGuardGame extends FlameGame {
   /// A previously saved base to rebuild on load, if there is one. Survival is
   /// one continuous site, not a fresh run each time the app opens.
   final BaseSave? initialBase;
+
+  /// Insurance policies held. A policy never prevents a loss — it refunds part
+  /// of what the loss cost, above an excess the holder carries.
+  Set<String> policies;
 
   /// True when this is a weekly challenge run.
   ///
@@ -234,6 +241,166 @@ class GridGuardGame extends FlameGame {
     _rollMissions();
     _publishSnapshot(force: true);
     return true;
+  }
+
+  // ---- Cyber security, reputation and the vault ----
+  //
+  // Drones take the hardware; intruders take the money and the data, and no
+  // transformer stops them. This is the second threat the site has to be built
+  // against, and it is bought rather than placed.
+
+  /// Which firewall is installed, as an index into [FirewallCatalog].
+  int firewallTier = 0;
+  FirewallTier get firewall => FirewallCatalog.at(firewallTier);
+
+  /// Standing with the people who hand out contracts. Everything a data centre
+  /// sells rests on it, and a breach spends months of it in one night.
+  double reputation = Reputation.initial;
+
+  /// Cash and WATT held at the bank. Deposits are out of reach of an intruder,
+  /// and the bank charges a nightly percentage for the privilege — which is
+  /// also the only thing draining MONEY out of the world at scale.
+  double vaultMoney = 0;
+  double vaultWatt = 0;
+
+  static const double vaultNightlyFee = 0.01;
+
+  /// Policies held, resolved from the store at launch. Empty in a challenge.
+
+  /// Next intrusion attempt, on the wall clock.
+  int _nextIntrusionMs = 0;
+
+  /// Records of what has been lost, for the morning report.
+  final List<String> breachLog = [];
+
+  bool upgradeFirewall() {
+    if (!FirewallCatalog.canUpgrade(firewallTier)) return false;
+    final next = FirewallCatalog.at(firewallTier + 1);
+    if (!_spendMoney(next.cost)) return false;
+    firewallTier++;
+    _publishSnapshot(force: true);
+    return true;
+  }
+
+  bool depositToVault(double amount) {
+    final take = math.min(amount, money);
+    if (take <= 0) return false;
+    money -= take;
+    vaultMoney += take;
+    _publishSnapshot(force: true);
+    return true;
+  }
+
+  bool withdrawFromVault(double amount) {
+    final take = math.min(amount, vaultMoney);
+    if (take <= 0) return false;
+    vaultMoney -= take;
+    money += take;
+    _publishSnapshot(force: true);
+    return true;
+  }
+
+  bool depositWattToVault(double amount) {
+    final take = math.min(amount, coinsEarned);
+    if (take <= 0) return false;
+    coinsEarned -= take;
+    vaultWatt += take;
+    _publishSnapshot(force: true);
+    return true;
+  }
+
+  bool withdrawWattFromVault(double amount) {
+    final take = math.min(amount, vaultWatt);
+    if (take <= 0) return false;
+    vaultWatt -= take;
+    coinsEarned += take;
+    _publishSnapshot(force: true);
+    return true;
+  }
+
+  /// Runs an intrusion attempt. Frequency rises with how much the site is worth
+  /// and how valuable its contracts are — the same attention that brings drones.
+  void _tickIntrusions(double dt) {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    if (_nextIntrusionMs == 0) {
+      _scheduleNextIntrusion();
+      return;
+    }
+    if (nowMs < _nextIntrusionMs) return;
+    _scheduleNextIntrusion();
+    _attemptIntrusion();
+  }
+
+  void _scheduleNextIntrusion() {
+    // Roughly every twenty minutes at baseline, faster as the site gets hotter.
+    final minutes = (24 / math.max(0.4, threatMultiplier)) * (0.6 + _rng.nextDouble());
+    _nextIntrusionMs = DateTime.now()
+        .add(Duration(seconds: (minutes * 60).round()))
+        .millisecondsSinceEpoch;
+  }
+
+  void _attemptIntrusion() {
+    if (dataCenterCount == 0) return;
+
+    if (_rng.nextDouble() < firewall.resistance) {
+      breachLog.add('Intrusion attempt blocked by ${firewall.name}.');
+      spawnFloatingText(
+        '🔒 blocked',
+        Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
+        const Color(0xFF2FBF71),
+      );
+      return;
+    }
+
+    // Through the door. What they take depends on what the site is holding.
+    final holdsSensitive =
+        dataCenters.any((dc) => workloadOf(dc).requiredSecurity >= 10);
+    final roll = _rng.nextDouble();
+
+    if (holdsSensitive && roll < 0.4) {
+      // The expensive one: client records, a regulator's fine, and a
+      // reputation that takes months to rebuild.
+      final fine = (900 + baseValue * 0.05).round();
+      final covered = InsuranceCatalog.payoutFor(
+        held: policies,
+        kind: CoverKind.breach,
+        loss: fine,
+      );
+      money = math.max(0, money - fine + covered);
+      reputation = math.max(Reputation.min,
+          reputation - Reputation.penaltyFor(BreachKind.dataTheft));
+      breachLog.add('Client records taken. Fine ${fine}M'
+          '${covered > 0 ? ', ${covered}M recovered on cover' : ''}. '
+          'Reputation down.');
+      addShake(shakeMagnitudeHeavy);
+    } else if (roll < 0.75) {
+      final taken = (money * (0.08 + _rng.nextDouble() * 0.17)).floorToDouble();
+      final covered = InsuranceCatalog.payoutFor(
+        held: policies,
+        kind: CoverKind.breach,
+        loss: taken.round(),
+      );
+      money = math.max(0, money - taken + covered);
+      reputation = math.max(Reputation.min,
+          reputation - Reputation.penaltyFor(BreachKind.theft));
+      breachLog.add('${taken.round()}M siphoned from the operating account'
+          '${covered > 0 ? ', ${covered}M recovered' : ''}.');
+    } else {
+      final taken = coinsEarned * (0.10 + _rng.nextDouble() * 0.25);
+      coinsEarned = math.max(0, coinsEarned - taken);
+      reputation = math.max(Reputation.min,
+          reputation - Reputation.penaltyFor(BreachKind.wattTheft));
+      breachLog.add('₵${taken.toStringAsFixed(3)} taken from the wallet. '
+          'Vaulted WATT was untouched.');
+    }
+
+    _emitSfx(Sfx.coreDamage);
+    spawnFloatingText(
+      '⚠ BREACH',
+      Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
+      const Color(0xFFE23D4B),
+    );
+    _publishSnapshot(force: true);
   }
 
   // ---- Land ----
@@ -667,6 +834,8 @@ class GridGuardGame extends FlameGame {
   void setWorkloadFor(FacilityComponent dc, int index) {
     final i = index.clamp(0, DcWorkloadCatalog.workloads.length - 1);
     if (securityRating < DcWorkloadCatalog.workloads[i].requiredSecurity) return;
+    // Clients check who they are handing their data to.
+    if (reputation < Reputation.requiredFor(i)) return;
     dc.workloadIndex = i;
     workloadIndex = i;
     _publishSnapshot(force: true);
@@ -705,6 +874,7 @@ class GridGuardGame extends FlameGame {
                 workloadOf(dc).income *
                     _dcShare(dc) *
                     perks.incomeMultiplier *
+                    Reputation.rateMultiplier(reputation) *
                     city.priceIndex *
                     worldEvent.incomeScale,
       );
@@ -1213,7 +1383,8 @@ class GridGuardGame extends FlameGame {
     //     standing — staff, spares, insurance — billed against what it is worth.
     //     A site's running bill therefore grows as fast as the site does, which
     //     is what stops cash from piling up with nothing to buy.
-    final opex = (operatingCost + rentPerSecond) * dt;
+    final opex =
+        (operatingCost + rentPerSecond + firewall.upkeep) * dt;
     if (opex > 0) {
       money = math.max(0.0, money - opex);
     }
@@ -1310,6 +1481,22 @@ class GridGuardGame extends FlameGame {
     return v;
   }
 
+  /// Pays out equipment cover on something a raid destroyed.
+  void _claimRaidLoss(int rebuildCost) {
+    final covered = InsuranceCatalog.payoutFor(
+      held: policies,
+      kind: CoverKind.raid,
+      loss: rebuildCost,
+    );
+    if (covered <= 0) return;
+    money += covered;
+    spawnFloatingText(
+      '+${covered}M cover',
+      Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
+      const Color(0xFF2FBF71),
+    );
+  }
+
   /// A raider strafes a structure. Destroyed buildings are removed from the map
   /// and have to be rebuilt at full price.
   void enemyAttackStructure(EnemyComponent e, StructureComponent s) {
@@ -1317,6 +1504,7 @@ class GridGuardGame extends FlameGame {
     addShake(shakeMagnitudeLight);
     _emitSfx(Sfx.coreDamage);
     if (destroyed) {
+      _claimRaidLoss(s.currentTier.cost);
       destroyStructure(s);
       addShake(shakeMagnitudeHeavy);
     }
@@ -1930,6 +2118,10 @@ class GridGuardGame extends FlameGame {
       workloadIndex: workloadIndex,
       zoneIndex: zoneIndex,
       cityId: cityId,
+      firewallTier: firewallTier,
+      reputation: reputation,
+      vaultMoney: vaultMoney,
+      vaultWatt: vaultWatt,
       holdings: List<LandHolding>.from(holdings),
       premiumUnlocked: premiumUnlocked.toList(),
       cityId: cityId,
@@ -1963,6 +2155,10 @@ class GridGuardGame extends FlameGame {
 
     zoneIndex = save.zoneIndex;
     cityId = save.cityId;
+    firewallTier = save.firewallTier;
+    reputation = save.reputation;
+    vaultMoney = save.vaultMoney;
+    vaultWatt = save.vaultWatt;
     holdings
       ..clear()
       ..addAll(save.holdings);
@@ -2571,6 +2767,16 @@ class GridGuardGame extends FlameGame {
 
   /// Dawn: the night is survived. Pay for it, and roll the day over.
   void _onDawn() {
+    // The bank takes its cut of whatever sat in the vault overnight — the price
+    // of putting it beyond reach, and the only thing draining MONEY out of the
+    // world at any scale.
+    if (vaultMoney > 0) {
+      vaultMoney -= vaultMoney * vaultNightlyFee;
+    }
+    // Trust rebuilds while nothing goes wrong, and only slowly.
+    reputation =
+        math.min(Reputation.max, reputation + Reputation.recoveryPerDay);
+
     _nightWaveTimes.clear();
     dayNumber++;
     weather = WeatherCatalog.forDay(dayNumber);
@@ -2740,6 +2946,11 @@ class GridGuardGame extends FlameGame {
       gridContracts: gridContracts.length,
       operatingCost: operatingCost,
       lightingLoad: lightingLoad,
+      reputation: reputation,
+      firewallName: firewall.name,
+      firewallTier: firewallTier,
+      vaultMoney: vaultMoney,
+      vaultWatt: vaultWatt,
       netMoneyRate: netMoneyRate,
       zoneName: city.name,
       zoneEmoji: '📍',

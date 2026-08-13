@@ -20,6 +20,7 @@ Future<void> showSiteMenu(
   required VoidCallback onAbandon,
   required VoidCallback onOpenChallenge,
   required VoidCallback onOpenCities,
+  required VoidCallback onOpenSecurity,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -65,6 +66,13 @@ Future<void> showSiteMenu(
                           color: GGColors.amber)),
                 ],
               ),
+            ),
+            entry(
+              icon: Icons.security_rounded,
+              colour: GGColors.danger,
+              title: 'Security',
+              subtitle: 'Firewall, standing, the bank and cover',
+              onTap: onOpenSecurity,
             ),
             entry(
               icon: Icons.map_rounded,
