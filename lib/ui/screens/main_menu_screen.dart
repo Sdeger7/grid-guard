@@ -7,6 +7,7 @@ import '../theme.dart';
 import 'game_screen.dart';
 import 'guide_screen.dart';
 import 'premium_screen.dart';
+import 'skins_screen.dart';
 import 'store_screen.dart';
 
 /// Title screen. Minimal engineering-dashboard framing with entry points to the
@@ -60,6 +61,14 @@ class MainMenuScreen extends ConsumerWidget {
                 color: GGColors.amber,
                 onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const PremiumScreen())),
+              ),
+              const SizedBox(height: 12),
+              _MenuButton(
+                icon: Icons.palette_rounded,
+                label: 'WARDROBE',
+                color: GGColors.amber,
+                onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SkinsScreen())),
               ),
               const SizedBox(height: 12),
               _MenuButton(

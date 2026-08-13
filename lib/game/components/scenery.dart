@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import '../../data/skins.dart';
 import 'iso_component.dart';
 
 /// What a scenery prop is.
@@ -223,8 +224,10 @@ class PondTile extends IsoComponent {
     canvas.drawPath(
       water,
       Paint()
-        ..color = Color.lerp(const Color(0xFF2C7DA0), const Color(0xFF3E9CBF),
-            (seed * 1.9) % 1.0)!,
+        ..color = Color.lerp(
+            game.skinFor(SkinSlot.terrain).accent,
+            const Color(0xFF3E9CBF),
+            (seed * 1.9) % 1.0 * 0.4)!,
     );
 
     // Slow highlight bands, so the surface is alive without being busy.

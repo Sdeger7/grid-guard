@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart' show Colors;
 
+import '../../data/skins.dart';
 import 'enemy_component.dart';
 import 'iso_box.dart';
 import 'iso_component.dart';
@@ -88,11 +89,13 @@ class InterceptorDrone extends IsoComponent {
     canvas.save();
     canvas.translate(0, -altitude);
 
-    // Friendly interceptor: bright green, sized to read against enemy raiders.
-    final body =
-        _fireFlash > 0 ? const Color(0xFFEAFFF3) : const Color(0xFF23D97E);
+    // Friendly interceptor, painted by whatever skin is equipped.
+    final skin = game.skinFor(SkinSlot.drone);
+    final body = _fireFlash > 0
+        ? Color.lerp(skin.primary, const Color(0xFFFFFFFF), 0.7)!
+        : skin.primary;
     final arm = Paint()
-      ..color = const Color(0xFF0E4F31)
+      ..color = skin.secondary
       ..strokeWidth = 2.4;
     for (final tp in [
       Offset(halfW * 0.42, -halfH * 0.2),
@@ -103,10 +106,10 @@ class InterceptorDrone extends IsoComponent {
       canvas.drawLine(Offset.zero, tp, arm);
       final s = 0.75 + 0.25 * math.sin(_spin + tp.dx);
       // Rotor hub + disc.
-      canvas.drawCircle(tp, 2.6, Paint()..color = const Color(0xFF0E4F31));
+      canvas.drawCircle(tp, 2.6, Paint()..color = skin.secondary);
       canvas.drawOval(
         Rect.fromCenter(center: tp, width: 17 * s, height: 4.5),
-        Paint()..color = const Color(0xCCCFF5E2),
+        Paint()..color = skin.accent.withValues(alpha: 0.8),
       );
     }
 
@@ -119,11 +122,10 @@ class InterceptorDrone extends IsoComponent {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.6
-        ..color = const Color(0xFF0E4F31),
+        ..color = skin.secondary,
     );
     // Cockpit sensor.
-    canvas.drawCircle(
-        const Offset(0, -1.5), 3, Paint()..color = const Color(0xFFFFE08A));
+    canvas.drawCircle(const Offset(0, -1.5), 3, Paint()..color = skin.accent);
 
     // Friendly marker ring above, so you can always find your own drones.
     canvas.drawCircle(
@@ -132,7 +134,7 @@ class InterceptorDrone extends IsoComponent {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.6
-        ..color = const Color(0xFF23D97E),
+        ..color = skin.primary,
     );
     canvas.restore();
   }

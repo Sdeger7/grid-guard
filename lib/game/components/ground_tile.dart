@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import '../../data/skins.dart';
 import 'iso_component.dart';
 
 /// What role a ground tile plays.
@@ -61,19 +62,21 @@ class GroundTile extends IsoComponent {
 
     // Grass with a subtle per-tile shade shift (lerp keeps this portable across
     // Flutter colour APIs).
+    // The terrain skin decides what this ground is made of.
+    final skin = game.skinFor(SkinSlot.terrain);
     var grass = _n < 0.5
-        ? Color.lerp(fill, const Color(0xFF2F5F2A), _n * 0.22)!
-        : Color.lerp(fill, const Color(0xFFBFE08A), (_n - 0.5) * 0.20)!;
+        ? Color.lerp(skin.primary, skin.secondary, _n * 0.35)!
+        : Color.lerp(skin.primary, const Color(0xFFF2F7D8), (_n - 0.5) * 0.18)!;
     // Outer ring blends toward the darker surrounding field.
     if (isEdge) {
-      grass = Color.lerp(grass, const Color(0xFF3E6B39), 0.55)!;
+      grass = Color.lerp(grass, skin.secondary, 0.55)!;
     }
     canvas.drawPath(diamond, Paint()..color = grass);
 
     // A few blades of grass for texture (skipped on the base's own tile).
     if (kind != TileKind.core) {
       final tuft = Paint()
-        ..color = Color.lerp(grass, const Color(0xFF2F6B33), 0.35)!
+        ..color = Color.lerp(grass, skin.secondary, 0.45)!
         ..strokeWidth = 1.1
         ..strokeCap = StrokeCap.round;
       final count = 2 + (_n * 3).floor();

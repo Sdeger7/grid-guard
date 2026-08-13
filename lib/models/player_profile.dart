@@ -31,6 +31,7 @@ class PlayerProfile {
     this.bestRaid = 0,
     this.bestScore = 0,
     this.ownedPackages = const {},
+    this.equippedSkins = const {},
   });
 
   /// WATT mined by crypto workloads — the permanent currency for premium packs.
@@ -42,6 +43,10 @@ class PlayerProfile {
 
   /// Premium packages bought with WATT.
   final Set<String> ownedPackages;
+
+  /// Which cosmetic set is worn in each slot, keyed by SkinSlot.name. What is
+  /// owned lives in [ownedSkins].
+  final Map<String, String> equippedSkins;
 
   /// Permanent soft currency.
   final int gridCredits;
@@ -93,6 +98,7 @@ class PlayerProfile {
     int? bestRaid,
     int? bestScore,
     Set<String>? ownedPackages,
+    Map<String, String>? equippedSkins,
   }) {
     return PlayerProfile(
       gridCredits: gridCredits ?? this.gridCredits,
@@ -111,6 +117,7 @@ class PlayerProfile {
       bestRaid: bestRaid ?? this.bestRaid,
       bestScore: bestScore ?? this.bestScore,
       ownedPackages: ownedPackages ?? this.ownedPackages,
+      equippedSkins: equippedSkins ?? this.equippedSkins,
     );
   }
 
@@ -131,6 +138,7 @@ class PlayerProfile {
         'bestRaid': bestRaid,
         'bestScore': bestScore,
         'ownedPackages': ownedPackages.toList(),
+        'equippedSkins': equippedSkins,
       };
 
   factory PlayerProfile.fromJson(Map<String, dynamic> json) {
@@ -150,6 +158,9 @@ class PlayerProfile {
             TowerType.scissorBarrier,
             TowerType.shockTransformer,
           },
+      equippedSkins: ((json['equippedSkins'] as Map<String, dynamic>?) ??
+              const <String, dynamic>{})
+          .map((k, v) => MapEntry(k, v as String)),
       ownedSkins:
           (json['ownedSkins'] as List?)?.map((s) => s as String).toSet() ??
               const {},

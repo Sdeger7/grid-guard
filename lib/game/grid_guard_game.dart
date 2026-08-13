@@ -9,6 +9,7 @@ import '../data/dc_workload.dart';
 import '../data/enemy_catalog.dart';
 import '../data/grid_market.dart';
 import '../data/premium_packages.dart';
+import '../data/skins.dart';
 import '../data/missions.dart';
 import '../data/speedups.dart';
 import '../data/story.dart';
@@ -151,6 +152,7 @@ class GridGuardGame extends FlameGame {
     this.perks = const PremiumPackage(
         id: '_none', name: '', emoji: '', price: 0, blurb: ''),
     this.initialBase,
+    this.skins = const {},
   });
 
   final LevelConfig config;
@@ -162,6 +164,13 @@ class GridGuardGame extends FlameGame {
   /// A previously saved base to rebuild on load, if there is one. Survival is
   /// one continuous site, not a fresh run each time the app opens.
   final BaseSave? initialBase;
+
+  /// The cosmetic sets the player is wearing, keyed by [SkinSlot.name]. Pure
+  /// paint: nothing here touches a stat.
+  final Map<SkinSlot, Skin> skins;
+
+  Skin skinFor(SkinSlot slot) =>
+      skins[slot] ?? SkinCatalog.defaultFor(slot);
 
   /// Which zone this site sits in. Relocating to a harsher zone is the long
   /// game's reset: buildings are left behind, WATT and perks come with you.

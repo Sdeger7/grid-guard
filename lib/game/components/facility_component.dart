@@ -4,6 +4,7 @@ import 'dart:ui';
 // dart:ui, so only the painter types are pulled in here to avoid a clash.
 import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
 
+import '../../data/skins.dart';
 import 'iso_box.dart';
 import 'structure_component.dart';
 
@@ -48,7 +49,9 @@ class FacilityComponent extends StructureComponent {
     // Procedural fallback: a tinted box that grows a little per tier.
     final halfW = game.iso.halfW;
     final halfH = game.iso.halfH;
-    final shades = faceShades(spec.tint);
+    // Tinted toward the equipped structure skin, so a site reads as one kit.
+    final skin = game.skinFor(SkinSlot.structure);
+    final shades = faceShades(Color.lerp(spec.tint, skin.primary, 0.45)!);
     drawIsoBox(
       canvas,
       halfW: halfW,
@@ -69,18 +72,19 @@ class FacilityComponent extends StructureComponent {
   /// count is drawn as a numeral instead.
   void _pips(Canvas canvas) {
     final y = -game.iso.halfH * 2.4;
+    final pip = game.skinFor(SkinSlot.structure).accent;
     if (tier <= 2) {
       for (var i = 0; i <= tier; i++) {
         canvas.drawCircle(
-            Offset(-6 + i * 6.0, y), 2.0, Paint()..color = const Color(0xFFFFE08A));
+            Offset(-6 + i * 6.0, y), 2.0, Paint()..color = pip);
       }
       return;
     }
     final label = TextPainter(
       text: TextSpan(
         text: 'T${tier + 1}',
-        style: const TextStyle(
-          color: Color(0xFFFFE08A),
+        style: TextStyle(
+          color: pip,
           fontSize: 9,
           fontWeight: FontWeight.w800,
         ),

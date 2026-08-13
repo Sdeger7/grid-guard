@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/levels.dart';
 import '../../data/premium_packages.dart';
+import '../../data/skins.dart';
 import '../../game/grid_guard_game.dart' as gg;
 import '../../models/base_save.dart';
 import '../../models/level_config.dart';
@@ -69,9 +70,19 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final save = widget.config.endless
         ? ref.read(saveServiceProvider).loadBase()
         : null;
+    // Whatever the player is wearing, resolved once at launch.
+    final worn = <SkinSlot, Skin>{};
+    final equipped = ref.read(profileProvider).equippedSkins;
+    for (final slot in SkinSlot.values) {
+      final id = equipped[slot.name];
+      worn[slot] =
+          id == null ? SkinCatalog.defaultFor(slot) : SkinCatalog.byId(id);
+    }
+
     _game = gg.GridGuardGame(
       config: widget.config,
       initialBase: save,
+      skins: worn,
       perks: PremiumCatalog.effectiveOf(
           ref.read(profileProvider).ownedPackages),
       callbacks: gg.GameCallbacks(

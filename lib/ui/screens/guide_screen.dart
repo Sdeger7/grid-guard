@@ -154,7 +154,8 @@ class GuideScreen extends StatelessWidget {
                 'which sells time — banked production, an emergency repair '
                 'crew, capital. Nothing there is unreachable by playing, and '
                 'WATT is never for sale at any price. It is a closed currency: '
-                'mined in-game, spent in-game.',
+                'mined in-game, spent in-game — on permanent perks, and on the '
+                'wardrobe, where it buys looks and nothing else.',
           ),
           const _Section(
             emoji: '🌳',

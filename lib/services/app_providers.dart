@@ -80,6 +80,29 @@ class ProfileNotifier extends Notifier<PlayerProfile> {
     await _save.saveProfile(state);
   }
 
+  /// Buys a cosmetic set with WATT. Returns false when the balance is short.
+  Future<bool> buySkin(String id, int price) async {
+    final p = state;
+    if (p.ownedSkins.contains(id)) return true;
+    if (p.coins < price) return false;
+    final next = p.copyWith(
+      coins: p.coins - price,
+      ownedSkins: {...p.ownedSkins, id},
+    );
+    state = next;
+    await ref.read(saveServiceProvider).saveProfile(next);
+    return true;
+  }
+
+  /// Wears a cosmetic set in its slot.
+  Future<void> equipSkin(String slot, String id) async {
+    final next = state.copyWith(
+      equippedSkins: {...state.equippedSkins, slot: id},
+    );
+    state = next;
+    await ref.read(saveServiceProvider).saveProfile(next);
+  }
+
   /// Buys a premium package with WATT. Returns false when short.
   Future<bool> buyPackage(String id, int price) async {
     if (state.coins < price || state.ownedPackages.contains(id)) return false;
