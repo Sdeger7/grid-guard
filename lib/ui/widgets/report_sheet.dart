@@ -54,7 +54,8 @@ class _ReportSheet extends StatelessWidget {
     final dcDraw = game.dcHalted ? 0.0 : game.dcDraw;
     final intelDraw =
         GridGuardGame.intelEnergyPerCenter * game.intelCenters.length;
-    final netEnergy = solar + wind + generator - dcDraw - intelDraw;
+    final lighting = game.lightingLoad;
+    final netEnergy = solar + wind + generator - dcDraw - intelDraw - lighting;
 
     return SafeArea(
       child: DraggableScrollableSheet(
@@ -115,6 +116,9 @@ class _ReportSheet extends StatelessWidget {
             _Line('Data Centers', '−${dcDraw.toStringAsFixed(1)} ⚡/s'),
             if (intelDraw > 0)
               _Line('Intel Centers', '−${intelDraw.toStringAsFixed(1)} ⚡/s'),
+            if (lighting > 0)
+              _Line('Site lighting (${game.structures.length} buildings)',
+                  '−${lighting.toStringAsFixed(1)} ⚡/s'),
             _Line('Defences', 'per shot, from the reserve'),
             const SizedBox(height: 6),
             _Line('Balance', _rate(netEnergy, '⚡/s'),

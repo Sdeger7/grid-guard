@@ -519,6 +519,21 @@ class GridGuardGame extends FlameGame {
     return rate;
   }
 
+  /// Site lighting.
+  ///
+  /// The structures light themselves after dark, and light is load: a site that
+  /// looks alive at night is one drawing power to look that way. It scales with
+  /// how much is built and how dark it is, which quietly makes a sprawling site
+  /// more expensive to run through a long winter night than a compact one.
+  static const double lightingPerStructure = 0.12;
+
+  double get lightingLoad {
+    final elevation = sun.elevationDegrees;
+    if (elevation >= 2) return 0;
+    final darkness = ((2 - elevation) / 14).clamp(0.0, 1.0);
+    return structures.length * lightingPerStructure * darkness;
+  }
+
   /// MONEY per second spent keeping everything on site running. Charged
   /// against the replacement value of what is built, so an upgraded site is
   /// genuinely more expensive to own.
@@ -1172,6 +1187,14 @@ class GridGuardGame extends FlameGame {
           gridImportSpent += bill;
         }
       }
+    }
+
+    // 1d2) Lighting. Drawn before anything earns, because the lights are on
+    //      whether or not the machines are running, and it comes out of the
+    //      battery like everything else.
+    final lighting = lightingLoad * dt;
+    if (lighting > 0) {
+      energy = math.max(0.0, energy - lighting);
     }
 
     // 1e) Intel Centers run whether or not anything else does: they cost cash
@@ -2716,6 +2739,7 @@ class GridGuardGame extends FlameGame {
       gridImporting: gridImportEnabled,
       gridContracts: gridContracts.length,
       operatingCost: operatingCost,
+      lightingLoad: lightingLoad,
       netMoneyRate: netMoneyRate,
       zoneName: city.name,
       zoneEmoji: '📍',

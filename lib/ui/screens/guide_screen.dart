@@ -28,6 +28,10 @@ class GuideScreen extends StatelessWidget {
                 'site draws from them: the Data Centers earning your money, '
                 'every shot a Shock Transformer fires, every interceptor '
                 'drone, and the Intel Center.\n\n'
+                'After dark the site lights itself, and light is load: every '
+                'building draws a little power to stay lit, so a sprawling '
+                'site costs more to run through a long winter night than a '
+                'compact one.\n\n'
                 'A quarter of your battery (up to 25) is reserved for '
                 'defence — Data Centers cannot drain below it. That reserve '
                 'is why your towers keep firing when the grid is tight.',

@@ -62,6 +62,7 @@ class LevelState {
     required this.gridImporting,
     required this.gridContracts,
     required this.operatingCost,
+    required this.lightingLoad,
     required this.netMoneyRate,
     required this.zoneName,
     required this.zoneEmoji,
@@ -161,6 +162,9 @@ class LevelState {
   /// MONEY per second the site costs simply to keep running.
   final double operatingCost;
 
+  /// Energy per second the site's own lighting draws after dark.
+  final double lightingLoad;
+
   /// Net MONEY per second — the direction the balance is actually moving.
   final double netMoneyRate;
 
@@ -200,7 +204,9 @@ class LevelState {
 
   /// Net energy per second (total generation minus Data Center draw). Negative
   /// means the BESS is draining even before towers fire.
-  double get netEnergy => generation - dcDraw;
+  /// What the battery is actually gaining or losing: generation less the
+  /// machines and less the lights, which are on all night and are not free.
+  double get netEnergy => generation - dcDraw - lightingLoad;
 }
 
 /// The computed outcome of a finished run, handed to the level-end screen and
