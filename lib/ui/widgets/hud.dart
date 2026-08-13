@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/dc_workload.dart';
 import '../../data/grid_market.dart';
 import '../../data/tower_catalog.dart';
+import '../../game/components/facility_component.dart';
 import '../../game/grid_guard_game.dart';
 import '../../models/level_state.dart';
 import '../../models/tower_type.dart';
@@ -48,6 +49,7 @@ class Hud extends StatelessWidget {
         children: [
           if (s != null) _TopBar(state: s, game: game, onOpenStore: onOpenStore),
           if (s != null) _FacilitiesRow(state: s, game: game),
+          if (s != null) _DcChips(game: game, security: s.security),
           const Spacer(),
           if (s != null && s.bossWaveActive && s.phase == RunPhase.inProgress)
             const Padding(
@@ -162,7 +164,7 @@ class _TopBar extends StatelessWidget {
       _Stat(
         icon: Icons.currency_bitcoin_rounded,
         color: GGColors.amber,
-        label: state.coins.toStringAsFixed(1),
+        label: state.coins.toStringAsFixed(3),
         caption: 'WATT ⇄',
         onTap: () => _showExchangeSheet(context, game, state.coins),
       ),
@@ -232,7 +234,8 @@ class _TopBar extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             SizedBox(
-              height: 34,
+              // Tall enough for the tappable stats, which carry padding.
+              height: 42,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: stats.length,
@@ -324,13 +327,16 @@ class _Stat extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(4),
       child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2), child: content),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: content,
+      ),
     );
   }
 
   Widget _content() {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -418,10 +424,76 @@ class _FacilitiesRow extends StatelessWidget {
   }
 }
 
+/// One chip per Data Center. Each machine books its own contract, so each
+/// needs its own control — tapping DC 2 changes what DC 2 runs, nothing else.
+class _DcChips extends StatelessWidget {
+  const _DcChips({required this.game, required this.security});
+
+  final GridGuardGame game;
+  final int security;
+
+  @override
+  Widget build(BuildContext context) {
+    final dcs = game.dataCenters;
+    if (dcs.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+      child: SizedBox(
+        height: 40,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: dcs.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 6),
+          itemBuilder: (_, i) {
+            final dc = dcs[i];
+            final w = game.workloadOf(dc);
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _showWorkloadSheet(
+                  context, game, dc.workloadIndex, security,
+                  target: dc),
+              child: GGPanel(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                borderColor:
+                    w.minesCoins ? GGColors.amber : GGColors.panelBorder,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('DC ${dc.dcIndex + 1}',
+                        style: GGText.soft
+                            .copyWith(fontWeight: FontWeight.w800)),
+                    const SizedBox(width: 6),
+                    Text(w.emoji),
+                    const SizedBox(width: 4),
+                    Text(
+                      w.minesCoins
+                          ? '⚡WTT'
+                          : '+${w.income.toStringAsFixed(0)}M',
+                      style: GGText.soft.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color:
+                            w.minesCoins ? GGColors.amber : GGColors.good,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
 
 /// Bottom sheet to choose the Data Center's workload — the risk/reward dial.
+/// Books work. With [target] set, it books that one machine; without it, the
+/// choice applies to the whole site.
 void _showWorkloadSheet(
-    BuildContext context, GridGuardGame game, int current, int security) {
+    BuildContext context, GridGuardGame game, int current, int security,
+    {FacilityComponent? target}) {
   showModalBottomSheet<void>(
     context: context,
     backgroundColor: GGColors.panel,
@@ -437,7 +509,11 @@ void _showWorkloadSheet(
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('DATA CENTER WORKLOAD', style: GGText.heading),
+                Text(
+                    target == null
+                        ? 'ALL DATA CENTERS'
+                        : 'DC ${target.dcIndex + 1} WORKLOAD',
+                    style: GGText.heading),
                 Row(
                   children: [
                     const Icon(Icons.shield_rounded,
@@ -450,8 +526,14 @@ void _showWorkloadSheet(
               ],
             ),
             const SizedBox(height: 2),
-            const Text(
-                'Higher-value data pays more — but needs more security and draws more raids. Applies to all your Data Centers.',
+            Text(
+                target == null
+                    ? 'Books the same contract on every machine. Higher-value '
+                        'data pays more, needs more security, and draws more '
+                        'raids.'
+                    : 'Each machine runs its own contract — mine on one, host '
+                        'bank records on another. The hottest job on site sets '
+                        'the attention you get.',
                 style: GGText.soft),
             const SizedBox(height: 10),
             for (var i = 0; i < DcWorkloadCatalog.workloads.length; i++)
@@ -461,7 +543,11 @@ void _showWorkloadSheet(
                 locked:
                     security < DcWorkloadCatalog.workloads[i].requiredSecurity,
                 onTap: () {
-                  game.setWorkload(i);
+                  if (target == null) {
+                    game.setWorkload(i);
+                  } else {
+                    game.setWorkloadFor(target, i);
+                  }
                   Navigator.of(ctx).pop();
                 },
               ),
@@ -992,10 +1078,11 @@ void _showExchangeSheet(
                   'from your perk budget.',
                   style: GGText.soft),
             ),
+            option(0.25, 'Cash out 0.25'),
             option(1, 'Cash out 1'),
             option(5, 'Cash out 5'),
-            option(25, 'Cash out 25'),
-            option(balance.floorToDouble(), 'Cash out everything'),
+            option(double.parse(balance.toStringAsFixed(3)),
+                'Cash out everything'),
             const SizedBox(height: 8),
           ],
         ),

@@ -63,11 +63,14 @@ class DcWorkloadCatalog {
     DcWorkload(
       name: 'Crypto Mining',
       emoji: '⛏️',
-      income: 11,
+      // Mining pays in WATT, not cash. That is the entire trade: a rig earns
+      // you nothing you can spend on the site today, in exchange for the one
+      // currency that buys permanent advantage.
+      income: 0,
       draw: 8,
       threat: 1.3,
       requiredSecurity: 6,
-      blurb: 'Mints WATT — and a known target.',
+      blurb: 'Pays only in ⚡WATT, no cash — and a known target.',
       minesCoins: true,
     ),
     DcWorkload(

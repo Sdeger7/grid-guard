@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 
 /// A premium package bought with WATT — the currency crypto-mining workloads
-/// mint. Packages are permanent account perks that carry into every future run,
-/// so mining time converts into a real head start.
+/// mint. Packages are permanent account perks that carry into every future run.
+///
+/// Prices are in whole WATT, and WATT accrues at hundredths per hour, so these
+/// are measured in days of mining rather than minutes. That is the point: the
+/// perks are the long game.
 @immutable
 class PremiumPackage {
   const PremiumPackage({
@@ -62,7 +65,7 @@ class PremiumCatalog {
       id: 'seed_capital',
       name: 'Seed Capital',
       emoji: '💼',
-      price: 40,
+      price: 1,
       blurb: 'Start every run with +150 build money.',
       startMoneyBonus: 150,
     ),
@@ -70,7 +73,7 @@ class PremiumCatalog {
       id: 'charged_start',
       name: 'Charged Start',
       emoji: '🔌',
-      price: 60,
+      price: 2,
       blurb: 'Begin fully charged, +60 stored energy.',
       startEnergyBonus: 60,
     ),
@@ -78,7 +81,7 @@ class PremiumCatalog {
       id: 'grid_expansion',
       name: 'Grid Expansion',
       emoji: '🔋',
-      price: 90,
+      price: 3,
       blurb: '+80 permanent battery capacity.',
       capacityBonus: 80,
     ),
@@ -86,7 +89,7 @@ class PremiumCatalog {
       id: 'service_contract',
       name: 'Service Contract',
       emoji: '🛠️',
-      price: 110,
+      price: 4,
       blurb: 'All repairs cost 40% less, forever.',
       repairDiscount: 0.4,
     ),
@@ -94,7 +97,7 @@ class PremiumCatalog {
       id: 'hardened_core',
       name: 'Hardened Core',
       emoji: '🛡️',
-      price: 140,
+      price: 6,
       blurb: '+80 base integrity every run.',
       startCoreBonus: 80,
     ),
@@ -102,7 +105,7 @@ class PremiumCatalog {
       id: 'trading_desk',
       name: 'Trading Desk',
       emoji: '📈',
-      price: 200,
+      price: 9,
       blurb: 'Data Centers earn 25% more money.',
       incomeMultiplier: 1.25,
     ),
@@ -110,7 +113,7 @@ class PremiumCatalog {
       id: 'night_shift',
       name: 'Night Shift Crew',
       emoji: '🌙',
-      price: 260,
+      price: 12,
       blurb: 'Banked offline production runs for 16 hours instead of 8.',
       offlineHoursBonus: 8,
     ),
@@ -118,7 +121,7 @@ class PremiumCatalog {
       id: 'asic_farm',
       name: 'ASIC Farm',
       emoji: '🧮',
-      price: 400,
+      price: 18,
       blurb: 'Crypto Mining mints 50% more WATT.',
       miningBonus: 0.5,
     ),
@@ -126,7 +129,7 @@ class PremiumCatalog {
       id: 'diesel_backup',
       name: 'Diesel Backup',
       emoji: '🛢️',
-      price: 500,
+      price: 25,
       blurb: 'A generator trickles +4 energy/s day and night.',
       chargeRateBonus: 4,
     ),
@@ -134,7 +137,7 @@ class PremiumCatalog {
       id: 'grid_connection',
       name: 'Utility Interconnect',
       emoji: '🏗️',
-      price: 900,
+      price: 40,
       blurb: 'Sell surplus power into the market at the live price. The site '
           'stops being an island.',
       gridExportRate: 0.8,

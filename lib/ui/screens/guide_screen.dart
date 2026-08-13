@@ -36,8 +36,12 @@ class GuideScreen extends StatelessWidget {
             emoji: '🖥',
             title: 'Contracts: money against heat',
             body: 'A Data Center earns nothing on its own — it runs a '
-                'workload, and that choice is the central risk dial. Better '
+                'contract, and that choice is the central risk dial. Better '
                 'paying data draws more attention and more power.\n\n'
+                'Every machine books its own work, so a site can mine WATT on '
+                'DC 1 and host bank records on DC 2. You may run at most five, '
+                'and the hottest contract on site sets the attention the whole '
+                'site gets.\n\n'
                 'Each contract has a security floor. You cannot store bank '
                 'records on a site with two transformers; build defences '
                 'first, then the job unlocks. Switching to a hotter contract '
@@ -56,7 +60,10 @@ class GuideScreen extends StatelessWidget {
                 'alone; a Gov Secrets site is watched constantly. When a raid '
                 'does come, heat decides how heavy it is and the night gets '
                 'split into waves. Raiders fly in from every edge and will '
-                'attack ANY structure, not just your base.',
+                'attack ANY structure, not just your base — and they go for '
+                'what hurts most: Data Centers running hot contracts first, '
+                'then the Intel Center and your batteries, before anything '
+                'cheap.',
           ),
           const _Section(
             emoji: '📡',

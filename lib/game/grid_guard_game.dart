@@ -276,9 +276,21 @@ class GridGuardGame extends FlameGame {
   double get generation =>
       effectivePvOutput + effectiveWindOutput + perks.chargeRateBonus;
 
-  /// The Data Center's current workload — sets income, draw and threat.
+  /// The most recently chosen contract, used as the default for a newly built
+  /// machine and as the site's headline job in the HUD. Each Data Center books
+  /// its own work — see [setWorkloadFor].
   int workloadIndex = 0;
   DcWorkload get workload => DcWorkloadCatalog.workloads[workloadIndex];
+
+  /// The contract a specific Data Center is running.
+  DcWorkload workloadOf(FacilityComponent dc) =>
+      DcWorkloadCatalog.workloads[
+          dc.workloadIndex.clamp(0, DcWorkloadCatalog.workloads.length - 1)];
+
+  /// How many Data Centers a site may run. A hard cap keeps the answer to
+  /// every problem from being "build another one" and makes the choice of what
+  /// each machine runs the actual decision.
+  static const int maxDataCenters = 5;
 
   /// Base security rating from placed defences: Shock Transformers count double
   /// (they're the real deterrent), Scissor Barriers count single; both scale
@@ -300,21 +312,47 @@ class GridGuardGame extends FlameGame {
     return s;
   }
 
-  /// Switches the DC workload, but only if the base meets its security
-  /// requirement — you can't take a bank/government contract unguarded.
-  void setWorkload(int index) {
+  /// Books a contract on one Data Center, if the site's defences clear its
+  /// security floor — you can't store bank records unguarded.
+  void setWorkloadFor(FacilityComponent dc, int index) {
     final i = index.clamp(0, DcWorkloadCatalog.workloads.length - 1);
     if (securityRating < DcWorkloadCatalog.workloads[i].requiredSecurity) return;
+    dc.workloadIndex = i;
     workloadIndex = i;
     _publishSnapshot(force: true);
   }
 
-  /// Total Data Center energy draw per second (workload × total DC power).
-  double get dcDraw => workload.draw * dcTotalPower;
+  /// Books the same contract on every machine. Kept for the site-wide control.
+  void setWorkload(int index) {
+    final i = index.clamp(0, DcWorkloadCatalog.workloads.length - 1);
+    if (securityRating < DcWorkloadCatalog.workloads[i].requiredSecurity) return;
+    workloadIndex = i;
+    for (final dc in dataCenters) {
+      dc.workloadIndex = i;
+    }
+    _publishSnapshot(force: true);
+  }
 
-  /// Total money earned per second while powered (workload × total DC power).
-  double get dcIncome =>
-      workload.income * dcTotalPower * perks.incomeMultiplier;
+  /// The share of a machine's compute left after the Intel Centers take theirs.
+  double _dcShare(FacilityComponent dc) {
+    final total =
+        dataCenters.fold(0.0, (s, u) => s + u.currentTier.dcPower);
+    if (total <= 0) return 0;
+    return dc.currentTier.dcPower * (dcTotalPower / total);
+  }
+
+  /// Total Data Center energy draw per second, summed per machine because each
+  /// runs its own contract.
+  double get dcDraw => dataCenters.fold(
+      0.0, (s, dc) => s + workloadOf(dc).draw * _dcShare(dc));
+
+  /// Total money earned per second while powered. Mining contributes nothing
+  /// here by design — it pays in WATT instead.
+  double get dcIncome => dataCenters.fold(
+        0.0,
+        (s, dc) =>
+            s + workloadOf(dc).income * _dcShare(dc) * perks.incomeMultiplier,
+      );
 
   /// Heat actually being applied right now. Switching to a hotter contract
   /// doesn't summon a maximum raid on the spot — word gets out over about a
@@ -328,8 +366,19 @@ class GridGuardGame extends FlameGame {
   /// How hot the base runs — scales raid frequency and size.
   double get threatMultiplier => _threatRamp * growthThreat;
 
+  /// The hottest contract on site sets the attention the whole site gets: one
+  /// machine full of government traffic is enough to bring people down on you.
+  double get siteThreat {
+    var hottest = DcWorkloadCatalog.workloads.first.threat;
+    for (final dc in dataCenters) {
+      final t = workloadOf(dc).threat;
+      if (t > hottest) hottest = t;
+    }
+    return hottest;
+  }
+
   /// Where heat is heading, so the HUD can warn before it lands.
-  double get targetThreatMultiplier => workload.threat * growthThreat;
+  double get targetThreatMultiplier => siteThreat * growthThreat;
 
   /// Set from the HUD build tray; null == inspect/select mode.
   TowerType? selectedBuild;
@@ -815,18 +864,56 @@ class GridGuardGame extends FlameGame {
       _occupied.values.whereType<StructureComponent>();
 
   /// Closest live structure to [pos] within [within] tiles — what a raider mauls.
+  /// The structure a raider in [pos] should hit next.
+  ///
+  /// Raiders are paid to cause damage that matters, so they go for the most
+  /// valuable thing in reach rather than whatever happens to be closest: the
+  /// Data Center running government traffic before the shed, the Intel Center
+  /// before a bush of a barrier. Distance still counts — a juicy target across
+  /// the yard loses to a good one underneath them.
   StructureComponent? nearestStructureTo(Vector2 pos, {double within = 2.5}) {
     StructureComponent? best;
-    var bestD = within;
+    var bestScore = 0.0;
     for (final s in structures) {
       if (s.isDestroyed) continue;
       final d = (s.tile - pos).length;
-      if (d < bestD) {
-        bestD = d;
+      if (d > within) continue;
+      final score = _targetValue(s) / (0.6 + d);
+      if (score > bestScore) {
+        bestScore = score;
         best = s;
       }
     }
     return best;
+  }
+
+  /// How badly a raider wants to wreck this. Built on what the thing costs to
+  /// replace, then weighted by what it does for the site.
+  double _targetValue(StructureComponent s) {
+    var v = s.currentTier.cost.toDouble();
+    switch (s.spec.category) {
+      case TowerCategory.datacenter:
+        // The earner, and the reason anyone is here. Hotter contract, bigger
+        // prize.
+        final w = s is FacilityComponent ? workloadOf(s) : workload;
+        v *= 2.2 * w.threat;
+        break;
+      case TowerCategory.intel:
+        // Blinding the site is worth a lot to whoever is paying for this.
+        v *= 2.0;
+        break;
+      case TowerCategory.storage:
+        v *= 1.4; // no battery, no defence
+        break;
+      case TowerCategory.damage:
+      case TowerCategory.droneBay:
+        v *= 1.2; // shooting back makes you a target
+        break;
+      case TowerCategory.economy:
+      case TowerCategory.slow:
+        break;
+    }
+    return v;
   }
 
   /// A raider strafes a structure. Destroyed buildings are removed from the map
@@ -929,7 +1016,7 @@ class GridGuardGame extends FlameGame {
   /// What one WATT fetches when sold for cash. WATT is deliberately scarce —
   /// only mining hardware mints it — so cashing out is a real decision: spend
   /// it on permanent perks, or burn it to get through a bad week.
-  static const double wattToCash = 40.0;
+  static const double wattToCash = 4000.0;
 
   /// Sells [amount] WATT for cash. Returns false when the balance is short.
   bool exchangeWatt(double amount) {
@@ -947,10 +1034,35 @@ class GridGuardGame extends FlameGame {
 
   /// Coins per second while a crypto workload runs powered — scales with how
   /// much Data Center capacity is pointed at it.
-  double get coinRate =>
-      workload.minesCoins && dcPowered
-          ? 0.05 * dcTotalPower * (1 + perks.miningBonus)
-          : 0.0;
+  /// WATT minted per second.
+  ///
+  /// Deliberately glacial: one mining machine produces [wattPerHour] per real
+  /// hour, and each upgrade tier on that machine adds 15%. WATT is meant to be
+  /// a store of value that takes real time to accumulate, not a second cash
+  /// meter — everything priced in it is priced against hours, not minutes.
+  ///
+  /// Emission is written as a single multiplier so a halving schedule can be
+  /// dropped in later without touching anything that spends WATT.
+  static const double wattPerHour = 0.01;
+  static const double tierMiningStep = 0.15;
+
+  /// Current emission multiplier. Reserved for the halving: drop this to 0.5,
+  /// then 0.25, as the total minted supply passes each threshold.
+  double get emissionMultiplier => 1.0;
+
+  double get coinRate {
+    if (!dcPowered) return 0;
+    var perHour = 0.0;
+    for (final dc in dataCenters) {
+      if (!workloadOf(dc).minesCoins) continue;
+      // Each tier makes that specific machine 15% more productive.
+      perHour += wattPerHour * math.pow(1 + tierMiningStep, dc.tier);
+    }
+    return perHour /
+        3600.0 *
+        (1 + perks.miningBonus) *
+        emissionMultiplier;
+  }
 
   /// Total invested value on the board — bigger base, bigger target.
   int get baseValue {
@@ -1025,6 +1137,15 @@ class GridGuardGame extends FlameGame {
     // Free placement: any empty tile works. The only reserved tile is the base
     // itself at the centre.
     if (coord == baseCoord) return;
+    if (spec.category == TowerCategory.datacenter &&
+        dataCenters.length >= maxDataCenters) {
+      spawnFloatingText(
+        'DC limit ($maxDataCenters)',
+        Vector2(coord.col.toDouble(), coord.row.toDouble()),
+        const Color(0xFFE23D4B),
+      );
+      return;
+    }
 
     // Clearing the ground is part of the build cost, charged in one go.
     final clearing = clearingCostAt(coord);
@@ -1081,6 +1202,8 @@ class GridGuardGame extends FlameGame {
             tier: tier,
             spriteKey: 'core',
             widthTiles: 1.9);
+        d.workloadIndex = workloadIndex;
+        d.dcIndex = dataCenters.length;
         dataCenters.add(d);
         comp = d;
         break;
@@ -1391,7 +1514,7 @@ class GridGuardGame extends FlameGame {
     return OfflineReport(
       seconds: seconds,
       money: (dcIncome * seconds * offlineRate).round(),
-      coins: workload.minesCoins ? coinRate * seconds * offlineRate : 0.0,
+      coins: coinRate * seconds * offlineRate,
     );
   }
 
@@ -1403,7 +1526,7 @@ class GridGuardGame extends FlameGame {
       case SpeedupEffect.bankedHours:
         final seconds = item.amount * 3600;
         money += dcIncome * seconds * 0.35;
-        if (workload.minesCoins) coinsEarned += coinRate * seconds * 0.35;
+        coinsEarned += coinRate * seconds * 0.35;
         break;
       case SpeedupEffect.cash:
         money += item.amount;
@@ -1519,7 +1642,7 @@ class GridGuardGame extends FlameGame {
   /// downgrading is as gradual as heating up — dropping to Web Hosting the
   /// instant a raid launches shouldn't cancel it.
   void _tickThreatRamp(double dt) {
-    final target = workload.threat;
+    final target = siteThreat;
     final step = threatRampRate * dt;
     if ((_threatRamp - target).abs() <= step) {
       _threatRamp = target;
@@ -1676,7 +1799,9 @@ class GridGuardGame extends FlameGame {
     lastDawnBonus =
         (25 + dayNumber * 12 * workload.threat).round();
     money += lastDawnBonus;
-    final coinBonus = workload.minesCoins ? 1.0 + dayNumber * 0.15 : 0.0;
+    final mining = dataCenters.any((dc) => workloadOf(dc).minesCoins);
+    // A night's mining, on the same scale as everything else WATT.
+    final coinBonus = mining ? coinRate * config.dayLength * 0.5 : 0.0;
     coinsEarned += coinBonus;
 
     // The night-hold mission pays only if the grid never went dark.

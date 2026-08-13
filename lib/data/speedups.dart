@@ -91,8 +91,8 @@ class SpeedupCatalog {
       emoji: '⚡',
       priceLabel: '\$9.99',
       effect: SpeedupEffect.watt,
-      amount: 250,
-      blurb: '250 WATT, for perks you would rather not wait to mine.',
+      amount: 5,
+      blurb: '5 WATT — weeks of mining, for perks you would rather not wait for.',
     ),
   ];
 }

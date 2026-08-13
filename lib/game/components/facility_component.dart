@@ -23,6 +23,13 @@ class FacilityComponent extends StructureComponent {
   final String spriteKey;
   final double widthTiles;
 
+  /// Which contract this Data Center runs. Each one is booked separately, so a
+  /// site can mine on one machine and host bank records on another.
+  int workloadIndex = 0;
+
+  /// Position in the site's Data Center list, for naming ("DC 2").
+  int dcIndex = 0;
+
   /// Facilities are the big fixed plant — sturdier than field equipment.
   @override
   double get baseMaxHealth => 110.0 + 70.0 * tier;
