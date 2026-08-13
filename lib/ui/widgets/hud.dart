@@ -377,13 +377,20 @@ class _FacilitiesRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = DcWorkloadCatalog.workloads[state.workloadIndex];
     final powered = state.dcPowered;
-    final statusColor =
-        state.dataCenterCount == 0 || !powered ? GGColors.danger : GGColors.good;
+    final statusColor = state.dataCenterCount == 0 || state.dcLoadFraction <= 0
+        ? GGColors.danger
+        : powered
+            ? GGColors.good
+            : GGColors.accentWarm;
     final statusText = state.dataCenterCount == 0
         ? 'NO DC'
         : powered
             ? 'ONLINE'
-            : 'NO POWER';
+            : state.dcLoadFraction > 0.02
+                // Half-fed machines earn half as much; say so rather than
+                // claiming they have stopped.
+                ? 'BROWNOUT ${(state.dcLoadFraction * 100).round()}%'
+                : 'NO POWER';
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
       child: GestureDetector(

@@ -36,6 +36,7 @@ class LevelState {
     required this.dcDraw,
     required this.dcIncome,
     required this.dcPowered,
+    required this.dcLoadFraction,
     required this.sunFactor,
     required this.windFactor,
     required this.isNight,
@@ -91,6 +92,9 @@ class LevelState {
   final double dcDraw;
   final double dcIncome;
   final bool dcPowered;
+
+  /// Share of Data Center demand the grid is meeting, 0..1.
+  final double dcLoadFraction;
 
   /// Solar irradiance 0..1 (0 at night), wind strength 0..1, and a night flag.
   final double sunFactor;

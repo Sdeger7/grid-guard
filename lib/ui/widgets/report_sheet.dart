@@ -28,7 +28,8 @@ class _ReportSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Money in.
-    final income = game.dcIncome;
+    // What the machines are actually earning, not their nameplate.
+    final income = game.dcIncome * game.dcLoadFraction;
     final exportRate = game.perks.gridExportRate > 0
         ? game.gridSellPrice * game.perks.gridExportRate
         : 0.0;
@@ -76,6 +77,11 @@ class _ReportSheet extends StatelessWidget {
             const SizedBox(height: 14),
 
             _Header('MONEY', trailing: _rate(netMoney, 'M/s')),
+            if (game.dcLoadFraction < 0.98 && game.dataCenters.isNotEmpty)
+              _Line(
+                  'Machines running at '
+                      '${(game.dcLoadFraction * 100).round()}% of demand',
+                  'income scaled to match'),
             _Line('Data Center contracts', '+${income.toStringAsFixed(1)} M/s',
                 good: true),
             if (exportRate > 0)

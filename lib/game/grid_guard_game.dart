@@ -296,6 +296,10 @@ class GridGuardGame extends FlameGame {
   double money = 0;
   bool dcPowered = false;
 
+  /// How much of the Data Centers' demand the grid is actually meeting, 0..1.
+  /// Everything they produce — money and WATT alike — scales with it.
+  double dcLoadFraction = 0;
+
   double coreIntegrity = 0;
   double integrityMax = 0;
   double damageTaken = 0;
@@ -343,7 +347,11 @@ class GridGuardGame extends FlameGame {
   }
 
   /// Fraction of a structure's build cost billed every second.
-  static const double upkeepRate = 0.0016;
+  ///
+  /// Tuned so a site's running bill is a real drag on income rather than a
+  /// rounding error: a plant worth 10,000 costs 40/s to own, which a single
+  /// mid-tier contract barely covers.
+  static const double upkeepRate = 0.004;
 
   /// Energy per second the Intel Centers draw just to stay awake.
   static const double intelEnergyPerCenter = 1.6;
@@ -983,16 +991,22 @@ class GridGuardGame extends FlameGame {
     // 2) Data Centers consume to run, and pay out while powered — but they only
     //    get what's above the defence reserve, so a greedy workload can't starve
     //    the towers and leave the base defenceless.
-    final draw = dcHalted ? 0.0 : dcDraw * dt;
-    final spare = energy - defenceReserve;
-    if (!dcHalted && dcTotalPower > 0 && spare >= draw) {
-      energy -= draw;
-      money += dcIncome * dt;
-      dcPowered = true;
-    } else {
-      // Stopped machines earn nothing and mine nothing — that is the cost of
-      // throwing everything at the guns.
+    // Machines take what the grid can actually give them and earn in
+    // proportion. All-or-nothing made a site sitting exactly on its reserve
+    // flicker between running and stopped every frame — the HUD would read
+    // NO POWER while money kept climbing on the frames that happened to
+    // succeed. A brownout is a real state, so it is modelled as one.
+    final want = dcHalted ? 0.0 : dcDraw * dt;
+    final spare = math.max(0.0, energy - defenceReserve);
+    if (dcHalted || dcTotalPower <= 0 || want <= 0) {
+      dcLoadFraction = 0;
       dcPowered = false;
+    } else {
+      final served = math.min(want, spare);
+      dcLoadFraction = (served / want).clamp(0.0, 1.0);
+      energy -= served;
+      money += dcIncome * dt * dcLoadFraction;
+      dcPowered = dcLoadFraction > 0.98;
     }
   }
 
@@ -1283,14 +1297,15 @@ class GridGuardGame extends FlameGame {
   double get emissionMultiplier => 1.0;
 
   double get coinRate {
-    if (!dcPowered) return 0;
+    if (dcLoadFraction <= 0) return 0;
     var perHour = 0.0;
     for (final dc in dataCenters) {
       if (!workloadOf(dc).minesCoins) continue;
       // Each tier makes that specific machine 15% more productive.
       perHour += wattPerHour * math.pow(1 + tierMiningStep, dc.tier);
     }
-    return perHour /
+    return perHour *
+        dcLoadFraction /
         3600.0 *
         (1 + perks.miningBonus) *
         emissionMultiplier *
@@ -2243,6 +2258,7 @@ class GridGuardGame extends FlameGame {
       dcDraw: dcDraw,
       dcIncome: dcIncome,
       dcPowered: dcPowered,
+      dcLoadFraction: dcLoadFraction,
       sunFactor: sunFactor,
       windFactor: windFactor,
       isNight: isNight,
