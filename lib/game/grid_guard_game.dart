@@ -11,14 +11,12 @@ import '../data/enemy_catalog.dart';
 import '../data/events.dart';
 import '../data/grid_market.dart';
 import '../data/premium_packages.dart';
-import '../data/cities.dart';
 import '../data/insurance.dart';
 import '../data/security.dart';
 import '../data/skins.dart';
 import '../data/solar.dart';
 import '../data/watt_supply.dart';
 import '../services/weather_service.dart';
-import '../data/solar.dart';
 import '../data/missions.dart';
 import '../data/speedups.dart';
 import '../data/story.dart';
@@ -212,37 +210,6 @@ class GridGuardGame extends FlameGame {
   /// province it stands in rather than an invented zone.
   int zoneIndex = 0;
 
-  /// Days you must hold a site before the next zone will have you.
-  /// Moving is a purchase, not a milestone: any province is open at any time
-  /// if you can pay for the plot and the haulage.
-  int relocationCostTo(City target) =>
-      CityCatalog.relocationCost(city, target);
-
-  bool canRelocateTo(City target) =>
-      target.id != cityId && money >= relocationCostTo(target);
-
-  /// Moves the operation to another province. The buildings do not come — the
-  /// cost is the new plot plus hauling what can be salvaged, and the salvage is
-  /// what pays for the first structures on the new ground.
-  bool relocateTo(City target) {
-    if (!canRelocateTo(target)) return false;
-    final bill = relocationCostTo(target);
-    // Half the value of what you leave behind is recovered as salvage.
-    final salvage = baseValue * 0.5;
-    _clearSite();
-    money = math.max(0, money - bill) + salvage;
-    cityId = target.id;
-    dayNumber = 1;
-    raidCount = 0;
-    energy = 0;
-    coreIntegrity = integrityMax;
-    workloadIndex = 0;
-    _threatRamp = DcWorkloadCatalog.workloads.first.threat;
-    _rollMissions();
-    _publishSnapshot(force: true);
-    return true;
-  }
-
   // ---- Cyber security, reputation and the vault ----
   //
   // Drones take the hardware; intruders take the money and the data, and no
@@ -366,7 +333,7 @@ class GridGuardGame extends FlameGame {
         kind: CoverKind.breach,
         loss: fine,
       );
-      money = math.max(0, money - fine + covered);
+      money = math.max(0.0, money - fine + covered);
       reputation = math.max(Reputation.min,
           reputation - Reputation.penaltyFor(BreachKind.dataTheft));
       breachLog.add('Client records taken. Fine ${fine}M'
@@ -380,14 +347,14 @@ class GridGuardGame extends FlameGame {
         kind: CoverKind.breach,
         loss: taken.round(),
       );
-      money = math.max(0, money - taken + covered);
+      money = math.max(0.0, money - taken + covered);
       reputation = math.max(Reputation.min,
           reputation - Reputation.penaltyFor(BreachKind.theft));
       breachLog.add('${taken.round()}M siphoned from the operating account'
           '${covered > 0 ? ', ${covered}M recovered' : ''}.');
     } else {
       final taken = coinsEarned * (0.10 + _rng.nextDouble() * 0.25);
-      coinsEarned = math.max(0, coinsEarned - taken);
+      coinsEarned = math.max(0.0, coinsEarned - taken);
       reputation = math.max(Reputation.min,
           reputation - Reputation.penaltyFor(BreachKind.wattTheft));
       breachLog.add('₵${taken.toStringAsFixed(3)} taken from the wallet. '
@@ -540,7 +507,7 @@ class GridGuardGame extends FlameGame {
     if (money < bill) return false;
     final salvage = baseValue * 0.5;
     _clearSite();
-    money = math.max(0, money - bill) + salvage;
+    money = math.max(0.0, money - bill) + salvage;
     cityId = target.id;
     dayNumber = 1;
     raidCount = 0;
@@ -762,8 +729,20 @@ class GridGuardGame extends FlameGame {
 
   bool get isNight => !sun.isDay;
 
-  /// Today's weather, rolled at each dawn. Swings solar, wind and raider speed.
+  /// Today's weather, rolled at each dawn. Used when there is no live
+  /// observation to work from.
   Weather weather = WeatherCatalog.clear;
+
+  /// The sky actually over the site, when it could be fetched. Everything
+  /// prefers this to the simulation: a game about generation that invents its
+  /// own cloud cover is telling a story; one that reads the sky over Konya is
+  /// running a simulation.
+  LiveWeather? liveWeather;
+
+  double get weatherSunScale => liveWeather?.solarScale ?? weather.sunScale;
+  double get weatherWindScale => liveWeather?.windScale ?? weather.windScale;
+  String get weatherLabel => liveWeather?.summary ?? weather.name;
+  String get weatherIcon => liveWeather?.emoji ?? weather.emoji;
 
   /// Actual PV output right now (nameplate scaled by sunlight and weather).
   double get effectivePvOutput =>
@@ -2151,7 +2130,6 @@ class GridGuardGame extends FlameGame {
       vaultWatt: vaultWatt,
       holdings: List<LandHolding>.from(holdings),
       premiumUnlocked: premiumUnlocked.toList(),
-      cityId: cityId,
       coreIntegrity: integrityMax <= 0 ? 1 : coreIntegrity / integrityMax,
       raidCount: raidCount,
       score: score,

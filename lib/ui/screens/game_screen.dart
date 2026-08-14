@@ -559,7 +559,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
             SurvivalEndPanel(
               raid: _game.raidCount,
               score: result.finalScore,
-              coins: _game.coinsEarned,
+              coins: _game.coinsEarned.floor(),
               bestRaid: ref.watch(profileProvider).bestRaid,
               onRetry: _retry,
               onMenu: _menu,
