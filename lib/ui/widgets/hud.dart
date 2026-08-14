@@ -265,8 +265,12 @@ class _TopBar extends StatelessWidget {
           children: [
             // The headline: where you are, what the money is doing, and how
             // long until the next thing that matters. Everything else is
-            // detail and lives in the scrolling strip below.
-            Row(
+            // detail and lives in the scrolling strip below. Right-padded
+            // clear of the guide/menu icon buttons floating over this
+            // corner, which large hourly figures would otherwise run under.
+            Padding(
+              padding: const EdgeInsets.only(right: 84),
+              child: Row(
               children: [
                 Text(
                     state.isNight
@@ -275,28 +279,44 @@ class _TopBar extends StatelessWidget {
                     style: GGText.body.copyWith(
                         fontWeight: FontWeight.w900, fontSize: 15)),
                 const SizedBox(width: 8),
-                Text('${state.zoneEmoji} ${state.zoneName}',
-                    style: GGText.soft),
+                Flexible(
+                  child: Text('${state.zoneEmoji} ${state.zoneName}',
+                      style: GGText.soft, overflow: TextOverflow.ellipsis),
+                ),
                 const Spacer(),
-                Text('${state.money}M',
-                    style: GGText.body.copyWith(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                      color: state.netMoneyRate >= 0
-                          ? GGColors.good
-                          : GGColors.danger,
-                    )),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text('${state.money}M',
+                        style: GGText.body.copyWith(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                          color: state.netMoneyRate >= 0
+                              ? GGColors.good
+                              : GGColors.danger,
+                        )),
+                  ),
+                ),
                 const SizedBox(width: 4),
-                Text(
-                    '${state.netMoneyRate >= 0 ? '+' : ''}'
-                    '${(state.netMoneyRate * 3600).toStringAsFixed(0)}/h',
-                    style: GGText.soft.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: state.netMoneyRate >= 0
-                          ? GGColors.good
-                          : GGColors.danger,
-                    )),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '${state.netMoneyRate >= 0 ? '+' : ''}'
+                      '${(state.netMoneyRate * 3600).toStringAsFixed(0)}/h',
+                      style: GGText.soft.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: state.netMoneyRate >= 0
+                            ? GGColors.good
+                            : GGColors.danger,
+                      ),
+                    ),
+                  ),
+                ),
               ],
+              ),
             ),
             const SizedBox(height: 6),
             _MiniBar(

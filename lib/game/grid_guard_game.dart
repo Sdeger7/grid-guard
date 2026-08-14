@@ -656,8 +656,9 @@ class GridGuardGame extends FlameGame {
     var rate = dcIncome * dcLoadFraction +
         remoteIncome -
         operatingCost -
-        intelUpkeep -
-        rentPerSecond;
+        effectiveIntelUpkeep -
+        effectiveRent -
+        effectiveFirewallUpkeep;
     for (final c in gridContracts) {
       final v = c.price * c.ratePerSecond;
       rate += c.side == GridContractSide.buy ? -v : v;
@@ -680,10 +681,9 @@ class GridGuardGame extends FlameGame {
     return structures.length * lightingPerStructure * darkness;
   }
 
-  /// MONEY per second spent keeping everything on site running. Charged
-  /// against the replacement value of what is built, so an upgraded site is
-  /// genuinely more expensive to own.
-  double get operatingCost {
+  /// MONEY per second spent keeping everything on site running, before the
+  /// income cap below is applied.
+  double get _rawOperatingCost {
     var total = 0.0;
     for (final s in structures) {
       total += s.currentTier.cost * upkeepRate;
@@ -692,12 +692,47 @@ class GridGuardGame extends FlameGame {
     return total * staff.of(StaffRole.engineer).upkeepMultiplier;
   }
 
+  /// Running the site must never cost more than the site earns — not "on
+  /// average", not "if you play well", never. So the WHOLE upkeep bill —
+  /// structures, leased land, the firewall licence, Intel Centers — is
+  /// hard-capped at a share of what Data Centers are actually bringing in
+  /// right now. Nothing standing on the site can add up to a bill bigger
+  /// than the income backing it. With no income yet, the cap is zero: the
+  /// site rides for free until something is actually earning.
+  static const double upkeepIncomeCap = 0.65;
+
+  /// Everything that costs money just to keep the lights on, before the cap.
+  double get _rawUpkeepTotal =>
+      _rawOperatingCost + rentPerSecond + firewall.upkeep + intelUpkeep;
+
+  /// What the raw total above is actually scaled down to once capped —
+  /// applied uniformly so every line item (the report's per-structure
+  /// breakdown included) still sums to what is actually billed.
+  double get upkeepCapRatio {
+    final raw = _rawUpkeepTotal;
+    if (raw <= 0) return 1;
+    return (math.min(raw, dcIncome * upkeepIncomeCap) / raw).clamp(0.0, 1.0);
+  }
+
+  /// Structures-only upkeep, capped — what the report labels "Upkeep on
+  /// everything built".
+  double get operatingCost => _rawOperatingCost * upkeepCapRatio;
+
+  /// Leased-land rent, firewall licence and Intel Center running costs,
+  /// capped the same way as everything else.
+  double get effectiveRent => rentPerSecond * upkeepCapRatio;
+  double get effectiveFirewallUpkeep => firewall.upkeep * upkeepCapRatio;
+  double get effectiveIntelUpkeep => intelUpkeep * upkeepCapRatio;
+
   /// Fraction of a structure's build cost billed every second.
   ///
-  /// Tuned so a site's running bill is a real drag on income rather than a
-  /// rounding error, but not one that swallows the site's whole income the
-  /// moment it grows past a handful of buildings.
-  static const double upkeepRate = 0.0028;
+  /// This is charged against EVERY structure's build cost with no cap, so it
+  /// was compounding badly on a built-out site: reading it as an hourly
+  /// figure (upkeepRate * 3600 per unit invested) made a site with a few
+  /// upgraded towers post an upkeep bill in the tens of thousands, which
+  /// dwarfed income and made the balance visibly bleed in real time. Cut hard
+  /// from where it started (0.004) — a real drag, not a site-ending one.
+  static const double upkeepRate = 0.0012;
 
   /// Energy per second the Intel Centers draw just to stay awake.
   static const double intelEnergyPerCenter = 1.6;
@@ -1384,7 +1419,7 @@ class GridGuardGame extends FlameGame {
     //     and power every second they are switched on. Let them brown out
     //     rather than bankrupt the site.
     if (intelCenters.isNotEmpty) {
-      final bill = intelUpkeep * dt;
+      final bill = effectiveIntelUpkeep * dt;
       final juice = intelEnergyPerCenter * intelCenters.length * dt;
       if (money >= bill && energy >= juice) {
         money -= bill;
@@ -1394,10 +1429,8 @@ class GridGuardGame extends FlameGame {
 
     // 1f) Operating costs. Everything standing on the site costs money to keep
     //     standing — staff, spares, insurance — billed against what it is worth.
-    //     A site's running bill therefore grows as fast as the site does, which
-    //     is what stops cash from piling up with nothing to buy.
-    final opex =
-        (operatingCost + rentPerSecond + firewall.upkeep) * dt;
+    //     Capped so it can never outrun what the site is actually earning.
+    final opex = (operatingCost + effectiveRent + effectiveFirewallUpkeep) * dt;
     if (opex > 0) {
       money = math.max(0.0, money - opex);
     }

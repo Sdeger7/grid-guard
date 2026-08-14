@@ -38,7 +38,7 @@ class _ReportSheet extends StatelessWidget {
 
     // Money out.
     final upkeep = game.operatingCost;
-    final intel = game.intelUpkeep;
+    final intel = game.effectiveIntelUpkeep;
     final contractsIn = game.gridContracts
         .where((c) => c.side.name == 'sell')
         .fold(0.0, (s, c) => s + c.price * c.ratePerSecond);
@@ -46,7 +46,8 @@ class _ReportSheet extends StatelessWidget {
         .where((c) => c.side.name == 'buy')
         .fold(0.0, (s, c) => s + c.price * c.ratePerSecond);
 
-    final netMoney = income + exportRate + contractsIn - upkeep - contractsOut;
+    final netMoney =
+        income + exportRate + contractsIn - upkeep - intel - contractsOut;
 
     // Energy.
     final solar = game.effectivePvOutput;
@@ -188,9 +189,12 @@ class _ReportSheet extends StatelessWidget {
     final counts = <TowerType, int>{};
     final upkeep = <TowerType, double>{};
     final engineerMult = game.staff.of(StaffRole.engineer).upkeepMultiplier;
+    // Scaled the same way the billed total is, so these lines sum to it.
+    final capRatio = game.upkeepCapRatio;
     for (final s in game.structures) {
       counts.update(s.spec.type, (v) => v + 1, ifAbsent: () => 1);
-      final cost = s.currentTier.cost * GridGuardGame.upkeepRate * engineerMult;
+      final cost =
+          s.currentTier.cost * GridGuardGame.upkeepRate * engineerMult * capRatio;
       upkeep.update(s.spec.type, (v) => v + cost, ifAbsent: () => cost);
     }
     final out = <(String, String)>[];
