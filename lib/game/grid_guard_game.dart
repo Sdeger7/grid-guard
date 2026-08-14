@@ -849,19 +849,21 @@ class GridGuardGame extends FlameGame {
   double get dcDraw => dataCenters.fold(
       0.0, (s, dc) => s + workloadOf(dc).draw * _dcShare(dc));
 
+  /// What this one machine actually earns per second, scaled by its own
+  /// tier's compute share and every site-wide multiplier — the number a
+  /// player upgrading it should see move.
+  double incomeOf(FacilityComponent dc) =>
+      workloadOf(dc).income *
+      _dcShare(dc) *
+      perks.incomeMultiplier *
+      Reputation.rateMultiplier(reputation) *
+      city.priceIndex *
+      worldEvent.incomeScale;
+
   /// Total money earned per second while powered. Mining contributes nothing
   /// here by design — it pays in WATT instead.
-  double get dcIncome => dataCenters.fold(
-        0.0,
-        (s, dc) =>
-            s +
-                workloadOf(dc).income *
-                    _dcShare(dc) *
-                    perks.incomeMultiplier *
-                    Reputation.rateMultiplier(reputation) *
-                    city.priceIndex *
-                    worldEvent.incomeScale,
-      );
+  double get dcIncome =>
+      dataCenters.fold(0.0, (s, dc) => s + incomeOf(dc));
 
   /// Heat actually being applied right now. Switching to a hotter contract
   /// doesn't summon a maximum raid on the spot — word gets out over about a

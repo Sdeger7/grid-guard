@@ -169,7 +169,7 @@ class _ReportSheet extends StatelessWidget {
                     '${game.workloadOf(dc).name}',
                 game.workloadOf(dc).minesCoins
                     ? 'mines WATT'
-                    : '+${(game.workloadOf(dc).income * 3600).toStringAsFixed(0)} M/h',
+                    : '+${(game.incomeOf(dc) * 3600).toStringAsFixed(0)} M/h',
               ),
             if (game.dataCenters.isEmpty)
               _Line('None built', 'no income at all'),
