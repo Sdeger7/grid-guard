@@ -1263,6 +1263,7 @@ class GridGuardGame extends FlameGame {
       elapsed += dt;
       if (config.endless) {
         _tickThreatRamp(dt);
+        _tickIntrusions(dt);
         _tickRaids(dt);
       } else {
         spawner.tick(dt);
@@ -2283,11 +2284,6 @@ class GridGuardGame extends FlameGame {
   double get offlineVaultCapacity => 900 + energyCapacity * 22;
 
   /// Two-digit clock text for a time, for the HUD.
-  static String _clock(DateTime t) =>
-      '${t.hour.toString().padLeft(2, '0')}:'
-      '${t.minute.toString().padLeft(2, '0')}';
-
-  /// Two-digit clock text, for the HUD.
   static String _clock(DateTime t) =>
       '${t.hour.toString().padLeft(2, '0')}:'
       '${t.minute.toString().padLeft(2, '0')}';
