@@ -21,9 +21,13 @@ Future<void> showSiteMenu(
   required VoidCallback onOpenChallenge,
   required VoidCallback onOpenCities,
   required VoidCallback onOpenSecurity,
+  // A challenge run is pushed on top of the player's own site, so it needs
+  // its own way back — there is no other exit from a full-screen game view.
+  bool isChallenge = false,
 }) {
   return showModalBottomSheet<void>(
     context: context,
+    isScrollControlled: true,
     backgroundColor: GGColors.panel,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
@@ -49,9 +53,13 @@ Future<void> showSiteMenu(
       }
 
       return SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.85),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
               child: Row(
@@ -67,6 +75,14 @@ Future<void> showSiteMenu(
                 ],
               ),
             ),
+            if (isChallenge)
+              entry(
+                icon: Icons.home_rounded,
+                colour: GGColors.good,
+                title: 'Back to my site',
+                subtitle: 'Leave this run — your own site keeps running as you left it',
+                onTap: () => Navigator.of(context).pop(),
+              ),
             entry(
               icon: Icons.security_rounded,
               colour: GGColors.danger,
@@ -126,16 +142,20 @@ Future<void> showSiteMenu(
               onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const GuideScreen())),
             ),
-            const Divider(height: 20),
-            entry(
-              icon: Icons.delete_outline_rounded,
-              colour: GGColors.danger,
-              title: 'Abandon site',
-              subtitle: 'Start over. WATT, perks and skins are kept',
-              onTap: () => _confirmAbandon(context, ref, onAbandon),
-            ),
+            if (!isChallenge) ...[
+              const Divider(height: 20),
+              entry(
+                icon: Icons.delete_outline_rounded,
+                colour: GGColors.danger,
+                title: 'Abandon site',
+                subtitle: 'Start over. WATT, perks and skins are kept',
+                onTap: () => _confirmAbandon(context, ref, onAbandon),
+              ),
+            ],
             const SizedBox(height: 8),
-          ],
+              ],
+            ),
+          ),
         ),
       );
     },

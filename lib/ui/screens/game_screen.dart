@@ -470,6 +470,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                     onPressed: () => showSiteMenu(
                       context,
                       ref,
+                      isChallenge: widget.challenge,
                       onOpenServices: () => showSpeedupSheet(context, _game,
                           ref.read(monetizationServiceProvider)),
                       onOpenReport: () => showReportSheet(context, _game),

@@ -110,6 +110,17 @@ class _TopBar extends StatelessWidget {
     final netLabel = '${net >= 0 ? '+' : ''}${net.toStringAsFixed(0)}/s';
     // Bars stay pinned; the stat strip scrolls so a narrow phone never clips it.
     final stats = <Widget>[
+      // Also carried in the headline, but that row's right side can end up
+      // squeezed on narrow viewports — cash is important enough to never
+      // depend on there being room for it in just one place.
+      _Stat(
+        icon: Icons.payments_rounded,
+        color: state.netMoneyRate >= 0 ? GGColors.good : GGColors.danger,
+        label: '${state.money}M',
+        caption: state.netMoneyRate >= 0
+            ? '+${state.netMoneyRate.toStringAsFixed(1)}/s'
+            : '${state.netMoneyRate.toStringAsFixed(1)}/s',
+      ),
       if (state.eventEmoji != '·')
         _Stat(
           icon: Icons.campaign_rounded,
