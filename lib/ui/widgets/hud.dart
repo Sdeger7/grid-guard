@@ -110,15 +110,6 @@ class _TopBar extends StatelessWidget {
     final netLabel = '${net >= 0 ? '+' : ''}${(net * 3600).toStringAsFixed(0)}/h';
     // Bars stay pinned; the stat strip scrolls so a narrow phone never clips it.
     final stats = <Widget>[
-      // Also carried in the headline, but that row's right side can end up
-      // squeezed on narrow viewports — cash is important enough to never
-      // depend on there being room for it in just one place.
-      _Stat(
-        icon: Icons.payments_rounded,
-        color: state.netMoneyRate >= 0 ? GGColors.good : GGColors.danger,
-        label: formatCredits(state.money),
-        caption: formatCreditsRate(state.netMoneyRate * 3600),
-      ),
       if (state.eventEmoji != '·')
         _Stat(
           icon: Icons.campaign_rounded,
@@ -255,9 +246,9 @@ class _TopBar extends StatelessWidget {
     ];
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
       child: GGPanel(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -315,7 +306,7 @@ class _TopBar extends StatelessWidget {
               ],
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             _MiniBar(
               label: 'CORE',
               fraction: state.integrityFraction,
@@ -325,7 +316,7 @@ class _TopBar extends StatelessWidget {
                       ? GGColors.accentWarm
                       : GGColors.danger,
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             _MiniBar(
               label: 'BESS ⚡ $netLabel',
               fraction: state.energyFraction,
@@ -337,10 +328,10 @@ class _TopBar extends StatelessWidget {
               trailing:
                   '${state.energy.toStringAsFixed(0)}/${state.energyCapacity.toStringAsFixed(0)}',
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             SizedBox(
               // Tall enough for the tappable stats, which carry padding.
-              height: 42,
+              height: 38,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: stats.length,
@@ -484,13 +475,13 @@ class _FacilitiesRow extends StatelessWidget {
                 ? 'BROWNOUT ${(state.dcLoadFraction * 100).round()}%'
                 : 'NO POWER';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+      padding: const EdgeInsets.fromLTRB(10, 4, 10, 0),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _showWorkloadSheet(
             context, game, state.workloadIndex, state.security),
         child: GGPanel(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             children: [
               const Icon(Icons.dns_rounded, size: 16, color: GGColors.ink),

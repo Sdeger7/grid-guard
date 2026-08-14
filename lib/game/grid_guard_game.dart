@@ -960,10 +960,10 @@ class GridGuardGame extends FlameGame {
   double _zoom = defaultZoom;
   Vector2 _pan = Vector2.zero();
 
-  static const double defaultZoom = 1.7;
+  static const double defaultZoom = 2.2;
   // Never lets the player zoom back out to the shrunk-with-margins fit view.
-  static const double minZoom = 1.15;
-  static const double maxZoom = 3.5;
+  static const double minZoom = 1.5;
+  static const double maxZoom = 4.0;
 
   double get _scale => _fitScale * _zoom;
 
