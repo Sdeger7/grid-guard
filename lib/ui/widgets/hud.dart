@@ -832,19 +832,26 @@ class _TowerButton extends StatelessWidget {
             Icon(_icon,
                 color: affordable ? spec.tint : GGColors.panelBorder, size: 24),
             const SizedBox(height: 2),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // The in-game unit is MONEY, deliberately not a dollar sign:
-                // real prices in the services sheet are the only $ in the app.
-                const Icon(Icons.paid_rounded, size: 12, color: GGColors.good),
-                Text('${cost}M',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: affordable ? GGColors.ink : GGColors.danger,
-                    )),
-              ],
+            // Wrapped in a FittedBox: build costs now range from the low
+            // hundreds to five figures (the Intel Center opens at 1800), and a
+            // fixed-size Row overflowed the tray on the pricier units.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // The in-game unit is MONEY, deliberately not a dollar sign:
+                  // real prices in the services sheet are the only $ in the app.
+                  const Icon(Icons.paid_rounded,
+                      size: 12, color: GGColors.good),
+                  Text('${cost}M',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: affordable ? GGColors.ink : GGColors.danger,
+                      )),
+                ],
+              ),
             ),
           ],
         ),
