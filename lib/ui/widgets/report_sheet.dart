@@ -105,24 +105,27 @@ class _ReportSheet extends StatelessWidget {
                 bold: true, good: netMoney >= 0),
 
             const SizedBox(height: 18),
-            _Header('ENERGY', trailing: _rate(netEnergy, '⚡/s')),
+            _Header('ENERGY', trailing: _rate(netEnergy * 3600, '⚡/h')),
             _Line('Solar (sun ${(game.sunFactor * 100).round()}%, '
                 '${game.weather.name.toLowerCase()})',
-                '+${solar.toStringAsFixed(1)} ⚡/s', good: true),
+                '+${(solar * 3600).toStringAsFixed(0)} ⚡/h', good: true),
             _Line('Wind (${(game.windFactor * 100).round()}%)',
-                '+${wind.toStringAsFixed(1)} ⚡/s', good: true),
+                '+${(wind * 3600).toStringAsFixed(0)} ⚡/h', good: true),
             if (generator > 0)
-              _Line('Generator', '+${generator.toStringAsFixed(1)} ⚡/s',
+              _Line('Generator',
+                  '+${(generator * 3600).toStringAsFixed(0)} ⚡/h',
                   good: true),
-            _Line('Data Centers', '−${dcDraw.toStringAsFixed(1)} ⚡/s'),
+            _Line('Data Centers',
+                '−${(dcDraw * 3600).toStringAsFixed(0)} ⚡/h'),
             if (intelDraw > 0)
-              _Line('Intel Centers', '−${intelDraw.toStringAsFixed(1)} ⚡/s'),
+              _Line('Intel Centers',
+                  '−${(intelDraw * 3600).toStringAsFixed(0)} ⚡/h'),
             if (lighting > 0)
               _Line('Site lighting (${game.structures.length} buildings)',
-                  '−${lighting.toStringAsFixed(1)} ⚡/s'),
+                  '−${(lighting * 3600).toStringAsFixed(0)} ⚡/h'),
             _Line('Defences', 'per shot, from the reserve'),
             const SizedBox(height: 6),
-            _Line('Balance', _rate(netEnergy, '⚡/s'),
+            _Line('Balance', _rate(netEnergy * 3600, '⚡/h'),
                 bold: true, good: netEnergy >= 0),
             _Line('Battery',
                 '${game.energy.toStringAsFixed(0)} / '

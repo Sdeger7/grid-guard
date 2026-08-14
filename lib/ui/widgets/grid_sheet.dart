@@ -111,7 +111,7 @@ class _GridSheetState extends State<_GridSheet> {
                 min: 1,
                 max: 12,
                 divisions: 11,
-                display: '${_rate.round()} ⚡/s',
+                display: '${(_rate * 3600).round()} ⚡/h',
                 onChanged: (v) => setState(() => _rate = v),
               ),
               const SizedBox(height: 8),
@@ -298,7 +298,7 @@ class _Running extends StatelessWidget {
                       fontWeight: FontWeight.w800, color: colour)),
               const SizedBox(width: 6),
               Text(
-                  '${contract.ratePerSecond.round()}⚡/s @ '
+                  '${(contract.ratePerSecond * 3600).round()}⚡/h @ '
                   '${contract.price.toStringAsFixed(2)}M',
                   style: GGText.soft),
               const Spacer(),

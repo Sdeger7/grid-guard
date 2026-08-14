@@ -107,7 +107,7 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final net = state.netEnergy;
-    final netLabel = '${net >= 0 ? '+' : ''}${net.toStringAsFixed(0)}/s';
+    final netLabel = '${net >= 0 ? '+' : ''}${(net * 3600).toStringAsFixed(0)}/h';
     // Bars stay pinned; the stat strip scrolls so a narrow phone never clips it.
     final stats = <Widget>[
       // Also carried in the headline, but that row's right side can end up
@@ -503,7 +503,7 @@ class _FacilitiesRow extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      'DC ×${state.dataCenterCount} · +${(state.dcIncome * 3600).toStringAsFixed(0)}M -${(state.operatingCost * 3600).toStringAsFixed(0)}M/h upkeep · -${state.dcDraw.toStringAsFixed(0)}⚡  ·  🔋${state.energyCapacity.toStringAsFixed(0)}⚡  ·  🛡${state.security}',
+                      'DC ×${state.dataCenterCount} · +${(state.dcIncome * 3600).toStringAsFixed(0)}M -${(state.operatingCost * 3600).toStringAsFixed(0)}M/h upkeep · -${(state.dcDraw * 3600).toStringAsFixed(0)}⚡/h  ·  🔋${state.energyCapacity.toStringAsFixed(0)}⚡  ·  🛡${state.security}',
                       style: GGText.soft,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -721,7 +721,7 @@ class _WorkloadTile extends StatelessWidget {
                   Text('+${(w.income * 3600).toStringAsFixed(0)}M/h',
                       style: GGText.soft.copyWith(
                           color: GGColors.good, fontWeight: FontWeight.w700)),
-                  Text('-${w.draw.toStringAsFixed(0)}⚡/s',
+                  Text('-${(w.draw * 3600).toStringAsFixed(0)}⚡/h',
                       style: GGText.soft.copyWith(color: GGColors.accent)),
                   Text('🔥 ${w.threat.toStringAsFixed(1)}x',
                       style: GGText.soft.copyWith(color: GGColors.danger)),

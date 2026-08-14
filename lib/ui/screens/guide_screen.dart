@@ -233,7 +233,7 @@ Widget get _workloadTable {
                             GGText.body.copyWith(fontWeight: FontWeight.w700)),
                     Text(
                         '${(w.income * 3600).toStringAsFixed(0)}M/h · '
-                        '${w.draw.toStringAsFixed(0)}⚡/s · '
+                        '${(w.draw * 3600).toStringAsFixed(0)}⚡/h · '
                         'heat ${w.threat.toStringAsFixed(1)}x · '
                         'needs 🛡${w.requiredSecurity}'
                         '${w.minesCoins ? ' · mints WATT' : ''}',

@@ -759,6 +759,11 @@ class GridGuardGame extends FlameGame {
   /// wind is what carries the grid when the sun is down.
   double windFactor = 0.6;
   double _windPhase = 0;
+  // Wind is re-rolled on a slow clock, not every frame: real wind doesn't
+  // gust and die inside a couple of seconds, and a number visibly jittering
+  // that fast reads as broken rather than as weather.
+  double _windUpdateTimer = 999;
+  static const double _windUpdateInterval = 60.0;
 
   double get effectiveWindOutput =>
       windOutput *
@@ -1294,10 +1299,14 @@ class GridGuardGame extends FlameGame {
     timeOfDay =
         (now.hour * 3600 + now.minute * 60 + now.second) / 86400.0;
     _windPhase += dt;
-    windFactor = (0.55 +
-            0.35 * math.sin(_windPhase * 0.35) +
-            0.15 * math.sin(_windPhase * 1.1))
-        .clamp(0.15, 1.0);
+    _windUpdateTimer += dt;
+    if (_windUpdateTimer >= _windUpdateInterval) {
+      _windUpdateTimer = 0;
+      windFactor = (0.55 +
+              0.35 * math.sin(_windPhase * 0.35) +
+              0.15 * math.sin(_windPhase * 1.1))
+          .clamp(0.15, 1.0);
+    }
 
     // 1) Solar + wind charge the battery (solar needs daylight; wind doesn't).
     final beforeCharge = energy;
