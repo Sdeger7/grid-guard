@@ -15,6 +15,7 @@ import '../../models/level_config.dart';
 import '../../models/level_state.dart';
 import '../../models/tower_type.dart';
 import '../../services/app_providers.dart';
+import '../../services/save_service.dart';
 import '../../services/audio_service.dart' as audio;
 import '../../services/monetization_service.dart';
 import '../theme.dart';
@@ -84,12 +85,18 @@ class _GameScreenState extends ConsumerState<GameScreen>
   double _gestureScale = 1;
   Offset _gestureFocal = Offset.zero;
 
+  // Cached in initState: dispose() runs after the widget is torn down, and
+  // Riverpod forbids `ref.read` past that point, so the autosave-on-exit
+  // path can't reach the provider at the moment it needs it.
+  late final SaveService _saveService;
+
   @override
   void initState() {
     super.initState();
+    _saveService = ref.read(saveServiceProvider);
     // Survival is one continuous site: reload whatever the player left behind.
     final save = widget.config.endless
-        ? ref.read(saveServiceProvider).loadBase(challenge: widget.challenge)
+        ? _saveService.loadBase(challenge: widget.challenge)
         : null;
     // Whatever the player is wearing, resolved once at launch.
     final worn = <SkinSlot, Skin>{};
@@ -236,9 +243,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
   void _saveBase() {
     if (!widget.config.endless) return;
-    ref
-        .read(saveServiceProvider)
-        .saveBase(_game.captureSave(), challenge: widget.challenge);
+    _saveService.saveBase(_game.captureSave(), challenge: widget.challenge);
   }
 
   void _onSnapshot(LevelState state) {
