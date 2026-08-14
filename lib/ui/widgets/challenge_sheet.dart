@@ -127,8 +127,8 @@ class _ChallengeSheet extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 3),
                   child: Row(
                     children: [
-                      Expanded(child: Text(row.\$1, style: GGText.soft)),
-                      Text('₵${(pool * row.\$2).toStringAsFixed(2)}',
+                      Expanded(child: Text(row.$1, style: GGText.soft)),
+                      Text('₵${(pool * row.$2).toStringAsFixed(2)}',
                           style: GGText.soft.copyWith(
                               fontWeight: FontWeight.w700)),
                     ],

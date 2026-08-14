@@ -243,14 +243,14 @@ class SurvivalEndPanel extends StatelessWidget {
           children: [
             const Text('BASE OVERRUN', style: GGText.title),
             const SizedBox(height: 4),
-            Text(isRecord ? 'New record!' : 'Best raid: \$bestRaid',
+            Text(isRecord ? 'New record!' : 'Best raid: $bestRaid',
                 style: GGText.soft.copyWith(
                     color: isRecord ? GGColors.good : GGColors.inkSoft)),
             const SizedBox(height: 16),
-            _RewardRow(label: 'Raids survived', value: '\$raid'),
-            _RewardRow(label: 'Score', value: '\$score'),
+            _RewardRow(label: 'Raids survived', value: '$raid'),
+            _RewardRow(label: 'Score', value: '$score'),
             _RewardRow(
-                label: 'WATT banked', value: '+\$coins', highlight: coins > 0),
+                label: 'WATT banked', value: '+$coins', highlight: coins > 0),
             const SizedBox(height: 16),
             if (coins > 0)
               SizedBox(
