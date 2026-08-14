@@ -96,7 +96,8 @@ class _SecuritySheetState extends State<_SecuritySheet> {
             _Line('Stops', '${(game.firewall.resistance * 100).round()}% of '
                 'attempts'),
             if (game.firewall.upkeep > 0)
-              _Line('Licence', '−${game.firewall.upkeep} M/s'),
+              _Line('Licence',
+                  '−${(game.firewall.upkeep * 3600).toStringAsFixed(0)} M/h'),
             const SizedBox(height: 6),
             Text(game.firewall.blurb, style: GGText.soft),
             if (next != null) ...[
@@ -115,7 +116,7 @@ class _SecuritySheetState extends State<_SecuritySheet> {
                     const SizedBox(height: 4),
                     Text(
                         'Stops ${(next.resistance * 100).round()}% · '
-                        '−${next.upkeep} M/s licence',
+                        '−${(next.upkeep * 3600).toStringAsFixed(0)} M/h licence',
                         style: GGText.soft),
                     const SizedBox(height: 8),
                     SizedBox(

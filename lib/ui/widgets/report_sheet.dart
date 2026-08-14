@@ -78,29 +78,30 @@ class _ReportSheet extends StatelessWidget {
             ),
             const SizedBox(height: 14),
 
-            _Header('MONEY', trailing: _rate(netMoney, 'M/s')),
+            _Header('MONEY', trailing: _rate(netMoney * 3600, 'M/h')),
             if (game.dcLoadFraction < 0.98 && game.dataCenters.isNotEmpty)
               _Line(
                   'Machines running at '
                       '${(game.dcLoadFraction * 100).round()}% of demand',
                   'income scaled to match'),
-            _Line('Data Center contracts', '+${income.toStringAsFixed(1)} M/s',
-                good: true),
+            _Line('Data Center contracts',
+                '+${(income * 3600).toStringAsFixed(0)} M/h', good: true),
             if (exportRate > 0)
               _Line('Grid export (per surplus unit)',
-                  '+${exportRate.toStringAsFixed(2)} M/s', good: true),
+                  '+${(exportRate * 3600).toStringAsFixed(0)} M/h', good: true),
             if (contractsIn > 0)
-              _Line('Sell contracts', '+${contractsIn.toStringAsFixed(1)} M/s',
-                  good: true),
+              _Line('Sell contracts',
+                  '+${(contractsIn * 3600).toStringAsFixed(0)} M/h', good: true),
             _Line('Upkeep on everything built',
-                '−${upkeep.toStringAsFixed(1)} M/s'),
+                '−${(upkeep * 3600).toStringAsFixed(0)} M/h'),
             if (intel > 0)
               _Line('Intel Center running costs',
-                  '−${intel.toStringAsFixed(1)} M/s'),
+                  '−${(intel * 3600).toStringAsFixed(0)} M/h'),
             if (contractsOut > 0)
-              _Line('Buy contracts', '−${contractsOut.toStringAsFixed(1)} M/s'),
+              _Line('Buy contracts',
+                  '−${(contractsOut * 3600).toStringAsFixed(0)} M/h'),
             const SizedBox(height: 6),
-            _Line('Balance', _rate(netMoney, 'M/s'),
+            _Line('Balance', _rate(netMoney * 3600, 'M/h'),
                 bold: true, good: netMoney >= 0),
 
             const SizedBox(height: 18),
@@ -165,7 +166,7 @@ class _ReportSheet extends StatelessWidget {
                     '${game.workloadOf(dc).name}',
                 game.workloadOf(dc).minesCoins
                     ? 'mines WATT'
-                    : '+${game.workloadOf(dc).income.toStringAsFixed(0)} M/s',
+                    : '+${(game.workloadOf(dc).income * 3600).toStringAsFixed(0)} M/h',
               ),
             if (game.dataCenters.isEmpty)
               _Line('None built', 'no income at all'),
@@ -194,7 +195,7 @@ class _ReportSheet extends StatelessWidget {
       final spec = TowerCatalogNames.of(type);
       out.add((
         '$spec ×$n',
-        '−${upkeep[type]!.toStringAsFixed(1)} M/s upkeep',
+        '−${(upkeep[type]! * 3600).toStringAsFixed(0)} M/h upkeep',
       ));
     });
     if (out.isEmpty) out.add(('Nothing built yet', ''));

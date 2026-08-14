@@ -683,9 +683,9 @@ class GridGuardGame extends FlameGame {
   /// Fraction of a structure's build cost billed every second.
   ///
   /// Tuned so a site's running bill is a real drag on income rather than a
-  /// rounding error: a plant worth 10,000 costs 40/s to own, which a single
-  /// mid-tier contract barely covers.
-  static const double upkeepRate = 0.004;
+  /// rounding error, but not one that swallows the site's whole income the
+  /// moment it grows past a handful of buildings.
+  static const double upkeepRate = 0.0028;
 
   /// Energy per second the Intel Centers draw just to stay awake.
   static const double intelEnergyPerCenter = 1.6;

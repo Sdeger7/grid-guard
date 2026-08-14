@@ -118,8 +118,8 @@ class _TopBar extends StatelessWidget {
         color: state.netMoneyRate >= 0 ? GGColors.good : GGColors.danger,
         label: '${state.money}M',
         caption: state.netMoneyRate >= 0
-            ? '+${state.netMoneyRate.toStringAsFixed(1)}/s'
-            : '${state.netMoneyRate.toStringAsFixed(1)}/s',
+            ? '+${(state.netMoneyRate * 3600).toStringAsFixed(0)}/h'
+            : '${(state.netMoneyRate * 3600).toStringAsFixed(0)}/h',
       ),
       if (state.eventEmoji != '·')
         _Stat(
@@ -289,7 +289,7 @@ class _TopBar extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(
                     '${state.netMoneyRate >= 0 ? '+' : ''}'
-                    '${state.netMoneyRate.toStringAsFixed(1)}/s',
+                    '${(state.netMoneyRate * 3600).toStringAsFixed(0)}/h',
                     style: GGText.soft.copyWith(
                       fontWeight: FontWeight.w700,
                       color: state.netMoneyRate >= 0
@@ -503,7 +503,7 @@ class _FacilitiesRow extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      'DC ×${state.dataCenterCount} · +${state.dcIncome.toStringAsFixed(0)}M -${state.operatingCost.toStringAsFixed(0)}M/s upkeep · -${state.dcDraw.toStringAsFixed(0)}⚡  ·  🔋${state.energyCapacity.toStringAsFixed(0)}⚡  ·  🛡${state.security}',
+                      'DC ×${state.dataCenterCount} · +${(state.dcIncome * 3600).toStringAsFixed(0)}M -${(state.operatingCost * 3600).toStringAsFixed(0)}M/h upkeep · -${state.dcDraw.toStringAsFixed(0)}⚡  ·  🔋${state.energyCapacity.toStringAsFixed(0)}⚡  ·  🛡${state.security}',
                       style: GGText.soft,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -718,7 +718,7 @@ class _WorkloadTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('+${w.income.toStringAsFixed(0)}M/s',
+                  Text('+${(w.income * 3600).toStringAsFixed(0)}M/h',
                       style: GGText.soft.copyWith(
                           color: GGColors.good, fontWeight: FontWeight.w700)),
                   Text('-${w.draw.toStringAsFixed(0)}⚡/s',
