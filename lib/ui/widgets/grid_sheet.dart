@@ -63,7 +63,7 @@ class _GridSheetState extends State<_GridSheet> {
               ),
               const SizedBox(height: 2),
               Text(
-                  'Spot ${spot.toStringAsFixed(2)}M per unit. Power is cheap '
+                  'Spot ${formatCredits(spot)} per unit. Power is cheap '
                   'at midday and dear after dark — a contract locks today\'s '
                   'price for its whole term.',
                   style: GGText.soft),
@@ -252,14 +252,14 @@ class _Offer extends StatelessWidget {
               Text(buying ? 'BUY POWER' : 'SELL POWER',
                   style: GGText.body.copyWith(fontWeight: FontWeight.w900)),
               const Spacer(),
-              Text('${price.toStringAsFixed(2)}M / unit',
+              Text('${formatCredits(price)} / unit',
                   style: GGText.body.copyWith(fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 4),
           Text(
               '${energy.round()}⚡ total · '
-              '${buying ? 'costs' : 'pays'} ${total.round()}M',
+              '${buying ? 'costs' : 'pays'} ${formatCredits(total)}',
               style: GGText.soft.copyWith(color: colour)),
           const SizedBox(height: 4),
           Text(note, style: GGText.soft),
@@ -299,7 +299,7 @@ class _Running extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                   '${(contract.ratePerSecond * 3600).round()}⚡/h @ '
-                  '${contract.price.toStringAsFixed(2)}M',
+                  '${formatCredits(contract.price)}',
                   style: GGText.soft),
               const Spacer(),
               Text('${contract.secondsLeft.round()}s left',

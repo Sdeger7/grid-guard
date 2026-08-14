@@ -25,7 +25,7 @@ class SkinsScreen extends ConsumerWidget {
           Center(
             child: Padding(
               padding: const EdgeInsets.only(right: 14),
-              child: Text('₵${profile.coins.toStringAsFixed(2)}',
+              child: Text('$wattSymbol${profile.coins.toStringAsFixed(2)}',
                   style: GGText.body.copyWith(
                       fontWeight: FontWeight.w800, color: GGColors.amber)),
             ),
@@ -139,7 +139,7 @@ class _SkinRow extends StatelessWidget {
             else
               FilledButton(
                 onPressed: affordable ? onBuy : null,
-                child: Text('₵${skin.price}'),
+                child: Text('$wattSymbol${skin.price}'),
               ),
           ],
         ),

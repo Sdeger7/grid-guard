@@ -67,7 +67,7 @@ class OfflinePanel extends StatelessWidget {
                       icon: Icons.paid_rounded,
                       color: GGColors.good,
                       label: 'Earned',
-                      value: '${report.money}M',
+                      value: formatCredits(report.money),
                     ),
                     if (report.coins > 0) ...[
                       const SizedBox(height: 8),
@@ -127,7 +127,7 @@ class OfflinePanel extends StatelessWidget {
                         icon: Icons.water_drop_outlined,
                         color: GGColors.danger,
                         label: 'Spilled (storage full)',
-                        value: '${report.wasted}M',
+                        value: formatCredits(report.wasted),
                       ),
                       const SizedBox(height: 6),
                       Text(

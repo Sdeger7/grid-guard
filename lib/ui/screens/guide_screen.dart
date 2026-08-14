@@ -149,7 +149,7 @@ class GuideScreen extends StatelessWidget {
             body: 'MONEY (M) is the build currency: contracts, missions, the '
                 'dawn bonus and grid sales all pay it, and it buys '
                 'structures, upgrades, repairs and land clearing.\n\n'
-                'WATT (₵WATT) is minted by exactly one thing — the Crypto '
+                'WATT (${wattSymbol}WATT) is minted by exactly one thing — the Crypto '
                 'Mining workload — and buys permanent perks that carry across '
                 'everything you do. You can cash WATT out for MONEY at '
                 '${GridGuardGame.wattToCash} M each, but spent WATT is gone '
@@ -232,7 +232,7 @@ Widget get _workloadTable {
                         style:
                             GGText.body.copyWith(fontWeight: FontWeight.w700)),
                     Text(
-                        '${(w.income * 3600).toStringAsFixed(0)}M/h · '
+                        '${formatCreditsRate(w.income * 3600)} · '
                         '${(w.draw * 3600).toStringAsFixed(0)}⚡/h · '
                         'heat ${w.threat.toStringAsFixed(1)}x · '
                         'needs 🛡${w.requiredSecurity}'
@@ -246,7 +246,7 @@ Widget get _workloadTable {
         ),
       Text(
           'Grid prices swing between about '
-          '${GridMarket.basePrice.toStringAsFixed(2)}M and several times that; '
+          '${formatCredits(GridMarket.basePrice)} and several times that; '
           'you sell for ${(GridMarket.sellFraction * 100).round()}% of the '
           'buying price.',
           style: GGText.soft),

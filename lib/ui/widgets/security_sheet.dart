@@ -96,8 +96,7 @@ class _SecuritySheetState extends State<_SecuritySheet> {
             _Line('Stops', '${(game.firewall.resistance * 100).round()}% of '
                 'attempts'),
             if (game.firewall.upkeep > 0)
-              _Line('Licence',
-                  '−${(game.firewall.upkeep * 3600).toStringAsFixed(0)} M/h'),
+              _Line('Licence', formatCreditsRate(-game.firewall.upkeep * 3600)),
             const SizedBox(height: 6),
             Text(game.firewall.blurb, style: GGText.soft),
             if (next != null) ...[
@@ -116,7 +115,7 @@ class _SecuritySheetState extends State<_SecuritySheet> {
                     const SizedBox(height: 4),
                     Text(
                         'Stops ${(next.resistance * 100).round()}% · '
-                        '−${(next.upkeep * 3600).toStringAsFixed(0)} M/h licence',
+                        '${formatCreditsRate(-next.upkeep * 3600)} licence',
                         style: GGText.soft),
                     const SizedBox(height: 8),
                     SizedBox(
@@ -125,7 +124,7 @@ class _SecuritySheetState extends State<_SecuritySheet> {
                         onPressed: game.money >= next.cost
                             ? () => setState(() => game.upgradeFirewall())
                             : null,
-                        child: Text('Install · ${next.cost}M'),
+                        child: Text('Install · ${formatCredits(next.cost)}'),
                       ),
                     ),
                   ],
@@ -136,8 +135,8 @@ class _SecuritySheetState extends State<_SecuritySheet> {
             // ---- Vault ----
             const SizedBox(height: 18),
             _Header('BANK'),
-            _Line('Banked', '${game.vaultMoney.round()}M · '
-                '₵${game.vaultWatt.toStringAsFixed(3)}'),
+            _Line('Banked', '${formatCredits(game.vaultMoney)} · '
+                '$wattSymbol${game.vaultWatt.toStringAsFixed(3)}'),
             _Line('Nightly fee',
                 '${(GridGuardGame.vaultNightlyFee * 100).round()}% of the '
                     'balance'),
@@ -209,8 +208,8 @@ class _SecuritySheetState extends State<_SecuritySheet> {
                   onPressed: game.money >= game.totalRefurbishCost
                       ? () => setState(() => game.refurbishAll())
                       : null,
-                  child: Text(
-                      'Refurbish everything · ${game.totalRefurbishCost}M'),
+                  child: Text('Refurbish everything · '
+                      '${formatCredits(game.totalRefurbishCost)}'),
                 ),
               ),
             ],
@@ -291,7 +290,7 @@ class _PolicyRow extends StatelessWidget {
                           GGText.body.copyWith(fontWeight: FontWeight.w800)),
                   Text(policy.blurb, style: GGText.soft),
                   Text(
-                      'Excess ${policy.excess}M · pays '
+                      'Excess ${formatCredits(policy.excess)} · pays '
                       '${(policy.payoutShare * 100).round()}% above it',
                       style: GGText.soft),
                 ],

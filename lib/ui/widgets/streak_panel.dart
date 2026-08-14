@@ -96,7 +96,7 @@ class StreakPanel extends StatelessWidget {
                         const Icon(Icons.paid_rounded,
                             size: 18, color: GGColors.good),
                         const SizedBox(width: 6),
-                        Text('${reward.cash}M',
+                        Text(formatCredits(reward.cash),
                             style: GGText.body.copyWith(
                                 fontWeight: FontWeight.w900,
                                 color: GGColors.good)),

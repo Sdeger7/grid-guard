@@ -6,6 +6,7 @@ import 'package:flame/game.dart';
 
 import '../data/abilities.dart';
 import '../data/cities.dart';
+import '../data/currency_format.dart';
 import '../data/dc_workload.dart';
 import '../data/enemy_catalog.dart';
 import '../data/events.dart';
@@ -348,8 +349,8 @@ class GridGuardGame extends FlameGame {
       money = math.max(0.0, money - fine + covered);
       reputation = math.max(Reputation.min,
           reputation - Reputation.penaltyFor(BreachKind.dataTheft));
-      breachLog.add('Client records taken. Fine ${fine}M'
-          '${covered > 0 ? ', ${covered}M recovered on cover' : ''}. '
+      breachLog.add('Client records taken. Fine ${formatCredits(fine)}'
+          '${covered > 0 ? ', ${formatCredits(covered)} recovered on cover' : ''}. '
           'Reputation down.');
       addShake(shakeMagnitudeHeavy);
     } else if (roll < 0.75) {
@@ -362,14 +363,15 @@ class GridGuardGame extends FlameGame {
       money = math.max(0.0, money - taken + covered);
       reputation = math.max(Reputation.min,
           reputation - Reputation.penaltyFor(BreachKind.theft));
-      breachLog.add('${taken.round()}M siphoned from the operating account'
-          '${covered > 0 ? ', ${covered}M recovered' : ''}.');
+      breachLog.add(
+          '${formatCredits(taken)} siphoned from the operating account'
+          '${covered > 0 ? ', ${formatCredits(covered)} recovered' : ''}.');
     } else {
       final taken = coinsEarned * (0.10 + _rng.nextDouble() * 0.25);
       coinsEarned = math.max(0.0, coinsEarned - taken);
       reputation = math.max(Reputation.min,
           reputation - Reputation.penaltyFor(BreachKind.wattTheft));
-      breachLog.add('₵${taken.toStringAsFixed(3)} taken from the wallet. '
+      breachLog.add('⚡W${taken.toStringAsFixed(3)} taken from the wallet. '
           'Vaulted WATT was untouched.');
     }
 
@@ -1537,7 +1539,7 @@ class GridGuardGame extends FlameGame {
     if (covered <= 0) return;
     money += covered;
     spawnFloatingText(
-      '+${covered}M cover',
+      formatCreditsRate(covered, suffix: ' cover'),
       Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
       const Color(0xFF2FBF71),
     );
@@ -1727,8 +1729,7 @@ class GridGuardGame extends FlameGame {
       spawnFloatingText(
         c.shortfall > 0
             ? 'Contract ended · shortfall'
-            : 'Contract settled ${c.settled >= 0 ? '+' : ''}'
-                '${c.settled.round()}M',
+            : 'Contract settled ${formatCredits(c.settled)}',
         Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
         c.shortfall > 0 ? const Color(0xFFE23D4B) : const Color(0xFF2FBF71),
       );
@@ -1769,7 +1770,7 @@ class GridGuardGame extends FlameGame {
     coinsEarned -= amount;
     money += amount * wattToCash;
     spawnFloatingText(
-      '+${(amount * wattToCash).round()}M',
+      formatCreditsRate(amount * wattToCash),
       Vector2(baseCoord.col.toDouble(), baseCoord.row.toDouble()),
       const Color(0xFF2FBF71),
     );
@@ -1911,7 +1912,7 @@ class GridGuardGame extends FlameGame {
       _sceneryTiles.remove(coord);
       _pondTiles.remove(coord);
       spawnFloatingText(
-        '-${clearing}M clearing',
+        '${formatCredits(-clearing)} clearing',
         Vector2(coord.col.toDouble(), coord.row.toDouble()),
         const Color(0xFFE0A050),
       );

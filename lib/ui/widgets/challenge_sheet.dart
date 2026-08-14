@@ -90,7 +90,7 @@ class _ChallengeSheet extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                         '📍 ${city.name} · '
-                        '${challenge.startMoney}M seed · '
+                        '${formatCredits(challenge.startMoney)} seed · '
                         '${challenge.days} days · identical weather and raids '
                         'for every player',
                         style: GGText.soft.copyWith(
@@ -109,7 +109,7 @@ class _ChallengeSheet extends StatelessWidget {
                       style: GGText.soft.copyWith(
                           letterSpacing: 1.2, fontWeight: FontWeight.w800)),
                   const Spacer(),
-                  Text('₵${pool.toStringAsFixed(2)} · ${field.length + 1} entries',
+                  Text('$wattSymbol${pool.toStringAsFixed(2)} · ${field.length + 1} entries',
                       style: GGText.soft.copyWith(
                           color: GGColors.amber,
                           fontWeight: FontWeight.w800)),
@@ -128,7 +128,7 @@ class _ChallengeSheet extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(child: Text(row.$1, style: GGText.soft)),
-                      Text('₵${(pool * row.$2).toStringAsFixed(2)}',
+                      Text('$wattSymbol${(pool * row.$2).toStringAsFixed(2)}',
                           style: GGText.soft.copyWith(
                               fontWeight: FontWeight.w700)),
                     ],
@@ -145,7 +145,7 @@ class _ChallengeSheet extends StatelessWidget {
                           entered
                               ? 'Entered · currently standing #$liveRank of '
                                   '${field.length + 1}'
-                              : 'Entry ₵${ChallengeCatalog.entryFee} — one '
+                              : 'Entry $wattSymbol${ChallengeCatalog.entryFee} — one '
                                   'per week',
                           style: GGText.soft.copyWith(
                               fontWeight: FontWeight.w700)),
@@ -289,7 +289,7 @@ class _ChallengeSheet extends StatelessWidget {
   /// week number is what makes two people's numbers comparable.
   String _resultCard(WeeklyChallenge c, String zoneName, int score) {
     final wattLine = game.coinsEarned > 0
-        ? '\n₵${game.coinsEarned.toStringAsFixed(3)} mined'
+        ? '\n$wattSymbol${game.coinsEarned.toStringAsFixed(3)} mined'
         : '';
     return '⚡ GRID GUARD — Week ${c.week}: ${c.name}\n'
         '$zoneName · day ${game.dayNumber}\n'

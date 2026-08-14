@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+export '../data/currency_format.dart';
+
 /// Industrial-dashboard palette shared across the Flutter UI. Kept minimal and
 /// high-contrast; accents are the same blue/orange the in-world neon uses.
 class GGColors {
@@ -68,9 +70,9 @@ class GGPanel extends StatelessWidget {
   }
 }
 
-/// The WATT mark: a struck-through C, the same shape language as a currency
-/// glyph without borrowing Bitcoin's B — this is our own closed currency and
-/// should not read as somebody else's.
+/// The WATT mark: a bolt over a W, so it reads as "electric currency" at a
+/// glance and never gets mistaken for Credits, which uses a completely
+/// different symbol (₡).
 class WattIcon extends StatelessWidget {
   const WattIcon({super.key, this.size = 16, this.color = GGColors.amber});
 
@@ -82,16 +84,24 @@ class WattIcon extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: Center(
-        child: Text(
-          '₵',
-          style: TextStyle(
-            fontSize: size,
-            height: 1,
-            fontWeight: FontWeight.w900,
-            color: color,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        clipBehavior: Clip.none,
+        children: [
+          Text(
+            'W',
+            style: TextStyle(
+              fontSize: size * 0.82,
+              height: 1,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
           ),
-        ),
+          Positioned(
+            top: -size * 0.30,
+            child: Icon(Icons.bolt_rounded, size: size * 0.62, color: color),
+          ),
+        ],
       ),
     );
   }

@@ -59,7 +59,7 @@ class _CitySheetState extends State<_CitySheet> {
                 const SizedBox(width: 8),
                 const Text('LAND', style: GGText.heading),
                 const Spacer(),
-                Text('${game.money.floor()}M', style: GGText.soft),
+                Text(formatCredits(game.money), style: GGText.soft),
               ],
             ),
             const SizedBox(height: 4),
@@ -155,7 +155,7 @@ class _Portfolio extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-                'Invested ${holding.development}M · '
+                'Invested ${formatCredits(holding.development)} · '
                 '${(km / 1000).toStringAsFixed(1)}k km away · '
                 'line delivers ${(efficiency * 100).round()}%',
                 style: GGText.soft),
@@ -180,7 +180,7 @@ class _Portfolio extends StatelessWidget {
                           onChanged();
                         }
                       : null,
-                  child: Text('Wheel 60⚡ · ${fee}M'),
+                  child: Text('Wheel 60⚡ · ${formatCredits(fee)}'),
                 ),
                 OutlinedButton(
                   onPressed: game.money >=
@@ -190,8 +190,8 @@ class _Portfolio extends StatelessWidget {
                           onChanged();
                         }
                       : null,
-                  child: Text(
-                      'Move here · ${CityCatalog.haulageBetween(game.city, c)}M'),
+                  child: Text('Move here · '
+                      '${formatCredits(CityCatalog.haulageBetween(game.city, c))}'),
                 ),
                 TextButton(
                   onPressed: () {
@@ -296,7 +296,8 @@ class _CityRow extends StatelessWidget {
                                 onChanged();
                               }
                             : null,
-                        child: Text('Rent · ${city.rentPerDay}M/day'),
+                        child: Text(
+                            'Rent · ${formatCredits(city.rentPerDay)}/day'),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -308,7 +309,7 @@ class _CityRow extends StatelessWidget {
                                 onChanged();
                               }
                             : null,
-                        child: Text('Buy · ${city.landPrice}M'),
+                        child: Text('Buy · ${formatCredits(city.landPrice)}'),
                       ),
                     ),
                   ],

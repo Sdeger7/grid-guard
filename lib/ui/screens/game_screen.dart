@@ -222,7 +222,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(prize > 0
-            ? 'Week over — finished #$rank. ₵${prize.toStringAsFixed(2)} '
+            ? 'Week over — finished #$rank. $wattSymbol${prize.toStringAsFixed(2)} '
                 'from the pool.'
             : 'Week over — finished #$rank, outside the places.'),
       ),
