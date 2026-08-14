@@ -29,6 +29,7 @@ import '../widgets/city_sheet.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/security_sheet.dart';
 import '../widgets/site_menu.dart';
+import '../widgets/staff_sheet.dart';
 import '../widgets/streak_panel.dart';
 import '../widgets/speedup_sheet.dart';
 import '../widgets/tutorial_overlay.dart';
@@ -478,6 +479,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                           showChallengeSheet(context, ref, _game),
                       onOpenSecurity: () => showSecuritySheet(context, _game,
                           ref.read(monetizationServiceProvider)),
+                      onOpenTeam: () => showStaffSheet(context, _game),
                       onOpenCities: () => showCitySheet(context, _game,
                           onChanged: () {
                             _refreshWeather();

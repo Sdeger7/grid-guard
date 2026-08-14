@@ -21,6 +21,7 @@ Future<void> showSiteMenu(
   required VoidCallback onOpenChallenge,
   required VoidCallback onOpenCities,
   required VoidCallback onOpenSecurity,
+  required VoidCallback onOpenTeam,
   // A challenge run is pushed on top of the player's own site, so it needs
   // its own way back — there is no other exit from a full-screen game view.
   bool isChallenge = false,
@@ -89,6 +90,13 @@ Future<void> showSiteMenu(
               title: 'Security',
               subtitle: 'Firewall, standing, the bank and cover',
               onTap: onOpenSecurity,
+            ),
+            entry(
+              icon: Icons.groups_rounded,
+              colour: GGColors.accent,
+              title: 'Team',
+              subtitle: 'Engineer, security chief, sales lead — levelling up',
+              onTap: onOpenTeam,
             ),
             entry(
               icon: Icons.map_rounded,

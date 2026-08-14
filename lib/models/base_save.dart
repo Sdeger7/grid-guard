@@ -73,6 +73,7 @@ class BaseSave {
     this.score = 0,
     this.storyDayShown = 0,
     this.savedAtMs = 0,
+    this.staffXp = const {},
   });
 
   final List<SavedStructure> structures;
@@ -112,6 +113,9 @@ class BaseSave {
   /// is computed against this.
   final int savedAtMs;
 
+  /// XP for each crew role, keyed by [StaffRole.name].
+  final Map<String, double> staffXp;
+
   bool get isEmpty => structures.isEmpty && money == 0 && dayNumber == 1;
 
   String encode() => jsonEncode({
@@ -135,6 +139,7 @@ class BaseSave {
         'sc': score,
         'sd': storyDayShown,
         'at': savedAtMs,
+        'staff': staffXp,
       });
 
   static BaseSave decode(String raw) {
@@ -168,6 +173,8 @@ class BaseSave {
       score: (j['sc'] as num?)?.toInt() ?? 0,
       storyDayShown: (j['sd'] as num?)?.toInt() ?? 0,
       savedAtMs: (j['at'] as num?)?.toInt() ?? 0,
+      staffXp: ((j['staff'] as Map<String, dynamic>?) ?? const {}).map(
+          (k, v) => MapEntry(k, (v as num).toDouble())),
     );
   }
 }

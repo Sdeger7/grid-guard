@@ -15,6 +15,7 @@ import '../data/insurance.dart';
 import '../data/security.dart';
 import '../data/skins.dart';
 import '../data/solar.dart';
+import '../data/staff.dart';
 import '../data/watt_supply.dart';
 import '../services/weather_service.dart';
 import '../data/missions.dart';
@@ -220,6 +221,11 @@ class GridGuardGame extends FlameGame {
   int firewallTier = 0;
   FirewallTier get firewall => FirewallCatalog.at(firewallTier);
 
+  /// The crew: an engineer, a security chief, a sales lead. They level up on
+  /// their own the longer the site stays open, and each level quietly makes
+  /// their part of the business cheaper or more profitable to run.
+  StaffRoster staff = StaffRoster();
+
   /// Standing with the people who hand out contracts. Everything a data centre
   /// sells rests on it, and a breach spends months of it in one night.
   double reputation = Reputation.initial;
@@ -300,7 +306,10 @@ class GridGuardGame extends FlameGame {
 
   void _scheduleNextIntrusion() {
     // Roughly every twenty minutes at baseline, faster as the site gets hotter.
-    final minutes = (24 / math.max(0.4, threatMultiplier)) * (0.6 + _rng.nextDouble());
+    final security = staff.of(StaffRole.security);
+    final minutes = (24 / math.max(0.4, threatMultiplier)) *
+        (0.6 + _rng.nextDouble()) /
+        security.intrusionFrequencyMultiplier;
     _nextIntrusionMs = DateTime.now()
         .add(Duration(seconds: (minutes * 60).round()))
         .millisecondsSinceEpoch;
@@ -309,7 +318,10 @@ class GridGuardGame extends FlameGame {
   void _attemptIntrusion() {
     if (dataCenterCount == 0) return;
 
-    if (_rng.nextDouble() < firewall.resistance) {
+    final effectiveResistance = (firewall.resistance +
+            staff.of(StaffRole.security).resistanceBonus)
+        .clamp(0.0, 0.97);
+    if (_rng.nextDouble() < effectiveResistance) {
       breachLog.add('Intrusion attempt blocked by ${firewall.name}.');
       spawnFloatingText(
         '🔒 blocked',
@@ -677,7 +689,7 @@ class GridGuardGame extends FlameGame {
       total += s.currentTier.cost * upkeepRate;
       // A knocked-out building still costs money; it just earns nothing.
     }
-    return total;
+    return total * staff.of(StaffRole.engineer).upkeepMultiplier;
   }
 
   /// Fraction of a structure's build cost billed every second.
@@ -749,7 +761,8 @@ class GridGuardGame extends FlameGame {
       pvOutput *
       sunFactor *
       weatherSunScale *
-      worldEvent.sunScale;
+      worldEvent.sunScale *
+      staff.of(StaffRole.engineer).outputMultiplier;
 
   /// Combined nameplate output of all wind turbines (before wind).
   double get windOutput => windTurbines.fold(
@@ -770,7 +783,8 @@ class GridGuardGame extends FlameGame {
       windFactor *
       weatherWindScale *
       city.windIndex *
-      worldEvent.windScale;
+      worldEvent.windScale *
+      staff.of(StaffRole.engineer).outputMultiplier;
 
   /// Total energy generated right now: solar + wind, plus any always-on
   /// generator the player has unlocked.
@@ -858,7 +872,8 @@ class GridGuardGame extends FlameGame {
       perks.incomeMultiplier *
       Reputation.rateMultiplier(reputation) *
       city.priceIndex *
-      worldEvent.incomeScale;
+      worldEvent.incomeScale *
+      staff.of(StaffRole.sales).incomeMultiplier;
 
   /// Total money earned per second while powered. Mining contributes nothing
   /// here by design — it pays in WATT instead.
@@ -901,10 +916,16 @@ class GridGuardGame extends FlameGame {
   /// never fight the fit logic, and a resize recomputes the fit while keeping
   /// whatever zoom the player chose.
   double _fitScale = 1;
-  double _zoom = 1;
+  // A zoom of 1 is [_fitScale] — the whole grid shrunk to fit on screen,
+  // margins and all. The site is meant to feel like a place, not a map
+  // pinned to a corkboard, so the default view sits well past that: close
+  // enough that buildings read as buildings, with panning to reach the rest.
+  double _zoom = defaultZoom;
   Vector2 _pan = Vector2.zero();
 
-  static const double minZoom = 0.7;
+  static const double defaultZoom = 1.7;
+  // Never lets the player zoom back out to the shrunk-with-margins fit view.
+  static const double minZoom = 1.15;
   static const double maxZoom = 3.5;
 
   double get _scale => _fitScale * _zoom;
@@ -1193,7 +1214,7 @@ class GridGuardGame extends FlameGame {
 
   /// Snap back to the fitted, centred view.
   void resetView() {
-    _zoom = 1;
+    _zoom = defaultZoom;
     _pan = Vector2.zero();
     _applyView();
   }
@@ -1264,6 +1285,7 @@ class GridGuardGame extends FlameGame {
       _tickAbilities(dt);
       _tickEconomy(dt);
       _tickCoins(dt);
+      if (config.endless) staff.tick(dt);
     }
 
     if (phase == RunPhase.inProgress) {
@@ -1696,8 +1718,12 @@ class GridGuardGame extends FlameGame {
       city.priceIndex *
       worldEvent.priceScale;
 
-  /// Live export price per unit of energy.
-  double get gridSellPrice => gridPrice * GridMarket.sellFraction;
+  /// Live export price per unit of energy. A sharper Sales Lead gets a
+  /// better rate on the way out, not the way in.
+  double get gridSellPrice =>
+      gridPrice *
+      GridMarket.sellFraction *
+      staff.of(StaffRole.sales).gridPriceMultiplier;
 
   /// What one WATT fetches when sold for cash. WATT is deliberately scarce —
   /// only mining hardware mints it — so cashing out is a real decision: spend
@@ -2147,6 +2173,7 @@ class GridGuardGame extends FlameGame {
       score: score,
       storyDayShown: storyDayShown,
       savedAtMs: DateTime.now().millisecondsSinceEpoch,
+      staffXp: staff.toJson(),
     );
   }
 
@@ -2174,6 +2201,7 @@ class GridGuardGame extends FlameGame {
     cityId = save.cityId;
     firewallTier = save.firewallTier;
     reputation = save.reputation;
+    staff = StaffRoster.fromJson(save.staffXp);
     vaultMoney = save.vaultMoney;
     vaultWatt = save.vaultWatt;
     holdings

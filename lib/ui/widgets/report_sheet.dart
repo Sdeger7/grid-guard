@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/staff.dart';
 import '../../data/watt_supply.dart';
 import '../../game/grid_guard_game.dart';
 import '../../models/tower_type.dart';
@@ -186,12 +187,11 @@ class _ReportSheet extends StatelessWidget {
   List<(String, String)> _inventory() {
     final counts = <TowerType, int>{};
     final upkeep = <TowerType, double>{};
+    final engineerMult = game.staff.of(StaffRole.engineer).upkeepMultiplier;
     for (final s in game.structures) {
       counts.update(s.spec.type, (v) => v + 1, ifAbsent: () => 1);
-      upkeep.update(
-          s.spec.type,
-          (v) => v + s.currentTier.cost * GridGuardGame.upkeepRate,
-          ifAbsent: () => s.currentTier.cost * GridGuardGame.upkeepRate);
+      final cost = s.currentTier.cost * GridGuardGame.upkeepRate * engineerMult;
+      upkeep.update(s.spec.type, (v) => v + cost, ifAbsent: () => cost);
     }
     final out = <(String, String)>[];
     counts.forEach((type, n) {
